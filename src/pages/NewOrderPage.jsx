@@ -35,7 +35,7 @@ const PAY_OPTS = [
 export default function NewOrderPage() {
   const navigate = useNavigate()
   const createOrder = useCreateOrder()
-  const { data: clientsData } = useClients({ limit:200 })
+  const { data: clientsData } = useClients({ limit:100 })
   const clients = clientsData?.data || []
 
   const [step, setStep] = useState(1)

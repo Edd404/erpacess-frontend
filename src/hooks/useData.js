@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { clientService, orderService, catalogService } from '../services/api';
+import { clientService, orderService } from '../services/api';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
@@ -9,6 +9,9 @@ export const useClients = (params) =>
 
 export const useClient = (id) =>
   useQuery({ queryKey: ['clients', id], queryFn: () => clientService.get(id).then(r => r.data.data), enabled: !!id });
+
+export const useClientHistory = (id) =>
+  useQuery({ queryKey: ['client-history', id], queryFn: () => clientService.getHistory(id).then(r => r.data.data), enabled: !!id });
 
 export const useCreateClient = () => {
   const qc = useQueryClient();
@@ -53,6 +56,12 @@ export const useOrder = (id) =>
 export const useOrderStats = (period = '30') =>
   useQuery({ queryKey: ['orders-stats', period], queryFn: () => orderService.stats(period).then(r => r.data.data) });
 
+export const useAdvancedStats = (period = '30') =>
+  useQuery({ queryKey: ['orders-advanced-stats', period], queryFn: () => orderService.advancedStats(period).then(r => r.data.data) });
+
+export const useAuditLogs = (params) =>
+  useQuery({ queryKey: ['audit', params], queryFn: () => orderService.auditLogs(params).then(r => r.data) });
+
 export const useCreateOrder = () => {
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -60,8 +69,9 @@ export const useCreateOrder = () => {
     mutationFn: orderService.create,
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['orders'] });
+      qc.invalidateQueries({ queryKey: ['orders-stats'] });
+      qc.invalidateQueries({ queryKey: ['orders-advanced-stats'] });
       toast.success(`Atendimento ${res.data.data.order_number} registrado! ${res.data.email_sent ? 'E-mail enviado ✉️' : ''}`);
-      // Download automático do PDF se gerado
       if (res.data.pdf_base64) {
         const bytes = atob(res.data.pdf_base64);
         const blob = new Blob([Uint8Array.from(bytes, c => c.charCodeAt(0))], { type: 'application/pdf' });
@@ -80,7 +90,11 @@ export const useUpdateOrderStatus = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, status }) => orderService.updateStatus(id, status),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['orders'] }); toast.success('Status atualizado!'); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['orders'] });
+      qc.invalidateQueries({ queryKey: ['orders-stats'] });
+      toast.success('Status atualizado!');
+    },
     onError: (err) => toast.error(err.response?.data?.error || 'Erro ao atualizar status.'),
   });
 };
@@ -91,19 +105,9 @@ export const useDownloadPDF = () =>
       const res = await orderService.downloadPDF(id);
       const url = URL.createObjectURL(res.data);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = `Garantia_${id}.pdf`;
-      a.click();
+      a.href = url; a.download = `Garantia_${id}.pdf`; a.click();
       URL.revokeObjectURL(url);
     },
-    onSuccess: () => toast.success('PDF baixado com sucesso!'),
+    onSuccess: () => toast.success('PDF baixado!'),
     onError: () => toast.error('Erro ao gerar PDF.'),
-  });
-
-// ── Catalog ───────────────────────────────────────────────────
-export const useIPhoneModels = () =>
-  useQuery({
-    queryKey: ['iphone-models'],
-    queryFn: () => catalogService.iphoneModels().then(r => r.data.data),
-    staleTime: Infinity,
   });

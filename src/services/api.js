@@ -1,119 +1,70 @@
 import axios from 'axios';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
-
 const api = axios.create({
-  baseURL: BASE_URL,
+  baseURL: import.meta.env.VITE_API_URL + '/api/v1',
   timeout: 15000,
-  headers: { 'Content-Type': 'application/json' },
 });
 
-// ── Request interceptor: injeta token ────────────────────────────
+// ── Token refresh silencioso ──────────────────────────────────
+let refreshing = null;
+
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken');
+  const token = localStorage.getItem('access_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// ── Response interceptor: refresh token automático ───────────────
-let isRefreshing = false;
-let failedQueue = [];
-
-const processQueue = (error, token = null) => {
-  failedQueue.forEach((prom) => {
-    if (error) prom.reject(error);
-    else prom.resolve(token);
-  });
-  failedQueue = [];
-};
-
 api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
-
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        })
-          .then((token) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            return api(originalRequest);
+  res => res,
+  async (err) => {
+    const orig = err.config;
+    if (err.response?.status === 401 && !orig._retry && err.response?.data?.code === 'TOKEN_EXPIRED') {
+      orig._retry = true;
+      if (!refreshing) {
+        refreshing = api.post('/auth/refresh', { refreshToken: localStorage.getItem('refresh_token') })
+          .then(r => {
+            localStorage.setItem('access_token', r.data.data.access_token);
+            return r.data.data.access_token;
           })
-          .catch((err) => Promise.reject(err));
+          .catch(() => {
+            localStorage.clear();
+            window.location.href = '/login';
+          })
+          .finally(() => { refreshing = null; });
       }
-
-      originalRequest._retry = true;
-      isRefreshing = true;
-
-      const refreshToken = localStorage.getItem('refreshToken');
-      if (!refreshToken) {
-        isRefreshing = false;
-        clearAuth();
-        window.location.href = '/login';
-        return Promise.reject(error);
-      }
-
-      try {
-        const { data } = await axios.post(`${BASE_URL}/auth/refresh`, { refreshToken });
-        localStorage.setItem('accessToken', data.accessToken);
-        processQueue(null, data.accessToken);
-        originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
-        return api(originalRequest);
-      } catch (refreshError) {
-        processQueue(refreshError, null);
-        clearAuth();
-        window.location.href = '/login';
-        return Promise.reject(refreshError);
-      } finally {
-        isRefreshing = false;
-      }
+      const token = await refreshing;
+      if (token) { orig.headers.Authorization = `Bearer ${token}`; return api(orig); }
     }
-
-    return Promise.reject(error);
+    return Promise.reject(err);
   }
 );
 
-const clearAuth = () => {
-  localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
-  localStorage.removeItem('user');
-};
-
-// ── Auth ─────────────────────────────────────────────────────────
-export const authService = {
-  login: (data) => api.post('/auth/login', data),
-  me: () => api.get('/auth/me'),
-  changePassword: (data) => api.patch('/auth/change-password', data),
-  register: (data) => api.post('/auth/register', data),
-};
-
-// ── Clients ───────────────────────────────────────────────────────
+// ── Services ──────────────────────────────────────────────────
 export const clientService = {
-  list: (params) => api.get('/clients', { params }),
-  get: (id) => api.get(`/clients/${id}`),
-  create: (data) => api.post('/clients', data),
-  update: (id, data) => api.put(`/clients/${id}`, data),
-  delete: (id) => api.delete(`/clients/${id}`),
-  lookupCEP: (cep) => api.get(`/clients/cep/${cep}`),
+  list:       (p)  => api.get('/clients', { params: p }),
+  search:     (q)  => api.get('/clients/search', { params: { q } }),
+  get:        (id) => api.get(`/clients/${id}`),
+  getHistory: (id) => api.get(`/clients/${id}/history`),
+  create:     (d)  => api.post('/clients', d),
+  update:     (id, d) => api.put(`/clients/${id}`, d),
+  delete:     (id) => api.delete(`/clients/${id}`),
+  lookupCEP:  (cep) => api.get(`/clients/cep/${cep}`),
 };
 
-// ── Orders ────────────────────────────────────────────────────────
 export const orderService = {
-  list: (params) => api.get('/orders', { params }),
-  get: (id) => api.get(`/orders/${id}`),
-  create: (data) => api.post('/orders', data),
+  list:         (p)  => api.get('/orders', { params: p }),
+  search:       (q)  => api.get('/orders/search', { params: { q } }),
+  get:          (id) => api.get(`/orders/${id}`),
+  stats:        (period) => api.get('/orders/stats', { params: { period } }),
+  advancedStats:(period) => api.get('/orders/stats/advanced', { params: { period } }),
+  create:       (d)  => api.post('/orders', d),
   updateStatus: (id, status) => api.patch(`/orders/${id}/status`, { status }),
-  delete: (id) => api.delete(`/orders/${id}`),
-  stats: (period) => api.get('/orders/stats', { params: { period } }),
-  downloadPDF: (id) =>
-    api.get(`/orders/${id}/warranty-pdf`, { responseType: 'blob' }),
-};
-
-// ── Catalog ───────────────────────────────────────────────────────
-export const catalogService = {
-  iphoneModels: () => api.get('/catalog/iphone-models'),
+  downloadPDF:  (id) => api.get(`/orders/${id}/warranty-pdf`, { responseType: 'blob' }),
+  resendPDF:    (id) => api.patch(`/orders/${id}/resend-pdf`),
+  delete:       (id) => api.delete(`/orders/${id}`),
+  auditLogs:    (p)  => api.get('/audit', { params: p }),
+  runReport:    (month, year) => api.post('/reports/monthly', { month, year }),
+  runBackup:    ()   => api.post('/backup/run'),
 };
 
 export default api;

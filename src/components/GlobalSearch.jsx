@@ -4,6 +4,7 @@ import { useTheme } from '../context/ThemeContext'
 import { Search, X, Smartphone, Users, ClipboardList, Camera, Loader2 } from 'lucide-react'
 import { clientService, orderService } from '../services/api'
 
+
 export default function GlobalSearch({ onClose }) {
   const { T } = useTheme()
   const navigate = useNavigate()

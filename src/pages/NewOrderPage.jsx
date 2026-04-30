@@ -1,14 +1,14 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useClients, useCreateOrder } from '../hooks/useData'
 import { formatCurrencyInput, formatCPF } from '../utils/formatters'
 import { validateIMEI } from '../utils/validators'
 import {
   ArrowLeft, ChevronRight, Check, Smartphone, Wrench, Zap, CreditCard,
-  Banknote, Loader2, Send, Search, AlertCircle, CheckCircle2, X, ChevronDown
+  Banknote, Loader2, Send, Search, AlertCircle, CheckCircle2, X, ChevronDown, Camera, User, Phone
 } from 'lucide-react'
 
-// ── Design tokens ─────────────────────────────────────────────────────────────
+// â”€â”€ Design tokens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const T = {
   // Neutrals
   ink:      '#0A0A0B',
@@ -27,7 +27,7 @@ const T = {
   amberL:   '#FFF8E7',
   red:      '#D93025',
   redL:     '#FFF0EE',
-  // Maintenance accent — warm graphite, NOT purple
+  // Maintenance accent â€” warm graphite, NOT purple
   slate:    '#1C2B3A',
   slateL:   '#F0F4F8',
   slateMid: '#4A6080',
@@ -40,7 +40,7 @@ const T = {
   shadowLg: '0 12px 40px rgba(0,0,0,0.12)',
 }
 
-// ── Data ──────────────────────────────────────────────────────────────────────
+// â”€â”€ Data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const IPHONE_MODELS = [
   { s:'iPhone 16', m:['iPhone 16','iPhone 16 Plus','iPhone 16 Pro','iPhone 16 Pro Max'] },
   { s:'iPhone 15', m:['iPhone 15','iPhone 15 Plus','iPhone 15 Pro','iPhone 15 Pro Max'] },
@@ -48,37 +48,37 @@ const IPHONE_MODELS = [
   { s:'iPhone 13', m:['iPhone 13 mini','iPhone 13','iPhone 13 Pro','iPhone 13 Pro Max'] },
   { s:'iPhone 12', m:['iPhone 12 mini','iPhone 12','iPhone 12 Pro','iPhone 12 Pro Max'] },
   { s:'iPhone 11', m:['iPhone 11','iPhone 11 Pro','iPhone 11 Pro Max'] },
-  { s:'iPhone SE', m:['iPhone SE (1ª gen)','iPhone SE (2ª gen)','iPhone SE (3ª gen)'] },
+  { s:'iPhone SE', m:['iPhone SE (1Âª gen)','iPhone SE (2Âª gen)','iPhone SE (3Âª gen)'] },
   { s:'iPhone X/XS', m:['iPhone X','iPhone XR','iPhone XS','iPhone XS Max'] },
   { s:'Antigos',   m:['iPhone 8','iPhone 8 Plus','iPhone 7','iPhone 7 Plus','iPhone 6s','iPhone 6s Plus','iPhone 6','iPhone 6 Plus'] },
 ]
 
 const SERVICOS = [
-  { cat:'Tela & Display',        dot:'#0A66FF', items:['Troca de Tela (Display + Touch)','Troca de Tela Original Remanufaturada','Troca de Vidro Frontal','Troca de Vidro Traseiro','Reparo de Manchas / Listras','Reparo de Touch Não Funciona'] },
-  { cat:'Bateria & Carga',       dot:'#12A150', items:['Troca de Bateria','Reparo de Conector Lightning','Reparo de Conector USB-C','Calibração de Bateria','Reparo de Carregamento Sem Fio'] },
-  { cat:'Câmera & Flash',        dot:'#8B5CF6', items:['Troca de Câmera Traseira','Troca de Câmera Frontal','Troca de Câmera TrueDepth / Face ID','Troca de Lente','Troca de Flash','Reparo de Câmera Travada'] },
-  { cat:'Áudio & Som',           dot:'#F59E0B', items:['Troca de Alto-falante (Speaker)','Troca de Fone Interno (Earpiece)','Troca de Microfone','Reparo de Sem Som','Reparo de Microfone'] },
-  { cat:'Botões & Estrutura',    dot:'#0891B2', items:['Troca de Botão Power','Troca de Botões de Volume','Troca de Chave Mute','Troca de Bandeja SIM','Troca de Chassi / Carcaça','Reparo de Vibração'] },
+  { cat:'Tela & Display',        dot:'#0A66FF', items:['Troca de Tela (Display + Touch)','Troca de Tela Original Remanufaturada','Troca de Vidro Frontal','Troca de Vidro Traseiro','Reparo de Manchas / Listras','Reparo de Touch NÃ£o Funciona'] },
+  { cat:'Bateria & Carga',       dot:'#12A150', items:['Troca de Bateria','Reparo de Conector Lightning','Reparo de Conector USB-C','CalibraÃ§Ã£o de Bateria','Reparo de Carregamento Sem Fio'] },
+  { cat:'CÃ¢mera & Flash',        dot:'#8B5CF6', items:['Troca de CÃ¢mera Traseira','Troca de CÃ¢mera Frontal','Troca de CÃ¢mera TrueDepth / Face ID','Troca de Lente','Troca de Flash','Reparo de CÃ¢mera Travada'] },
+  { cat:'Ãudio & Som',           dot:'#F59E0B', items:['Troca de Alto-falante (Speaker)','Troca de Fone Interno (Earpiece)','Troca de Microfone','Reparo de Sem Som','Reparo de Microfone'] },
+  { cat:'BotÃµes & Estrutura',    dot:'#0891B2', items:['Troca de BotÃ£o Power','Troca de BotÃµes de Volume','Troca de Chave Mute','Troca de Bandeja SIM','Troca de Chassi / CarcaÃ§a','Reparo de VibraÃ§Ã£o'] },
   { cat:'Conectividade',         dot:'#0A66FF', items:['Reparo de Wi-Fi / Bluetooth','Reparo de Sinal / Sem Rede','Reparo de GPS','Reparo de NFC','Reparo de Antena'] },
-  { cat:'Software & Sistema',    dot:'#12A150', items:['Restauração iOS (DFU / Recovery)','Desbloqueio de Senha','Remoção de Bloqueio iCloud','Backup e Transferência de Dados','Reparo de Loop de Reinicialização','Diagnóstico Completo'] },
-  { cat:'Micro Soldagem',        dot:'#D93025', items:['Reparo de Placa-Mãe','Reparo de Face ID','Reparo de Touch ID','Recuperação de Dados','Reparo por Oxidação / Líquido','Reparo de Componente BGA'] },
-  { cat:'Higienização & Outros', dot:'#6B6B70', items:['Higienização Interna Completa','Higienização Pós-Líquido','Avaliação Técnica (Orçamento)','Instalação de Película','Troca de Película'] },
+  { cat:'Software & Sistema',    dot:'#12A150', items:['RestauraÃ§Ã£o iOS (DFU / Recovery)','Desbloqueio de Senha','RemoÃ§Ã£o de Bloqueio iCloud','Backup e TransferÃªncia de Dados','Reparo de Loop de ReinicializaÃ§Ã£o','DiagnÃ³stico Completo'] },
+  { cat:'Micro Soldagem',        dot:'#D93025', items:['Reparo de Placa-MÃ£e','Reparo de Face ID','Reparo de Touch ID','RecuperaÃ§Ã£o de Dados','Reparo por OxidaÃ§Ã£o / LÃ­quido','Reparo de Componente BGA'] },
+  { cat:'HigienizaÃ§Ã£o & Outros', dot:'#6B6B70', items:['HigienizaÃ§Ã£o Interna Completa','HigienizaÃ§Ã£o PÃ³s-LÃ­quido','AvaliaÃ§Ã£o TÃ©cnica (OrÃ§amento)','InstalaÃ§Ã£o de PelÃ­cula','Troca de PelÃ­cula'] },
 ]
 
 const PAY_OPTS = [
   { v:'pix',             l:'Pix',           icon:Zap        },
   { v:'dinheiro',        l:'Dinheiro',       icon:Banknote   },
-  { v:'cartao_credito',  l:'Crédito',        icon:CreditCard },
-  { v:'cartao_debito',   l:'Débito',         icon:CreditCard },
+  { v:'cartao_credito',  l:'CrÃ©dito',        icon:CreditCard },
+  { v:'cartao_debito',   l:'DÃ©bito',         icon:CreditCard },
   { v:'iphone_entrada',  l:'iPhone Entrada', icon:Smartphone, vendaOnly:true },
 ]
 const PARCELAS = [1,2,3,4,5,6,7,8,9,10,11,12]
 
-// ── Utils ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Utils â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const parseVal = (s) => parseFloat((s||'0').replace(/\./g,'').replace(',','.')) || 0
 const fmtNum   = (n) => n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})
 
-// ── Shared UI primitives ──────────────────────────────────────────────────────
+// â”€â”€ Shared UI primitives â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const Label = ({ children, required }) => (
   <div style={{ fontSize:11, fontWeight:600, color:T.ink3, letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:7 }}>
     {children}{required && <span style={{ color:T.red, marginLeft:2 }}>*</span>}
@@ -103,7 +103,180 @@ const TextInput = ({ value, onChange, placeholder, err, style={}, ...rest }) => 
     {...rest}/>
 )
 
-// ── Model search ──────────────────────────────────────────────────────────────
+
+// â”€â”€ Client Search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function ClientSearch({ clients, value, selectedId, onSelect, err }) {
+  const [q, setQ] = useState('')
+  const [open, setOpen] = useState(false)
+  const inputRef = useRef()
+
+  const selected = clients.find(c => c.id === selectedId)
+
+  const filtered = q.length >= 1
+    ? clients.filter(c =>
+        c.name.toLowerCase().includes(q.toLowerCase()) ||
+        (c.cpf || '').includes(q.replace(/\D/g,'')) ||
+        (c.phone || '').includes(q.replace(/\D/g,''))
+      ).slice(0, 8)
+    : clients.slice(0, 8)
+
+  const ini = (name) => (name||'?').split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase()
+  const colors = ['#0A66FF','#12A150','#D97706','#D93025','#7C3AED','#0891B2']
+  const avatarColor = (name) => colors[(name||'').charCodeAt(0) % colors.length]
+
+  if (selected) return (
+    <div style={{ border:`1px solid ${err ? T.red : T.ink5}`, borderRadius:10, background:T.white, padding:'10px 14px', display:'flex', alignItems:'center', gap:12 }}>
+      <div style={{ width:36, height:36, borderRadius:'50%', background:avatarColor(selected.name), display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:13, fontWeight:700, flexShrink:0 }}>
+        {ini(selected.name)}
+      </div>
+      <div style={{ flex:1, minWidth:0 }}>
+        <div style={{ fontSize:14, fontWeight:600, color:T.ink, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{selected.name}</div>
+        <div style={{ fontSize:12, color:T.ink4, marginTop:1 }}>{selected.cpf_formatted || selected.cpf}{selected.phone ? ` Â· ${selected.phone}` : ''}</div>
+      </div>
+      <button onClick={() => { onSelect(''); setQ(''); setTimeout(() => inputRef.current?.focus(), 50) }}
+        style={{ background:T.ink6, border:'none', borderRadius:'50%', width:26, height:26, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
+        <X size={12} style={{ color:T.ink3 }}/>
+      </button>
+    </div>
+  )
+
+  return (
+    <div style={{ position:'relative' }}>
+      <div style={{ border:`1px solid ${err ? T.red : open ? T.ink : T.ink5}`, borderRadius:10, background:T.white, display:'flex', alignItems:'center', transition:'border-color .15s', boxShadow: err ? `0 0 0 3px ${T.red}18` : open ? `0 0 0 3px rgba(10,10,11,0.06)` : 'none' }}>
+        <Search size={14} style={{ marginLeft:13, color:T.ink4, flexShrink:0 }}/>
+        <input
+          ref={inputRef}
+          value={q}
+          onChange={e => { setQ(e.target.value); setOpen(true) }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 200)}
+          placeholder="Buscar por nome, CPF ou telefone..."
+          autoComplete="off"
+          style={{ flex:1, padding:'11px 14px 11px 8px', border:'none', outline:'none', fontSize:14, color:T.ink, background:'transparent', fontFamily:'Instrument Sans,sans-serif' }}
+        />
+        {q && (
+          <button onClick={() => setQ('')} style={{ marginRight:10, background:'none', border:'none', cursor:'pointer', color:T.ink4, display:'flex' }}>
+            <X size={13}/>
+          </button>
+        )}
+      </div>
+
+      {open && (
+        <div style={{ position:'absolute', top:'calc(100% + 4px)', left:0, right:0, background:T.white, border:`1px solid ${T.ink5}`, borderRadius:12, boxShadow:T.shadowLg, zIndex:500, overflow:'hidden' }}>
+          {filtered.length === 0 ? (
+            <div style={{ padding:'20px 16px', textAlign:'center', color:T.ink4, fontSize:13 }}>
+              {q ? `Nenhum cliente encontrado para "${q}"` : 'Nenhum cliente cadastrado'}
+            </div>
+          ) : (
+            <>
+              {q.length < 1 && (
+                <div style={{ padding:'8px 14px 6px', fontSize:10, fontWeight:700, color:T.ink4, textTransform:'uppercase', letterSpacing:'0.6px', background:T.bg, borderBottom:`1px solid ${T.ink6}` }}>
+                  Recentes
+                </div>
+              )}
+              {filtered.map((c, i) => (
+                <div key={c.id} onMouseDown={() => { onSelect(c.id); setOpen(false); setQ('') }}
+                  style={{ display:'flex', alignItems:'center', gap:12, padding:'11px 14px', cursor:'pointer', borderBottom: i < filtered.length-1 ? `1px solid ${T.ink6}` : 'none', transition:'background .1s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = T.ink6}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                  <div style={{ width:34, height:34, borderRadius:'50%', background:avatarColor(c.name), display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:12, fontWeight:700, flexShrink:0 }}>
+                    {ini(c.name)}
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:13, fontWeight:500, color:T.ink, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{c.name}</div>
+                    <div style={{ fontSize:11, color:T.ink4, marginTop:1 }}>
+                      {c.cpf_formatted || c.cpf}{c.phone ? ` Â· ${c.phone}` : ''}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {!q && clients.length > 8 && (
+                <div style={{ padding:'8px 14px', fontSize:11, color:T.ink4, textAlign:'center', borderTop:`1px solid ${T.ink6}` }}>
+                  Digite para filtrar entre {clients.length} clientes
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// â”€â”€ IMEI Field with Camera Scanner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function IMEIField({ value, onChange, err }) {
+  const [scanning, setScanning] = useState(false)
+  const videoRef = useRef()
+  const streamRef = useRef()
+
+  const startScanner = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      streamRef.current = stream
+      setScanning(true)
+      if (videoRef.current) videoRef.current.srcObject = stream
+
+      if ('BarcodeDetector' in window) {
+        const detector = new window.BarcodeDetector({ formats: ['code_128', 'code_39', 'ean_13'] })
+        const scan = async () => {
+          if (!streamRef.current || !videoRef.current) return
+          try {
+            const codes = await detector.detect(videoRef.current)
+            if (codes.length > 0) {
+              const imei = codes[0].rawValue.replace(/\D/g, '').slice(0, 15)
+              if (imei.length >= 14) { stopScanner(); onChange(imei); return }
+            }
+          } catch {}
+          if (streamRef.current) requestAnimationFrame(scan)
+        }
+        videoRef.current.onloadedmetadata = () => { videoRef.current.play(); scan() }
+      }
+    } catch { alert('CÃ¢mera nÃ£o disponÃ­vel ou permissÃ£o negada.') }
+  }
+
+  const stopScanner = () => {
+    streamRef.current?.getTracks().forEach(t => t.stop())
+    streamRef.current = null
+    setScanning(false)
+  }
+
+  useEffect(() => () => stopScanner(), [])
+
+  return (
+    <div>
+      {scanning && (
+        <div style={{ position:'relative', background:'#000', borderRadius:10, overflow:'hidden', marginBottom:8 }}>
+          <video ref={videoRef} style={{ width:'100%', height:160, objectFit:'cover', display:'block' }} playsInline muted/>
+          <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
+            <div style={{ width:'80%', height:60, border:'2px solid #0A66FF', borderRadius:8, boxShadow:'0 0 0 9999px rgba(0,0,0,0.5)' }}/>
+          </div>
+          <button onClick={stopScanner}
+            style={{ position:'absolute', top:8, right:8, background:'rgba(0,0,0,0.6)', border:'none', borderRadius:6, padding:'4px 10px', color:'#fff', fontSize:11, cursor:'pointer' }}>
+            Cancelar
+          </button>
+          <div style={{ position:'absolute', bottom:6, left:0, right:0, textAlign:'center', fontSize:10, color:'rgba(255,255,255,0.6)' }}>
+            Aponte para o cÃ³digo de barras do IMEI
+          </div>
+        </div>
+      )}
+      <div style={{ border:`1px solid ${err ? T.red : T.ink5}`, borderRadius:10, background:T.white, display:'flex', alignItems:'center', overflow:'hidden', boxShadow: err ? `0 0 0 3px ${T.red}18` : 'none' }}>
+        <input
+          value={value}
+          onChange={e => onChange(e.target.value.replace(/\D/g,'').slice(0,15))}
+          placeholder="15 dÃ­gitos"
+          style={{ flex:1, padding:'11px 14px', border:'none', outline:'none', fontSize:13, color:T.ink, background:'transparent', fontFamily:'JetBrains Mono,monospace', letterSpacing:'0.5px' }}
+        />
+        <button onClick={scanning ? stopScanner : startScanner}
+          title="Escanear cÃ³digo de barras do IMEI"
+          style={{ padding:'0 14px', height:44, background:scanning ? T.blue : T.ink6, border:'none', borderLeft:`1px solid ${T.ink6}`, cursor:'pointer', display:'flex', alignItems:'center', gap:5, fontSize:11, fontWeight:500, color: scanning ? '#fff' : T.ink3, fontFamily:'Instrument Sans,sans-serif', flexShrink:0 }}>
+          <Camera size={14}/>{scanning ? 'Escanando...' : 'CÃ¢mera'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// â”€â”€ Model search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ModelSearch({ value, onSelect, err }) {
   const [q, setQ] = useState(value || '')
   const [open, setOpen] = useState(false)
@@ -147,7 +320,7 @@ function ModelSearch({ value, onSelect, err }) {
   )
 }
 
-// ── Step 2 — Manutenção ───────────────────────────────────────────────────────
+// â”€â”€ Step 2 â€” ManutenÃ§Ã£o â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function StepServico({ form, set, errors }) {
   const [q, setQ] = useState('')
   const [openCat, setOpenCat] = useState(null)
@@ -178,18 +351,15 @@ function StepServico({ form, set, errors }) {
         </div>
         <div>
           <Label>IMEI</Label>
-          <Field err={errors.imei}>
-            <TextInput value={form.imei} onChange={e => set('imei', e.target.value.replace(/\D/g,'').slice(0,15))}
-              placeholder="15 dígitos" style={{ fontFamily:'JetBrains Mono,monospace', fontSize:13, letterSpacing:'0.5px' }}/>
-          </Field>
+          <IMEIField value={form.imei} onChange={v => set('imei', v)} err={errors.imei}/>
           <ErrMsg msg={errors.imei}/>
         </div>
       </div>
 
-      {/* Serviços selecionados (chips) */}
+      {/* ServiÃ§os selecionados (chips) */}
       {selected.length > 0 && (
         <div>
-          <Label>Serviços selecionados</Label>
+          <Label>ServiÃ§os selecionados</Label>
           <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
             {selected.map(s => (
               <span key={s} style={{
@@ -207,15 +377,15 @@ function StepServico({ form, set, errors }) {
         </div>
       )}
 
-      {/* Seletor de serviços */}
+      {/* Seletor de serviÃ§os */}
       <div>
-        <Label required>Tipo de serviço</Label>
+        <Label required>Tipo de serviÃ§o</Label>
 
         {/* Search */}
         <div style={{ position:'relative', marginBottom:10 }}>
           <Search size={13} style={{ position:'absolute', left:13, top:'50%', transform:'translateY(-50%)', color:T.ink4, pointerEvents:'none' }}/>
           <Field err={errors.service_types}>
-            <TextInput value={q} onChange={e => setQ(e.target.value)} placeholder="Filtrar serviços..." style={{ paddingLeft:36 }}/>
+            <TextInput value={q} onChange={e => setQ(e.target.value)} placeholder="Filtrar serviÃ§os..." style={{ paddingLeft:36 }}/>
           </Field>
         </div>
         <ErrMsg msg={errors.service_types}/>
@@ -295,7 +465,7 @@ function StepServico({ form, set, errors }) {
         </div>
       </div>
 
-      {/* Descrição */}
+      {/* DescriÃ§Ã£o */}
       <div>
         <Label required>Problema relatado pelo cliente</Label>
         <div style={{ border:`1px solid ${errors.problem_description ? T.red : T.ink5}`, borderRadius:10, background:T.white, boxShadow: errors.problem_description ? `0 0 0 3px ${T.red}18` : 'none' }}>
@@ -303,21 +473,21 @@ function StepServico({ form, set, errors }) {
             value={form.problem_description || ''}
             onChange={e => set('problem_description', e.target.value)}
             rows={3}
-            placeholder="Ex: Tela rachada após queda, touch não responde mais na parte inferior..."
+            placeholder="Ex: Tela rachada apÃ³s queda, touch nÃ£o responde mais na parte inferior..."
             style={{ width:'100%', padding:'11px 14px', border:'none', outline:'none', resize:'vertical', fontSize:13, color:T.ink, background:'transparent', fontFamily:'Instrument Sans,sans-serif', lineHeight:1.6, boxSizing:'border-box' }}
           />
         </div>
         <ErrMsg msg={errors.problem_description}/>
       </div>
 
-      {/* Condição */}
+      {/* CondiÃ§Ã£o */}
       <div>
-        <Label>Condição do aparelho</Label>
+        <Label>CondiÃ§Ã£o do aparelho</Label>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8 }}>
           {[
-            { v:'otimo',     l:'Ótimo',     sub:'Sem danos', dot:'#12A150' },
+            { v:'otimo',     l:'Ã“timo',     sub:'Sem danos', dot:'#12A150' },
             { v:'bom',       l:'Bom',       sub:'Desgaste leve', dot:'#0A66FF' },
-            { v:'regular',   l:'Regular',   sub:'Danos visíveis', dot:'#C47D00' },
+            { v:'regular',   l:'Regular',   sub:'Danos visÃ­veis', dot:'#C47D00' },
             { v:'danificado',l:'Danificado',sub:'Dano severo', dot:'#D93025' },
           ].map(c => {
             const on = form.device_condition === c.v
@@ -342,7 +512,7 @@ function StepServico({ form, set, errors }) {
   )
 }
 
-// ── Step 2 — Venda ────────────────────────────────────────────────────────────
+// â”€â”€ Step 2 â€” Venda â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function StepProduto({ form, set, errors }) {
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:22 }}>
@@ -368,7 +538,7 @@ function StepProduto({ form, set, errors }) {
         </div>
         <div>
           <Label>Cor</Label>
-          <Field><TextInput value={form.color} onChange={e => set('color', e.target.value)} placeholder="Ex: Titânio Natural"/></Field>
+          <Field><TextInput value={form.color} onChange={e => set('color', e.target.value)} placeholder="Ex: TitÃ¢nio Natural"/></Field>
         </div>
       </div>
 
@@ -376,7 +546,7 @@ function StepProduto({ form, set, errors }) {
         <Label>IMEI</Label>
         <Field err={errors.imei}>
           <TextInput value={form.imei} onChange={e => set('imei', e.target.value.replace(/\D/g,'').slice(0,15))}
-            placeholder="15 dígitos" style={{ fontFamily:'JetBrains Mono,monospace', fontSize:13, letterSpacing:'0.5px' }}/>
+            placeholder="15 dÃ­gitos" style={{ fontFamily:'JetBrains Mono,monospace', fontSize:13, letterSpacing:'0.5px' }}/>
         </Field>
         <ErrMsg msg={errors.imei}/>
       </div>
@@ -384,7 +554,7 @@ function StepProduto({ form, set, errors }) {
   )
 }
 
-// ── Step 3 — Pagamento ────────────────────────────────────────────────────────
+// â”€â”€ Step 3 â€” Pagamento â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function StepPagamento({ form, set, errors, isManut }) {
   const [pd, setPdState] = useState({
     pix:             { value:'' },
@@ -452,7 +622,7 @@ function StepPagamento({ form, set, errors, isManut }) {
               onChange={e => set('warranty_months', e.target.value)}/>
           </Field>
           <div style={{ fontSize:10, color:T.ink4, marginTop:4 }}>
-            Padrão: {isManut ? '3 meses (serviço)' : '12 meses (venda)'}
+            PadrÃ£o: {isManut ? '3 meses (serviÃ§o)' : '12 meses (venda)'}
           </div>
         </div>
       </div>
@@ -483,18 +653,18 @@ function StepPagamento({ form, set, errors, isManut }) {
         <ErrMsg msg={errors.payment_methods}/>
       </div>
 
-      {/* ── iPhone Entrada (apenas venda) ───────────────────────── */}
+      {/* â”€â”€ iPhone Entrada (apenas venda) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {form.payment_methods.includes('iphone_entrada') && (
         <div style={{ border:`1.5px solid ${T.ink}`, borderRadius:12, overflow:'hidden' }}>
           {/* Header */}
           <div style={{ background:T.ink, padding:'12px 16px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
               <Smartphone size={14} style={{ color:'rgba(255,255,255,0.6)' }}/>
-              <span style={{ fontSize:13, fontWeight:600, color:T.white }}>iPhone de Entrada — Troca</span>
+              <span style={{ fontSize:13, fontWeight:600, color:T.white }}>iPhone de Entrada â€” Troca</span>
             </div>
             {tradeVal > 0 && (
               <span style={{ fontSize:13, fontWeight:700, color:T.white }}>
-                − R$ {pd.iphone_entrada.value}
+                âˆ’ R$ {pd.iphone_entrada.value}
               </span>
             )}
           </div>
@@ -534,10 +704,10 @@ function StepPagamento({ form, set, errors, isManut }) {
               )}
             </div>
 
-            {/* Memória + Cor */}
+            {/* MemÃ³ria + Cor */}
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
               <div>
-                <Label>Memória</Label>
+                <Label>MemÃ³ria</Label>
                 <div style={{ border:`1px solid ${T.ink5}`, borderRadius:10, background:T.white }}>
                   <div style={{ position:'relative', display:'flex', alignItems:'center' }}>
                     <select value={pd.iphone_entrada.capacity} onChange={e => setPd('iphone_entrada','capacity',e.target.value)}
@@ -563,7 +733,7 @@ function StepPagamento({ form, set, errors, isManut }) {
                 <Label>IMEI</Label>
                 <div style={{ border:`1px solid ${T.ink5}`, borderRadius:10, background:T.white }}>
                   <TextInput value={pd.iphone_entrada.imei} onChange={e => setPd('iphone_entrada','imei',e.target.value.replace(/\D/g,'').slice(0,15))}
-                    placeholder="15 dígitos" style={{ fontFamily:'JetBrains Mono,monospace', fontSize:12, letterSpacing:'0.5px' }}/>
+                    placeholder="15 dÃ­gitos" style={{ fontFamily:'JetBrains Mono,monospace', fontSize:12, letterSpacing:'0.5px' }}/>
                 </div>
               </div>
               <div>
@@ -576,7 +746,7 @@ function StepPagamento({ form, set, errors, isManut }) {
               </div>
             </div>
 
-            {/* Restante após entrada */}
+            {/* Restante apÃ³s entrada */}
             {tradeVal > 0 && total > 0 && (
               <div style={{ background:T.amberL, border:`1px solid #FDE68A`, borderRadius:8, padding:'9px 13px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                 <span style={{ fontSize:12, color:T.amber, fontWeight:500 }}>Restante a pagar</span>
@@ -587,7 +757,7 @@ function StepPagamento({ form, set, errors, isManut }) {
         </div>
       )}
 
-      {/* Detalhes por método — apenas cash methods */}
+      {/* Detalhes por mÃ©todo â€” apenas cash methods */}
       {cashMethods.length > 0 && (
         <div style={{ border:`1px solid ${T.ink5}`, borderRadius:12, overflow:'hidden' }}>
           {cashMethods.map((m, idx) => {
@@ -677,12 +847,12 @@ function StepPagamento({ form, set, errors, isManut }) {
         </div>
       )}
 
-      {/* Observações */}
+      {/* ObservaÃ§Ãµes */}
       <div>
-        <Label>Observações</Label>
+        <Label>ObservaÃ§Ãµes</Label>
         <div style={{ border:`1px solid ${T.ink5}`, borderRadius:10, background:T.white }}>
           <textarea value={form.notes} onChange={e => set('notes', e.target.value)} rows={3}
-            placeholder={isManut ? 'Prazo de entrega, acessórios entregues, acordos...' : 'Condições, defeitos, acordos...'}
+            placeholder={isManut ? 'Prazo de entrega, acessÃ³rios entregues, acordos...' : 'CondiÃ§Ãµes, defeitos, acordos...'}
             style={{ width:'100%', padding:'11px 14px', border:'none', outline:'none', resize:'vertical', fontSize:13, color:T.ink, background:'transparent', fontFamily:'Instrument Sans,sans-serif', lineHeight:1.6, boxSizing:'border-box' }}/>
         </div>
       </div>
@@ -694,17 +864,17 @@ function StepPagamento({ form, set, errors, isManut }) {
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8 }}>
             <span style={{ fontSize:13, color:'rgba(255,255,255,0.55)', maxWidth:'60%', lineHeight:1.4 }}>
               {isManut
-                ? (form.service_types?.slice(0,2).join(', ') || 'Manutenção') + (form.service_types?.length > 2 ? ` +${form.service_types.length - 2}` : '')
-                : `${form.iphone_model || '—'} ${form.capacity || ''}`}
+                ? (form.service_types?.slice(0,2).join(', ') || 'ManutenÃ§Ã£o') + (form.service_types?.length > 2 ? ` +${form.service_types.length - 2}` : '')
+                : `${form.iphone_model || 'â€”'} ${form.capacity || ''}`}
             </span>
             <span style={{ fontSize:20, fontWeight:700, color:T.white, letterSpacing:'-0.5px' }}>R$ {form.price}</span>
           </div>
           {tradeVal > 0 && (
             <div style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}>
               <span style={{ fontSize:12, color:'rgba(255,255,255,0.4)' }}>
-                iPhone entrada ({pd.iphone_entrada.model || '—'})
+                iPhone entrada ({pd.iphone_entrada.model || 'â€”'})
               </span>
-              <span style={{ fontSize:12, color:'#86EFAC', fontWeight:600 }}>− R$ {pd.iphone_entrada.value}</span>
+              <span style={{ fontSize:12, color:'#86EFAC', fontWeight:600 }}>âˆ’ R$ {pd.iphone_entrada.value}</span>
             </div>
           )}
           {tradeVal > 0 && (
@@ -719,7 +889,7 @@ function StepPagamento({ form, set, errors, isManut }) {
               {form.warranty_months || (isManut ? 3 : 12)} meses de garantia
             </span>
             <span style={{ fontSize:11, color:'rgba(255,255,255,0.35)' }}>
-              {form.payment_methods.map(m => PAY_OPTS.find(p => p.v === m)?.l).join(' + ') || '—'}
+              {form.payment_methods.map(m => PAY_OPTS.find(p => p.v === m)?.l).join(' + ') || 'â€”'}
             </span>
           </div>
         </div>
@@ -728,7 +898,7 @@ function StepPagamento({ form, set, errors, isManut }) {
   )
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+// â”€â”€ Main page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function NewOrderPage() {
   const navigate = useNavigate()
   const createOrder = useCreateOrder()
@@ -748,7 +918,7 @@ export default function NewOrderPage() {
 
   const stepLabels = [
     { n:1, l:'Cliente' },
-    { n:2, l: isManut ? 'Serviço' : 'Produto' },
+    { n:2, l: isManut ? 'ServiÃ§o' : 'Produto' },
     { n:3, l:'Pagamento' },
   ]
 
@@ -757,9 +927,9 @@ export default function NewOrderPage() {
     if (step === 1 && !form.client_id) e.client_id = 'Selecione um cliente'
     if (step === 2) {
       if (!form.iphone_model) e.iphone_model = 'Selecione o modelo'
-      if (form.imei && !validateIMEI(form.imei)) e.imei = 'IMEI inválido'
+      if (form.imei && !validateIMEI(form.imei)) e.imei = 'IMEI invÃ¡lido'
       if (isManut) {
-        if (!form.service_types?.length) e.service_types = 'Selecione ao menos um serviço'
+        if (!form.service_types?.length) e.service_types = 'Selecione ao menos um serviÃ§o'
         if (!form.problem_description?.trim()) e.problem_description = 'Descreva o problema relatado'
       }
     }
@@ -776,11 +946,11 @@ export default function NewOrderPage() {
   const handleSubmit = async () => {
     if (!validate()) return
     const noteParts = []
-    if (isManut && form.service_types?.length) noteParts.push(`Serviços: ${form.service_types.join(', ')}`)
+    if (isManut && form.service_types?.length) noteParts.push(`ServiÃ§os: ${form.service_types.join(', ')}`)
     if (isManut && form.problem_description) noteParts.push(`Problema: ${form.problem_description}`)
     if (isManut && form.device_condition) {
-      const cond = { otimo:'Ótimo', bom:'Bom', regular:'Regular', danificado:'Danificado' }
-      noteParts.push(`Condição: ${cond[form.device_condition] || form.device_condition}`)
+      const cond = { otimo:'Ã“timo', bom:'Bom', regular:'Regular', danificado:'Danificado' }
+      noteParts.push(`CondiÃ§Ã£o: ${cond[form.device_condition] || form.device_condition}`)
     }
     if (form.notes) noteParts.push(form.notes)
 
@@ -801,7 +971,7 @@ export default function NewOrderPage() {
   return (
     <div style={{ maxWidth:640, margin:'0 auto', fontFamily:'Instrument Sans,sans-serif', display:'flex', flexDirection:'column', gap:12 }}>
 
-      {/* ── Stepper ─────────────────────────────────────────────── */}
+      {/* â”€â”€ Stepper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div style={{ background:T.white, borderRadius:12, boxShadow:T.shadowSm, padding:'14px 22px' }}>
         <div style={{ display:'flex', alignItems:'center' }}>
           {stepLabels.map((s, i) => (
@@ -831,21 +1001,21 @@ export default function NewOrderPage() {
           <div style={{ marginTop:12, paddingTop:12, borderTop:`1px solid ${T.ink6}`, display:'flex', alignItems:'center', gap:8 }}>
             <Wrench size={12} style={{ color:T.ink4 }}/>
             <span style={{ fontSize:12, color:T.ink3 }}>
-              Manutenção{form.iphone_model ? ` · ${form.iphone_model}` : ''}
-              {form.service_types?.length ? ` · ${form.service_types.length} serviço${form.service_types.length > 1 ? 's' : ''}` : ''}
+              ManutenÃ§Ã£o{form.iphone_model ? ` Â· ${form.iphone_model}` : ''}
+              {form.service_types?.length ? ` Â· ${form.service_types.length} serviÃ§o${form.service_types.length > 1 ? 's' : ''}` : ''}
             </span>
           </div>
         )}
       </div>
 
-      {/* ── Form card ───────────────────────────────────────────── */}
+      {/* â”€â”€ Form card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div style={{ background:T.white, borderRadius:12, boxShadow:T.shadowSm, padding:28 }}>
 
         {step === 1 && (
           <div style={{ display:'flex', flexDirection:'column', gap:22 }}>
             <div>
               <div style={{ fontSize:17, fontWeight:700, color:T.ink, letterSpacing:'-0.3px', marginBottom:2 }}>Novo atendimento</div>
-              <div style={{ fontSize:13, color:T.ink3 }}>Selecione o cliente e o tipo de serviço</div>
+              <div style={{ fontSize:13, color:T.ink3 }}>Selecione o cliente e o tipo de serviÃ§o</div>
             </div>
 
             <div>
@@ -855,7 +1025,7 @@ export default function NewOrderPage() {
                   <select value={form.client_id} onChange={e => set('client_id', e.target.value)}
                     style={{ width:'100%', padding:'11px 36px 11px 14px', border:'none', outline:'none', fontSize:14, color: form.client_id ? T.ink : T.ink4, background:'transparent', fontFamily:'Instrument Sans,sans-serif', appearance:'none', cursor:'pointer' }}>
                     <option value="">Selecionar cliente...</option>
-                    {clients.map(c => <option key={c.id} value={c.id}>{c.name} — {c.cpf_formatted || formatCPF(c.cpf)}</option>)}
+                    {clients.map(c => <option key={c.id} value={c.id}>{c.name} â€” {c.cpf_formatted || formatCPF(c.cpf)}</option>)}
                   </select>
                   <ChevronDown size={14} style={{ position:'absolute', right:12, color:T.ink4, pointerEvents:'none' }}/>
                 </div>
@@ -868,7 +1038,7 @@ export default function NewOrderPage() {
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
                 {[
                   { v:'venda',     l:'Venda',      desc:'iPhone novo ou usado', icon:Smartphone },
-                  { v:'manutencao',l:'Manutenção',  desc:'Reparo ou serviço técnico', icon:Wrench },
+                  { v:'manutencao',l:'ManutenÃ§Ã£o',  desc:'Reparo ou serviÃ§o tÃ©cnico', icon:Wrench },
                 ].map(t => {
                   const on = form.type === t.v
                   return (
@@ -929,7 +1099,7 @@ export default function NewOrderPage() {
             {createOrder.isPending
               ? <><Loader2 size={14} style={{ animation:'spin 1s linear infinite' }}/> Registrando...</>
               : step < 3
-                ? <>Próximo <ChevronRight size={14}/></>
+                ? <>PrÃ³ximo <ChevronRight size={14}/></>
                 : <><Send size={14}/> Registrar atendimento</>}
           </button>
         </div>

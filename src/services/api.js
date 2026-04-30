@@ -9,7 +9,7 @@ const api = axios.create({
 let refreshing = null;
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token');
+  const token = localStorage.getItem('accessToken');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -23,7 +23,7 @@ api.interceptors.response.use(
       if (!refreshing) {
         refreshing = api.post('/auth/refresh', { refreshToken: localStorage.getItem('refresh_token') })
           .then(r => {
-            localStorage.setItem('access_token', r.data.data.access_token);
+            localStorage.setItem('accessToken', r.data.data.accessToken);
             return r.data.data.access_token;
           })
           .catch(() => {

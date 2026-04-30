@@ -1,26 +1,24 @@
-import { useState, useEffect } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../context/ThemeContext'
 import { useIsMobile } from '../../hooks/useIsMobile'
-import GlobalSearch from '../GlobalSearch'
 import {
   LayoutDashboard, Users, ClipboardList, Plus, LogOut,
-  Smartphone, Bell, ArrowLeft, Search, Sun, Moon,
+  Smartphone, ArrowLeft,
 } from 'lucide-react'
 
 const navItems = [
-  { path:'/',            icon:LayoutDashboard, label:'Dashboard' },
-  { path:'/clients',     icon:Users,           label:'Clientes'  },
-  { path:'/orders',      icon:ClipboardList,   label:'Ordens'    },
-  { path:'/orders/new',  icon:Plus,            label:'Novo', cta:true },
+  { path:'/',           icon:LayoutDashboard, label:'Dashboard' },
+  { path:'/clients',    icon:Users,           label:'Clientes'  },
+  { path:'/orders',     icon:ClipboardList,   label:'Ordens'    },
+  { path:'/orders/new', icon:Plus,            label:'Novo', cta:true },
 ]
 
 const pageTitles = {
-  '/':           { title:'Dashboard',        sub:'Visão geral do negócio' },
+  '/':           { title:'Dashboard',        sub:'VisÃ£o geral do negÃ³cio' },
   '/clients':    { title:'Clientes',         sub:'Gerenciamento de clientes' },
-  '/orders':     { title:'Atendimentos',     sub:'Vendas e manutenções' },
-  '/orders/new': { title:'Novo Atendimento', sub:'Registrar venda ou serviço' },
+  '/orders':     { title:'Atendimentos',     sub:'Vendas e manutenÃ§Ãµes' },
+  '/orders/new': { title:'Novo Atendimento', sub:'Registrar venda ou serviÃ§o' },
 }
 
 function Avatar({ name, size=32 }) {
@@ -34,22 +32,25 @@ function Avatar({ name, size=32 }) {
   )
 }
 
-function MobileLayout({ user, logout, location, navigate, info, T, dark, toggleTheme, setSearchOpen }) {
+function MobileLayout({ user, logout, location, navigate, info, T }) {
   const isNewOrder = location.pathname === '/orders/new'
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100dvh', fontFamily:'Instrument Sans,sans-serif', background:T.bg }}>
-      <header style={{ background:T.sidebar, color:'#fff', padding:'0 16px', height:52, display:'flex', alignItems:'center', gap:12, flexShrink:0 }}>
+      <header style={{ background:T.sidebar, padding:'0 16px', height:52, display:'flex', alignItems:'center', gap:12, flexShrink:0 }}>
         {isNewOrder
-          ? <button onClick={()=>navigate('/orders')} style={{ background:'rgba(255,255,255,0.08)', border:'none', borderRadius:'50%', width:32, height:32, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', cursor:'pointer', flexShrink:0 }}><ArrowLeft size={16}/></button>
-          : <div style={{ width:30, height:30, background:T.blue, borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}><Smartphone size={15} style={{ color:'#fff' }}/></div>}
-
-        <div style={{ flex:1, fontSize:15, fontWeight:700, color:'#fff', letterSpacing:'-0.2px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{info.title}</div>
-
-        <button onClick={()=>setSearchOpen(true)} style={{ background:'none', border:'none', cursor:'pointer', color:'rgba(255,255,255,0.5)', display:'flex' }}><Search size={18}/></button>
-        <button onClick={toggleTheme} style={{ background:'none', border:'none', cursor:'pointer', color:'rgba(255,255,255,0.5)', display:'flex' }}>
-          {dark ? <Sun size={17}/> : <Moon size={17}/>}
+          ? <button onClick={()=>navigate('/orders')} style={{ background:'rgba(255,255,255,0.08)', border:'none', borderRadius:'50%', width:32, height:32, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', cursor:'pointer', flexShrink:0 }}>
+              <ArrowLeft size={16}/>
+            </button>
+          : <div style={{ width:30, height:30, background:T.blue, borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+              <Smartphone size={15} style={{ color:'#fff' }}/>
+            </div>
+        }
+        <div style={{ flex:1, fontSize:15, fontWeight:700, color:'#fff', letterSpacing:'-0.2px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+          {info.title}
+        </div>
+        <button onClick={logout} style={{ background:'none', border:'none', cursor:'pointer', color:'rgba(255,255,255,0.45)', display:'flex' }}>
+          <LogOut size={18}/>
         </button>
-        <button onClick={logout} style={{ background:'none', border:'none', cursor:'pointer', color:'rgba(255,255,255,0.5)', display:'flex' }}><LogOut size={18}/></button>
       </header>
 
       <main style={{ flex:1, overflowY:'auto', padding:'16px 14px', paddingBottom:80 }}>
@@ -60,18 +61,22 @@ function MobileLayout({ user, logout, location, navigate, info, T, dark, toggleT
         {navItems.map(item => {
           const active = location.pathname === item.path
           if (item.cta) return (
-            <button key={item.path} onClick={()=>navigate(item.path)} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', border:'none', background:'none', cursor:'pointer', height:60, padding:0 }}>
+            <button key={item.path} onClick={()=>navigate(item.path)}
+              style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', border:'none', background:'none', cursor:'pointer', height:60, padding:0 }}>
               <div style={{ width:44, height:44, borderRadius:'50%', background:active?'#fff':T.blue, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 14px rgba(10,102,255,0.45)' }}>
                 <item.icon size={20} style={{ color:active?T.sidebar:'#fff' }}/>
               </div>
             </button>
           )
           return (
-            <button key={item.path} onClick={()=>navigate(item.path)} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:4, border:'none', background:'none', cursor:'pointer', height:60, padding:'8px 4px' }}>
+            <button key={item.path} onClick={()=>navigate(item.path)}
+              style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:4, border:'none', background:'none', cursor:'pointer', height:60, padding:'8px 4px' }}>
               <div style={{ width:36, height:28, borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', background:active?'rgba(255,255,255,0.1)':'transparent' }}>
                 <item.icon size={18} style={{ color:active?'#fff':'rgba(255,255,255,0.45)' }}/>
               </div>
-              <span style={{ fontSize:10, fontWeight:active?600:400, color:active?'#fff':'rgba(255,255,255,0.45)', fontFamily:'Instrument Sans,sans-serif' }}>{item.label}</span>
+              <span style={{ fontSize:10, fontWeight:active?600:400, color:active?'#fff':'rgba(255,255,255,0.45)', fontFamily:'Instrument Sans,sans-serif' }}>
+                {item.label}
+              </span>
             </button>
           )
         })}
@@ -80,7 +85,7 @@ function MobileLayout({ user, logout, location, navigate, info, T, dark, toggleT
   )
 }
 
-function DesktopLayout({ user, logout, location, navigate, info, T, dark, toggleTheme, setSearchOpen }) {
+function DesktopLayout({ user, logout, location, navigate, info, T }) {
   return (
     <div style={{ display:'flex', height:'100vh', overflow:'hidden', fontFamily:'Instrument Sans,sans-serif' }}>
       <aside style={{ width:215, background:T.sidebar, display:'flex', flexDirection:'column', flexShrink:0, borderRight:'1px solid rgba(255,255,255,0.06)' }}>
@@ -91,22 +96,13 @@ function DesktopLayout({ user, logout, location, navigate, info, T, dark, toggle
             </div>
             <div>
               <div style={{ fontSize:14, fontWeight:700, color:'#fff', letterSpacing:'-0.2px' }}>iStore</div>
-              <div style={{ fontSize:10, color:'rgba(255,255,255,0.35)', marginTop:1 }}>Gestão Premium</div>
+              <div style={{ fontSize:10, color:'rgba(255,255,255,0.35)', marginTop:1 }}>GestÃ£o Premium</div>
             </div>
           </div>
         </div>
 
-        {/* Search button */}
-        <div style={{ padding:'10px 10px 0' }}>
-          <button onClick={()=>setSearchOpen(true)}
-            style={{ width:'100%', display:'flex', alignItems:'center', gap:8, padding:'8px 10px', borderRadius:8, border:'1px solid rgba(255,255,255,0.08)', background:'rgba(255,255,255,0.04)', cursor:'pointer', color:'rgba(255,255,255,0.4)', fontFamily:'Instrument Sans,sans-serif', fontSize:12 }}>
-            <Search size={13}/> Buscar...
-            <span style={{ marginLeft:'auto', fontSize:10, opacity:0.5 }}>⌘K</span>
-          </button>
-        </div>
-
-        <nav style={{ padding:'8px 10px', flex:1 }}>
-          <div style={{ fontSize:10, fontWeight:600, color:'rgba(255,255,255,0.22)', letterSpacing:'0.8px', textTransform:'uppercase', padding:'0 10px', marginBottom:6, marginTop:8 }}>Menu</div>
+        <nav style={{ padding:'12px 10px', flex:1 }}>
+          <div style={{ fontSize:10, fontWeight:600, color:'rgba(255,255,255,0.22)', letterSpacing:'0.8px', textTransform:'uppercase', padding:'0 10px', marginBottom:8 }}>Menu</div>
           {navItems.map(item => {
             const active = location.pathname === item.path
             return (
@@ -119,18 +115,15 @@ function DesktopLayout({ user, logout, location, navigate, info, T, dark, toggle
         </nav>
 
         <div style={{ padding:'12px 14px', borderTop:'1px solid rgba(255,255,255,0.06)' }}>
-          {/* Theme toggle */}
-          <button onClick={toggleTheme} style={{ width:'100%', display:'flex', alignItems:'center', gap:8, padding:'7px 10px', borderRadius:8, border:'none', background:'rgba(255,255,255,0.04)', cursor:'pointer', color:'rgba(255,255,255,0.45)', fontFamily:'Instrument Sans,sans-serif', fontSize:12, marginBottom:10 }}>
-            {dark ? <Sun size={13}/> : <Moon size={13}/>}
-            {dark ? 'Modo claro' : 'Modo escuro'}
-          </button>
           <div style={{ display:'flex', alignItems:'center', gap:10 }}>
             <Avatar name={user?.name||'Admin'} size={30}/>
             <div style={{ flex:1, minWidth:0 }}>
               <div style={{ fontSize:12, fontWeight:600, color:'#fff', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{user?.name||'Admin'}</div>
               <div style={{ fontSize:10, color:'rgba(255,255,255,0.35)' }}>{user?.role}</div>
             </div>
-            <button onClick={logout} title="Sair" style={{ background:'none', border:'none', cursor:'pointer', color:'rgba(255,255,255,0.35)', padding:4, display:'flex' }}><LogOut size={14}/></button>
+            <button onClick={logout} title="Sair" style={{ background:'none', border:'none', cursor:'pointer', color:'rgba(255,255,255,0.35)', padding:4, display:'flex' }}>
+              <LogOut size={14}/>
+            </button>
           </div>
         </div>
       </aside>
@@ -142,7 +135,8 @@ function DesktopLayout({ user, logout, location, navigate, info, T, dark, toggle
             <div style={{ fontSize:11, color:T.ink4, marginTop:1 }}>{info.sub}</div>
           </div>
           {['/clients','/orders'].includes(location.pathname) && (
-            <button onClick={()=>navigate('/orders/new')} style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 16px', background:T.ink, color:'#fff', border:'none', borderRadius:8, fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'Instrument Sans,sans-serif' }}>
+            <button onClick={()=>navigate('/orders/new')}
+              style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 16px', background:T.ink, color:'#fff', border:'none', borderRadius:8, fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'Instrument Sans,sans-serif' }}>
               <Plus size={14}/>Novo
             </button>
           )}
@@ -155,31 +149,12 @@ function DesktopLayout({ user, logout, location, navigate, info, T, dark, toggle
 
 export default function Layout() {
   const { user, logout } = useAuth()
-  const { dark, toggle: toggleTheme, T } = useTheme()
+  const { T } = useTheme()
   const navigate = useNavigate()
   const location = useLocation()
   const isMobile = useIsMobile()
-  const [searchOpen, setSearchOpen] = useState(false)
   const info = pageTitles[location.pathname] || pageTitles['/']
 
-  // ⌘K / Ctrl+K atalho
-  useEffect(() => {
-    const handler = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault()
-        setSearchOpen(s => !s)
-      }
-      if (e.key === 'Escape') setSearchOpen(false)
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [])
-
-  const props = { user, logout, location, navigate, info, T, dark, toggleTheme, setSearchOpen }
-  return (
-    <>
-      {isMobile ? <MobileLayout {...props}/> : <DesktopLayout {...props}/>}
-      {searchOpen && <GlobalSearch onClose={()=>setSearchOpen(false)}/>}
-    </>
-  )
+  const props = { user, logout, location, navigate, info, T }
+  return isMobile ? <MobileLayout {...props}/> : <DesktopLayout {...props}/>
 }

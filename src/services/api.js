@@ -50,7 +50,13 @@ export const clientService = {
   delete:     (id) => api.delete(`/clients/${id}`),
   lookupCEP:  (cep) => api.get(`/clients/cep/${cep}`),
 };
-
+export const authService = {
+  login:          (d)  => api.post('/auth/login', d),
+  refresh:        (d)  => api.post('/auth/refresh', d),
+  me:             ()   => api.get('/auth/me'),
+  changePassword: (d)  => api.patch('/auth/change-password', d),
+  register:       (d)  => api.post('/auth/register', d),
+};
 export const orderService = {
   list:         (p)  => api.get('/orders', { params: p }),
   search:       (q)  => api.get('/orders/search', { params: { q } }),

@@ -8,7 +8,7 @@ import {
   Banknote, Loader2, Send, Search, AlertCircle, CheckCircle2, X, ChevronDown, Camera, User, Phone
 } from 'lucide-react'
 
-// -- Design tokens -------------------------------------------------------------
+// ── Design tokens ─────────────────────────────────────────────────────────────
 const T = {
   // Neutrals
   ink:      '#0A0A0B',
@@ -27,7 +27,7 @@ const T = {
   amberL:   '#FFF8E7',
   red:      '#D93025',
   redL:     '#FFF0EE',
-  // Maintenance accent \u2014 warm graphite, NOT purple
+  // Maintenance accent — warm graphite, NOT purple
   slate:    '#1C2B3A',
   slateL:   '#F0F4F8',
   slateMid: '#4A6080',
@@ -40,7 +40,7 @@ const T = {
   shadowLg: '0 12px 40px rgba(0,0,0,0.12)',
 }
 
-// -- Data ----------------------------------------------------------------------
+// ── Data ──────────────────────────────────────────────────────────────────────
 const IPHONE_MODELS = [
   { s:'iPhone 16', m:['iPhone 16','iPhone 16 Plus','iPhone 16 Pro','iPhone 16 Pro Max'] },
   { s:'iPhone 15', m:['iPhone 15','iPhone 15 Plus','iPhone 15 Pro','iPhone 15 Pro Max'] },
@@ -48,37 +48,37 @@ const IPHONE_MODELS = [
   { s:'iPhone 13', m:['iPhone 13 mini','iPhone 13','iPhone 13 Pro','iPhone 13 Pro Max'] },
   { s:'iPhone 12', m:['iPhone 12 mini','iPhone 12','iPhone 12 Pro','iPhone 12 Pro Max'] },
   { s:'iPhone 11', m:['iPhone 11','iPhone 11 Pro','iPhone 11 Pro Max'] },
-  { s:'iPhone SE', m:['iPhone SE (1\u00aa gen)','iPhone SE (2\u00aa gen)','iPhone SE (3\u00aa gen)'] },
+  { s:'iPhone SE', m:['iPhone SE (1ª gen)','iPhone SE (2ª gen)','iPhone SE (3ª gen)'] },
   { s:'iPhone X/XS', m:['iPhone X','iPhone XR','iPhone XS','iPhone XS Max'] },
   { s:'Antigos',   m:['iPhone 8','iPhone 8 Plus','iPhone 7','iPhone 7 Plus','iPhone 6s','iPhone 6s Plus','iPhone 6','iPhone 6 Plus'] },
 ]
 
 const SERVICOS = [
-  { cat:'Tela & Display',        dot:'#0A66FF', items:['Troca de Tela (Display + Touch)','Troca de Tela Original Remanufaturada','Troca de Vidro Frontal','Troca de Vidro Traseiro','Reparo de Manchas / Listras','Reparo de Touch N\u00e3o Funciona'] },
-  { cat:'Bateria & Carga',       dot:'#12A150', items:['Troca de Bateria','Reparo de Conector Lightning','Reparo de Conector USB-C','Calibra\u00e7\u00e3o de Bateria','Reparo de Carregamento Sem Fio'] },
-  { cat:'C\u00e2mera & Flash',        dot:'#8B5CF6', items:['Troca de C\u00e2mera Traseira','Troca de C\u00e2mera Frontal','Troca de C\u00e2mera TrueDepth / Face ID','Troca de Lente','Troca de Flash','Reparo de C\u00e2mera Travada'] },
-  { cat:'\u00c1udio & Som',           dot:'#F59E0B', items:['Troca de Alto-falante (Speaker)','Troca de Fone Interno (Earpiece)','Troca de Microfone','Reparo de Sem Som','Reparo de Microfone'] },
-  { cat:'Bot\u00f5es & Estrutura',    dot:'#0891B2', items:['Troca de Bot\u00e3o Power','Troca de Bot\u00f5es de Volume','Troca de Chave Mute','Troca de Bandeja SIM','Troca de Chassi / Carca\u00e7a','Reparo de Vibra\u00e7\u00e3o'] },
+  { cat:'Tela & Display',        dot:'#0A66FF', items:['Troca de Tela (Display + Touch)','Troca de Tela Original Remanufaturada','Troca de Vidro Frontal','Troca de Vidro Traseiro','Reparo de Manchas / Listras','Reparo de Touch Não Funciona'] },
+  { cat:'Bateria & Carga',       dot:'#12A150', items:['Troca de Bateria','Reparo de Conector Lightning','Reparo de Conector USB-C','Calibração de Bateria','Reparo de Carregamento Sem Fio'] },
+  { cat:'Câmera & Flash',        dot:'#8B5CF6', items:['Troca de Câmera Traseira','Troca de Câmera Frontal','Troca de Câmera TrueDepth / Face ID','Troca de Lente','Troca de Flash','Reparo de Câmera Travada'] },
+  { cat:'Áudio & Som',           dot:'#F59E0B', items:['Troca de Alto-falante (Speaker)','Troca de Fone Interno (Earpiece)','Troca de Microfone','Reparo de Sem Som','Reparo de Microfone'] },
+  { cat:'Botões & Estrutura',    dot:'#0891B2', items:['Troca de Botão Power','Troca de Botões de Volume','Troca de Chave Mute','Troca de Bandeja SIM','Troca de Chassi / Carcaça','Reparo de Vibração'] },
   { cat:'Conectividade',         dot:'#0A66FF', items:['Reparo de Wi-Fi / Bluetooth','Reparo de Sinal / Sem Rede','Reparo de GPS','Reparo de NFC','Reparo de Antena'] },
-  { cat:'Software & Sistema',    dot:'#12A150', items:['Restaura\u00e7\u00e3o iOS (DFU / Recovery)','Desbloqueio de Senha','Remo\u00e7\u00e3o de Bloqueio iCloud','Backup e Transfer\u00eancia de Dados','Reparo de Loop de Reinicializa\u00e7\u00e3o','Diagn\u00f3stico Completo'] },
-  { cat:'Micro Soldagem',        dot:'#D93025', items:['Reparo de Placa-M\u00e3e','Reparo de Face ID','Reparo de Touch ID','Recupera\u00e7\u00e3o de Dados','Reparo por Oxida\u00e7\u00e3o / L\u00edquido','Reparo de Componente BGA'] },
-  { cat:'Higieniza\u00e7\u00e3o & Outros', dot:'#6B6B70', items:['Higieniza\u00e7\u00e3o Interna Completa','Higieniza\u00e7\u00e3o P\u00f3s-L\u00edquido','Avalia\u00e7\u00e3o T\u00e9cnica (Or\u00e7amento)','Instala\u00e7\u00e3o de Pel\u00edcula','Troca de Pel\u00edcula'] },
+  { cat:'Software & Sistema',    dot:'#12A150', items:['Restauração iOS (DFU / Recovery)','Desbloqueio de Senha','Remoção de Bloqueio iCloud','Backup e Transferência de Dados','Reparo de Loop de Reinicialização','Diagnóstico Completo'] },
+  { cat:'Micro Soldagem',        dot:'#D93025', items:['Reparo de Placa-Mãe','Reparo de Face ID','Reparo de Touch ID','Recuperação de Dados','Reparo por Oxidação / Líquido','Reparo de Componente BGA'] },
+  { cat:'Higienização & Outros', dot:'#6B6B70', items:['Higienização Interna Completa','Higienização Pós-Líquido','Avaliação Técnica (Orçamento)','Instalação de Película','Troca de Película'] },
 ]
 
 const PAY_OPTS = [
   { v:'pix',             l:'Pix',           icon:Zap        },
   { v:'dinheiro',        l:'Dinheiro',       icon:Banknote   },
-  { v:'cartao_credito',  l:'Cr\u00e9dito',        icon:CreditCard },
-  { v:'cartao_debito',   l:'D\u00e9bito',         icon:CreditCard },
+  { v:'cartao_credito',  l:'Crédito',        icon:CreditCard },
+  { v:'cartao_debito',   l:'Débito',         icon:CreditCard },
   { v:'iphone_entrada',  l:'iPhone Entrada', icon:Smartphone, vendaOnly:true },
 ]
 const PARCELAS = [1,2,3,4,5,6,7,8,9,10,11,12]
 
-// -- Utils ---------------------------------------------------------------------
+// ── Utils ─────────────────────────────────────────────────────────────────────
 const parseVal = (s) => parseFloat((s||'0').replace(/\./g,'').replace(',','.')) || 0
 const fmtNum   = (n) => n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})
 
-// -- Shared UI primitives ------------------------------------------------------
+// ── Shared UI primitives ──────────────────────────────────────────────────────
 const Label = ({ children, required }) => (
   <div style={{ fontSize:11, fontWeight:600, color:T.ink3, letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:7 }}>
     {children}{required && <span style={{ color:T.red, marginLeft:2 }}>*</span>}
@@ -104,7 +104,7 @@ const TextInput = ({ value, onChange, placeholder, err, style={}, ...rest }) => 
 )
 
 
-// -- Client Search -------------------------------------------------------------
+// ── Client Search ─────────────────────────────────────────────────────────────
 function ClientSearch({ clients, value, selectedId, onSelect, err }) {
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
@@ -131,7 +131,7 @@ function ClientSearch({ clients, value, selectedId, onSelect, err }) {
       </div>
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ fontSize:14, fontWeight:600, color:T.ink, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{selected.name}</div>
-        <div style={{ fontSize:12, color:T.ink4, marginTop:1 }}>{selected.cpf_formatted || selected.cpf}{selected.phone ? ` \u00b7 ${selected.phone}` : ''}</div>
+        <div style={{ fontSize:12, color:T.ink4, marginTop:1 }}>{selected.cpf_formatted || selected.cpf}{selected.phone ? ` · ${selected.phone}` : ''}</div>
       </div>
       <button onClick={() => { onSelect(''); setQ(''); setTimeout(() => inputRef.current?.focus(), 50) }}
         style={{ background:T.ink6, border:'none', borderRadius:'50%', width:26, height:26, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
@@ -185,7 +185,7 @@ function ClientSearch({ clients, value, selectedId, onSelect, err }) {
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ fontSize:13, fontWeight:500, color:T.ink, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{c.name}</div>
                     <div style={{ fontSize:11, color:T.ink4, marginTop:1 }}>
-                      {c.cpf_formatted || c.cpf}{c.phone ? ` \u00b7 ${c.phone}` : ''}
+                      {c.cpf_formatted || c.cpf}{c.phone ? ` · ${c.phone}` : ''}
                     </div>
                   </div>
                 </div>
@@ -203,7 +203,7 @@ function ClientSearch({ clients, value, selectedId, onSelect, err }) {
   )
 }
 
-// -- IMEI Field with Camera Scanner -------------------------------------------
+// ── IMEI Field with Camera Scanner ───────────────────────────────────────────
 function IMEIField({ value, onChange, err }) {
   const [scanning, setScanning] = useState(false)
   const videoRef = useRef()
@@ -231,7 +231,7 @@ function IMEIField({ value, onChange, err }) {
         }
         videoRef.current.onloadedmetadata = () => { videoRef.current.play(); scan() }
       }
-    } catch { alert('C\u00e2mera n\u00e3o dispon\u00edvel ou permiss\u00e3o negada.') }
+    } catch { alert('Câmera não disponível ou permissão negada.') }
   }
 
   const stopScanner = () => {
@@ -255,7 +255,7 @@ function IMEIField({ value, onChange, err }) {
             Cancelar
           </button>
           <div style={{ position:'absolute', bottom:6, left:0, right:0, textAlign:'center', fontSize:10, color:'rgba(255,255,255,0.6)' }}>
-            Aponte para o c\u00f3digo de barras do IMEI
+            Aponte para o código de barras do IMEI
           </div>
         </div>
       )}
@@ -263,20 +263,20 @@ function IMEIField({ value, onChange, err }) {
         <input
           value={value}
           onChange={e => onChange(e.target.value.replace(/\D/g,'').slice(0,15))}
-          placeholder="15 d\u00edgitos"
+          placeholder="15 dígitos"
           style={{ flex:1, padding:'11px 14px', border:'none', outline:'none', fontSize:13, color:T.ink, background:'transparent', fontFamily:'JetBrains Mono,monospace', letterSpacing:'0.5px' }}
         />
         <button onClick={scanning ? stopScanner : startScanner}
-          title="Escanear c\u00f3digo de barras do IMEI"
+          title="Escanear código de barras do IMEI"
           style={{ padding:'0 14px', height:44, background:scanning ? T.blue : T.ink6, border:'none', borderLeft:`1px solid ${T.ink6}`, cursor:'pointer', display:'flex', alignItems:'center', gap:5, fontSize:11, fontWeight:500, color: scanning ? '#fff' : T.ink3, fontFamily:'Instrument Sans,sans-serif', flexShrink:0 }}>
-          <Camera size={14}/>{scanning ? 'Escanando...' : 'C\u00e2mera'}
+          <Camera size={14}/>{scanning ? 'Escanando...' : 'Câmera'}
         </button>
       </div>
     </div>
   )
 }
 
-// -- Model search --------------------------------------------------------------
+// ── Model search ──────────────────────────────────────────────────────────────
 function ModelSearch({ value, onSelect, err }) {
   const [q, setQ] = useState(value || '')
   const [open, setOpen] = useState(false)
@@ -320,7 +320,7 @@ function ModelSearch({ value, onSelect, err }) {
   )
 }
 
-// -- Step 2 \u2014 Manuten\u00e7\u00e3o -------------------------------------------------------
+// ── Step 2 — Manutenção ───────────────────────────────────────────────────────
 function StepServico({ form, set, errors }) {
   const [q, setQ] = useState('')
   const [openCat, setOpenCat] = useState(null)
@@ -356,10 +356,10 @@ function StepServico({ form, set, errors }) {
         </div>
       </div>
 
-      {/* Servi\u00e7os selecionados (chips) */}
+      {/* Serviços selecionados (chips) */}
       {selected.length > 0 && (
         <div>
-          <Label>Servi\u00e7os selecionados</Label>
+          <Label>Serviços selecionados</Label>
           <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
             {selected.map(s => (
               <span key={s} style={{
@@ -377,15 +377,15 @@ function StepServico({ form, set, errors }) {
         </div>
       )}
 
-      {/* Seletor de servi\u00e7os */}
+      {/* Seletor de serviços */}
       <div>
-        <Label required>Tipo de servi\u00e7o</Label>
+        <Label required>Tipo de serviço</Label>
 
         {/* Search */}
         <div style={{ position:'relative', marginBottom:10 }}>
           <Search size={13} style={{ position:'absolute', left:13, top:'50%', transform:'translateY(-50%)', color:T.ink4, pointerEvents:'none' }}/>
           <Field err={errors.service_types}>
-            <TextInput value={q} onChange={e => setQ(e.target.value)} placeholder="Filtrar servi\u00e7os..." style={{ paddingLeft:36 }}/>
+            <TextInput value={q} onChange={e => setQ(e.target.value)} placeholder="Filtrar serviços..." style={{ paddingLeft:36 }}/>
           </Field>
         </div>
         <ErrMsg msg={errors.service_types}/>
@@ -465,7 +465,7 @@ function StepServico({ form, set, errors }) {
         </div>
       </div>
 
-      {/* Descri\u00e7\u00e3o */}
+      {/* Descrição */}
       <div>
         <Label required>Problema relatado pelo cliente</Label>
         <div style={{ border:`1px solid ${errors.problem_description ? T.red : T.ink5}`, borderRadius:10, background:T.white, boxShadow: errors.problem_description ? `0 0 0 3px ${T.red}18` : 'none' }}>
@@ -473,21 +473,21 @@ function StepServico({ form, set, errors }) {
             value={form.problem_description || ''}
             onChange={e => set('problem_description', e.target.value)}
             rows={3}
-            placeholder="Ex: Tela rachada ap\u00f3s queda, touch n\u00e3o responde mais na parte inferior..."
+            placeholder="Ex: Tela rachada após queda, touch não responde mais na parte inferior..."
             style={{ width:'100%', padding:'11px 14px', border:'none', outline:'none', resize:'vertical', fontSize:13, color:T.ink, background:'transparent', fontFamily:'Instrument Sans,sans-serif', lineHeight:1.6, boxSizing:'border-box' }}
           />
         </div>
         <ErrMsg msg={errors.problem_description}/>
       </div>
 
-      {/* Condi\u00e7\u00e3o */}
+      {/* Condição */}
       <div>
-        <Label>Condi\u00e7\u00e3o do aparelho</Label>
+        <Label>Condição do aparelho</Label>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8 }}>
           {[
-            { v:'otimo',     l:'\u00d3timo',     sub:'Sem danos', dot:'#12A150' },
+            { v:'otimo',     l:'Ótimo',     sub:'Sem danos', dot:'#12A150' },
             { v:'bom',       l:'Bom',       sub:'Desgaste leve', dot:'#0A66FF' },
-            { v:'regular',   l:'Regular',   sub:'Danos vis\u00edveis', dot:'#C47D00' },
+            { v:'regular',   l:'Regular',   sub:'Danos visíveis', dot:'#C47D00' },
             { v:'danificado',l:'Danificado',sub:'Dano severo', dot:'#D93025' },
           ].map(c => {
             const on = form.device_condition === c.v
@@ -512,7 +512,7 @@ function StepServico({ form, set, errors }) {
   )
 }
 
-// -- Step 2 \u2014 Venda ------------------------------------------------------------
+// ── Step 2 — Venda ────────────────────────────────────────────────────────────
 function StepProduto({ form, set, errors }) {
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:22 }}>
@@ -538,7 +538,7 @@ function StepProduto({ form, set, errors }) {
         </div>
         <div>
           <Label>Cor</Label>
-          <Field><TextInput value={form.color} onChange={e => set('color', e.target.value)} placeholder="Ex: Tit\u00e2nio Natural"/></Field>
+          <Field><TextInput value={form.color} onChange={e => set('color', e.target.value)} placeholder="Ex: Titânio Natural"/></Field>
         </div>
       </div>
 
@@ -546,7 +546,7 @@ function StepProduto({ form, set, errors }) {
         <Label>IMEI</Label>
         <Field err={errors.imei}>
           <TextInput value={form.imei} onChange={e => set('imei', e.target.value.replace(/\D/g,'').slice(0,15))}
-            placeholder="15 d\u00edgitos" style={{ fontFamily:'JetBrains Mono,monospace', fontSize:13, letterSpacing:'0.5px' }}/>
+            placeholder="15 dígitos" style={{ fontFamily:'JetBrains Mono,monospace', fontSize:13, letterSpacing:'0.5px' }}/>
         </Field>
         <ErrMsg msg={errors.imei}/>
       </div>
@@ -554,7 +554,7 @@ function StepProduto({ form, set, errors }) {
   )
 }
 
-// -- Step 3 \u2014 Pagamento --------------------------------------------------------
+// ── Step 3 — Pagamento ────────────────────────────────────────────────────────
 function StepPagamento({ form, set, errors, isManut }) {
   const [pd, setPdState] = useState({
     pix:             { value:'' },
@@ -622,7 +622,7 @@ function StepPagamento({ form, set, errors, isManut }) {
               onChange={e => set('warranty_months', e.target.value)}/>
           </Field>
           <div style={{ fontSize:10, color:T.ink4, marginTop:4 }}>
-            Padr\u00e3o: {isManut ? '3 meses (servi\u00e7o)' : '12 meses (venda)'}
+            Padrão: {isManut ? '3 meses (serviço)' : '12 meses (venda)'}
           </div>
         </div>
       </div>
@@ -653,18 +653,18 @@ function StepPagamento({ form, set, errors, isManut }) {
         <ErrMsg msg={errors.payment_methods}/>
       </div>
 
-      {/* -- iPhone Entrada (apenas venda) ------------------------- */}
+      {/* ── iPhone Entrada (apenas venda) ───────────────────────── */}
       {form.payment_methods.includes('iphone_entrada') && (
         <div style={{ border:`1.5px solid ${T.ink}`, borderRadius:12, overflow:'hidden' }}>
           {/* Header */}
           <div style={{ background:T.ink, padding:'12px 16px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
               <Smartphone size={14} style={{ color:'rgba(255,255,255,0.6)' }}/>
-              <span style={{ fontSize:13, fontWeight:600, color:T.white }}>iPhone de Entrada \u2014 Troca</span>
+              <span style={{ fontSize:13, fontWeight:600, color:T.white }}>iPhone de Entrada — Troca</span>
             </div>
             {tradeVal > 0 && (
               <span style={{ fontSize:13, fontWeight:700, color:T.white }}>
-                \u2212 R$ {pd.iphone_entrada.value}
+                − R$ {pd.iphone_entrada.value}
               </span>
             )}
           </div>
@@ -704,10 +704,10 @@ function StepPagamento({ form, set, errors, isManut }) {
               )}
             </div>
 
-            {/* Mem\u00f3ria + Cor */}
+            {/* Memória + Cor */}
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
               <div>
-                <Label>Mem\u00f3ria</Label>
+                <Label>Memória</Label>
                 <div style={{ border:`1px solid ${T.ink5}`, borderRadius:10, background:T.white }}>
                   <div style={{ position:'relative', display:'flex', alignItems:'center' }}>
                     <select value={pd.iphone_entrada.capacity} onChange={e => setPd('iphone_entrada','capacity',e.target.value)}
@@ -733,7 +733,7 @@ function StepPagamento({ form, set, errors, isManut }) {
                 <Label>IMEI</Label>
                 <div style={{ border:`1px solid ${T.ink5}`, borderRadius:10, background:T.white }}>
                   <TextInput value={pd.iphone_entrada.imei} onChange={e => setPd('iphone_entrada','imei',e.target.value.replace(/\D/g,'').slice(0,15))}
-                    placeholder="15 d\u00edgitos" style={{ fontFamily:'JetBrains Mono,monospace', fontSize:12, letterSpacing:'0.5px' }}/>
+                    placeholder="15 dígitos" style={{ fontFamily:'JetBrains Mono,monospace', fontSize:12, letterSpacing:'0.5px' }}/>
                 </div>
               </div>
               <div>
@@ -746,7 +746,7 @@ function StepPagamento({ form, set, errors, isManut }) {
               </div>
             </div>
 
-            {/* Restante ap\u00f3s entrada */}
+            {/* Restante após entrada */}
             {tradeVal > 0 && total > 0 && (
               <div style={{ background:T.amberL, border:`1px solid #FDE68A`, borderRadius:8, padding:'9px 13px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                 <span style={{ fontSize:12, color:T.amber, fontWeight:500 }}>Restante a pagar</span>
@@ -757,7 +757,7 @@ function StepPagamento({ form, set, errors, isManut }) {
         </div>
       )}
 
-      {/* Detalhes por m\u00e9todo \u2014 apenas cash methods */}
+      {/* Detalhes por método — apenas cash methods */}
       {cashMethods.length > 0 && (
         <div style={{ border:`1px solid ${T.ink5}`, borderRadius:12, overflow:'hidden' }}>
           {cashMethods.map((m, idx) => {
@@ -847,12 +847,12 @@ function StepPagamento({ form, set, errors, isManut }) {
         </div>
       )}
 
-      {/* Observa\u00e7\u00f5es */}
+      {/* Observações */}
       <div>
-        <Label>Observa\u00e7\u00f5es</Label>
+        <Label>Observações</Label>
         <div style={{ border:`1px solid ${T.ink5}`, borderRadius:10, background:T.white }}>
           <textarea value={form.notes} onChange={e => set('notes', e.target.value)} rows={3}
-            placeholder={isManut ? 'Prazo de entrega, acess\u00f3rios entregues, acordos...' : 'Condi\u00e7\u00f5es, defeitos, acordos...'}
+            placeholder={isManut ? 'Prazo de entrega, acessórios entregues, acordos...' : 'Condições, defeitos, acordos...'}
             style={{ width:'100%', padding:'11px 14px', border:'none', outline:'none', resize:'vertical', fontSize:13, color:T.ink, background:'transparent', fontFamily:'Instrument Sans,sans-serif', lineHeight:1.6, boxSizing:'border-box' }}/>
         </div>
       </div>
@@ -864,17 +864,17 @@ function StepPagamento({ form, set, errors, isManut }) {
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8 }}>
             <span style={{ fontSize:13, color:'rgba(255,255,255,0.55)', maxWidth:'60%', lineHeight:1.4 }}>
               {isManut
-                ? (form.service_types?.slice(0,2).join(', ') || 'Manuten\u00e7\u00e3o') + (form.service_types?.length > 2 ? ` +${form.service_types.length - 2}` : '')
-                : `${form.iphone_model || '\u2014'} ${form.capacity || ''}`}
+                ? (form.service_types?.slice(0,2).join(', ') || 'Manutenção') + (form.service_types?.length > 2 ? ` +${form.service_types.length - 2}` : '')
+                : `${form.iphone_model || '—'} ${form.capacity || ''}`}
             </span>
             <span style={{ fontSize:20, fontWeight:700, color:T.white, letterSpacing:'-0.5px' }}>R$ {form.price}</span>
           </div>
           {tradeVal > 0 && (
             <div style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}>
               <span style={{ fontSize:12, color:'rgba(255,255,255,0.4)' }}>
-                iPhone entrada ({pd.iphone_entrada.model || '\u2014'})
+                iPhone entrada ({pd.iphone_entrada.model || '—'})
               </span>
-              <span style={{ fontSize:12, color:'#86EFAC', fontWeight:600 }}>\u2212 R$ {pd.iphone_entrada.value}</span>
+              <span style={{ fontSize:12, color:'#86EFAC', fontWeight:600 }}>− R$ {pd.iphone_entrada.value}</span>
             </div>
           )}
           {tradeVal > 0 && (
@@ -889,7 +889,7 @@ function StepPagamento({ form, set, errors, isManut }) {
               {form.warranty_months || (isManut ? 3 : 12)} meses de garantia
             </span>
             <span style={{ fontSize:11, color:'rgba(255,255,255,0.35)' }}>
-              {form.payment_methods.map(m => PAY_OPTS.find(p => p.v === m)?.l).join(' + ') || '\u2014'}
+              {form.payment_methods.map(m => PAY_OPTS.find(p => p.v === m)?.l).join(' + ') || '—'}
             </span>
           </div>
         </div>
@@ -898,7 +898,7 @@ function StepPagamento({ form, set, errors, isManut }) {
   )
 }
 
-// -- Main page -----------------------------------------------------------------
+// ── Main page ─────────────────────────────────────────────────────────────────
 export default function NewOrderPage() {
   const navigate = useNavigate()
   const createOrder = useCreateOrder()
@@ -918,7 +918,7 @@ export default function NewOrderPage() {
 
   const stepLabels = [
     { n:1, l:'Cliente' },
-    { n:2, l: isManut ? 'Servi\u00e7o' : 'Produto' },
+    { n:2, l: isManut ? 'Serviço' : 'Produto' },
     { n:3, l:'Pagamento' },
   ]
 
@@ -927,9 +927,9 @@ export default function NewOrderPage() {
     if (step === 1 && !form.client_id) e.client_id = 'Selecione um cliente'
     if (step === 2) {
       if (!form.iphone_model) e.iphone_model = 'Selecione o modelo'
-      if (form.imei && !validateIMEI(form.imei)) e.imei = 'IMEI inv\u00e1lido'
+      if (form.imei && !validateIMEI(form.imei)) e.imei = 'IMEI inválido'
       if (isManut) {
-        if (!form.service_types?.length) e.service_types = 'Selecione ao menos um servi\u00e7o'
+        if (!form.service_types?.length) e.service_types = 'Selecione ao menos um serviço'
         if (!form.problem_description?.trim()) e.problem_description = 'Descreva o problema relatado'
       }
     }
@@ -946,11 +946,11 @@ export default function NewOrderPage() {
   const handleSubmit = async () => {
     if (!validate()) return
     const noteParts = []
-    if (isManut && form.service_types?.length) noteParts.push(`Servi\u00e7os: ${form.service_types.join(', ')}`)
+    if (isManut && form.service_types?.length) noteParts.push(`Serviços: ${form.service_types.join(', ')}`)
     if (isManut && form.problem_description) noteParts.push(`Problema: ${form.problem_description}`)
     if (isManut && form.device_condition) {
-      const cond = { otimo:'\u00d3timo', bom:'Bom', regular:'Regular', danificado:'Danificado' }
-      noteParts.push(`Condi\u00e7\u00e3o: ${cond[form.device_condition] || form.device_condition}`)
+      const cond = { otimo:'Ótimo', bom:'Bom', regular:'Regular', danificado:'Danificado' }
+      noteParts.push(`Condição: ${cond[form.device_condition] || form.device_condition}`)
     }
     if (form.notes) noteParts.push(form.notes)
 
@@ -971,7 +971,7 @@ export default function NewOrderPage() {
   return (
     <div style={{ maxWidth:640, margin:'0 auto', fontFamily:'Instrument Sans,sans-serif', display:'flex', flexDirection:'column', gap:12 }}>
 
-      {/* -- Stepper ----------------------------------------------- */}
+      {/* ── Stepper ─────────────────────────────────────────────── */}
       <div style={{ background:T.white, borderRadius:12, boxShadow:T.shadowSm, padding:'14px 22px' }}>
         <div style={{ display:'flex', alignItems:'center' }}>
           {stepLabels.map((s, i) => (
@@ -1001,21 +1001,21 @@ export default function NewOrderPage() {
           <div style={{ marginTop:12, paddingTop:12, borderTop:`1px solid ${T.ink6}`, display:'flex', alignItems:'center', gap:8 }}>
             <Wrench size={12} style={{ color:T.ink4 }}/>
             <span style={{ fontSize:12, color:T.ink3 }}>
-              Manuten\u00e7\u00e3o{form.iphone_model ? ` \u00b7 ${form.iphone_model}` : ''}
-              {form.service_types?.length ? ` \u00b7 ${form.service_types.length} servi\u00e7o${form.service_types.length > 1 ? 's' : ''}` : ''}
+              Manutenção{form.iphone_model ? ` · ${form.iphone_model}` : ''}
+              {form.service_types?.length ? ` · ${form.service_types.length} serviço${form.service_types.length > 1 ? 's' : ''}` : ''}
             </span>
           </div>
         )}
       </div>
 
-      {/* -- Form card --------------------------------------------- */}
+      {/* ── Form card ───────────────────────────────────────────── */}
       <div style={{ background:T.white, borderRadius:12, boxShadow:T.shadowSm, padding:28 }}>
 
         {step === 1 && (
           <div style={{ display:'flex', flexDirection:'column', gap:22 }}>
             <div>
               <div style={{ fontSize:17, fontWeight:700, color:T.ink, letterSpacing:'-0.3px', marginBottom:2 }}>Novo atendimento</div>
-              <div style={{ fontSize:13, color:T.ink3 }}>Selecione o cliente e o tipo de servi\u00e7o</div>
+              <div style={{ fontSize:13, color:T.ink3 }}>Selecione o cliente e o tipo de serviço</div>
             </div>
 
             <div>
@@ -1025,7 +1025,7 @@ export default function NewOrderPage() {
                   <select value={form.client_id} onChange={e => set('client_id', e.target.value)}
                     style={{ width:'100%', padding:'11px 36px 11px 14px', border:'none', outline:'none', fontSize:14, color: form.client_id ? T.ink : T.ink4, background:'transparent', fontFamily:'Instrument Sans,sans-serif', appearance:'none', cursor:'pointer' }}>
                     <option value="">Selecionar cliente...</option>
-                    {clients.map(c => <option key={c.id} value={c.id}>{c.name} \u2014 {c.cpf_formatted || formatCPF(c.cpf)}</option>)}
+                    {clients.map(c => <option key={c.id} value={c.id}>{c.name} — {c.cpf_formatted || formatCPF(c.cpf)}</option>)}
                   </select>
                   <ChevronDown size={14} style={{ position:'absolute', right:12, color:T.ink4, pointerEvents:'none' }}/>
                 </div>
@@ -1038,7 +1038,7 @@ export default function NewOrderPage() {
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
                 {[
                   { v:'venda',     l:'Venda',      desc:'iPhone novo ou usado', icon:Smartphone },
-                  { v:'manutencao',l:'Manuten\u00e7\u00e3o',  desc:'Reparo ou servi\u00e7o t\u00e9cnico', icon:Wrench },
+                  { v:'manutencao',l:'Manutenção',  desc:'Reparo ou serviço técnico', icon:Wrench },
                 ].map(t => {
                   const on = form.type === t.v
                   return (
@@ -1099,7 +1099,7 @@ export default function NewOrderPage() {
             {createOrder.isPending
               ? <><Loader2 size={14} style={{ animation:'spin 1s linear infinite' }}/> Registrando...</>
               : step < 3
-                ? <>Pr\u00f3ximo <ChevronRight size={14}/></>
+                ? <>Próximo <ChevronRight size={14}/></>
                 : <><Send size={14}/> Registrar atendimento</>}
           </button>
         </div>

@@ -15,10 +15,10 @@ const navItems = [
 ]
 
 const pageTitles = {
-  '/':           { title:'Dashboard',        sub:'Vis\u00e3o geral do neg\u00f3cio' },
+  '/':           { title:'Dashboard',        sub:'Visão geral do negócio' },
   '/clients':    { title:'Clientes',         sub:'Gerenciamento de clientes' },
-  '/orders':     { title:'Atendimentos',     sub:'Vendas e manuten\u00e7\u00f5es' },
-  '/orders/new': { title:'Novo Atendimento', sub:'Registrar venda ou servi\u00e7o' },
+  '/orders':     { title:'Atendimentos',     sub:'Vendas e manutenções' },
+  '/orders/new': { title:'Novo Atendimento', sub:'Registrar venda ou serviço' },
 }
 
 function Avatar({ name, size=32 }) {
@@ -96,7 +96,7 @@ function DesktopLayout({ user, logout, location, navigate, info, T }) {
             </div>
             <div>
               <div style={{ fontSize:14, fontWeight:700, color:'#fff', letterSpacing:'-0.2px' }}>iStore</div>
-              <div style={{ fontSize:10, color:'rgba(255,255,255,0.35)', marginTop:1 }}>Gest\u00e3o Premium</div>
+              <div style={{ fontSize:10, color:'rgba(255,255,255,0.35)', marginTop:1 }}>Gestão Premium</div>
             </div>
           </div>
         </div>

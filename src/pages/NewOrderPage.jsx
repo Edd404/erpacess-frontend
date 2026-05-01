@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useClients, useCreateOrder } from '../hooks/useData'
-import { formatCurrencyInput, formatCPF } from '../utils/formatters'
+import { useCreateOrder } from '../hooks/useData'
+import { clientService } from '../services/api'
+import { formatCurrencyInput } from '../utils/formatters'
 import { validateIMEI } from '../utils/validators'
 import {
   ArrowLeft, ChevronRight, Check, Smartphone, Wrench, Zap, CreditCard,
@@ -104,26 +105,52 @@ const TextInput = ({ value, onChange, placeholder, err, style={}, ...rest }) => 
 )
 
 
-// ── Client Search ─────────────────────────────────────────────────────────────
-function ClientSearch({ clients, value, selectedId, onSelect, err }) {
-  const [q, setQ] = useState('')
-  const [open, setOpen] = useState(false)
-  const inputRef = useRef()
+// ── Client Search (API-powered, debounced) ────────────────────────────────────
+function ClientSearch({ selectedId, onSelect, err }) {
+  const [q, setQ]           = useState('')
+  const [open, setOpen]     = useState(false)
+  const [results, setResults] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [selected, setSelected] = useState(null)
+  const inputRef  = useRef()
+  const debounce  = useRef()
 
-  const selected = clients.find(c => c.id === selectedId)
+  // Carrega dados do cliente selecionado
+  useEffect(() => {
+    if (!selectedId) { setSelected(null); return }
+    clientService.get(selectedId)
+      .then(r => setSelected(r.data.data))
+      .catch(() => setSelected(null))
+  }, [selectedId])
 
-  const filtered = q.length >= 1
-    ? clients.filter(c =>
-        c.name.toLowerCase().includes(q.toLowerCase()) ||
-        (c.cpf || '').includes(q.replace(/\D/g,'')) ||
-        (c.phone || '').includes(q.replace(/\D/g,''))
-      ).slice(0, 8)
-    : clients.slice(0, 8)
+  const doSearch = (val) => {
+    setQ(val)
+    setOpen(true)
+    clearTimeout(debounce.current)
+    if (val.length < 2) { setResults([]); setLoading(false); return }
+    setLoading(true)
+    debounce.current = setTimeout(async () => {
+      try {
+        const r = await clientService.search(val)
+        setResults(r.data.data || [])
+      } catch { setResults([]) }
+      setLoading(false)
+    }, 350)
+  }
 
   const ini = (name) => (name||'?').split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase()
   const colors = ['#0A66FF','#12A150','#D97706','#D93025','#7C3AED','#0891B2']
   const avatarColor = (name) => colors[(name||'').charCodeAt(0) % colors.length]
 
+  const clear = () => {
+    onSelect('')
+    setSelected(null)
+    setQ('')
+    setResults([])
+    setTimeout(() => inputRef.current?.focus(), 50)
+  }
+
+  // ── Cliente selecionado — exibe cartão ──
   if (selected) return (
     <div style={{ border:`1px solid ${err ? T.red : T.ink5}`, borderRadius:10, background:T.white, padding:'10px 14px', display:'flex', alignItems:'center', gap:12 }}>
       <div style={{ width:36, height:36, borderRadius:'50%', background:avatarColor(selected.name), display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:13, fontWeight:700, flexShrink:0 }}>
@@ -131,31 +158,43 @@ function ClientSearch({ clients, value, selectedId, onSelect, err }) {
       </div>
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ fontSize:14, fontWeight:600, color:T.ink, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{selected.name}</div>
-        <div style={{ fontSize:12, color:T.ink4, marginTop:1 }}>{selected.cpf_formatted || selected.cpf}{selected.phone ? ` · ${selected.phone}` : ''}</div>
+        <div style={{ fontSize:12, color:T.ink4, marginTop:1 }}>
+          {selected.cpf_formatted || selected.cpf}{selected.phone ? ` · ${selected.phone}` : ''}
+        </div>
       </div>
-      <button onClick={() => { onSelect(''); setQ(''); setTimeout(() => inputRef.current?.focus(), 50) }}
+      <button onClick={clear}
         style={{ background:T.ink6, border:'none', borderRadius:'50%', width:26, height:26, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
         <X size={12} style={{ color:T.ink3 }}/>
       </button>
     </div>
   )
 
+  // ── Campo de busca ──
   return (
     <div style={{ position:'relative' }}>
-      <div style={{ border:`1px solid ${err ? T.red : open ? T.ink : T.ink5}`, borderRadius:10, background:T.white, display:'flex', alignItems:'center', transition:'border-color .15s', boxShadow: err ? `0 0 0 3px ${T.red}18` : open ? `0 0 0 3px rgba(10,10,11,0.06)` : 'none' }}>
-        <Search size={14} style={{ marginLeft:13, color:T.ink4, flexShrink:0 }}/>
+      <div style={{
+        border:`1px solid ${err ? T.red : open ? T.ink : T.ink5}`,
+        borderRadius:10, background:T.white, display:'flex', alignItems:'center',
+        transition:'border-color .15s',
+        boxShadow: err ? `0 0 0 3px ${T.red}18` : open ? `0 0 0 3px rgba(10,10,11,0.06)` : 'none',
+      }}>
+        {loading
+          ? <Loader2 size={14} style={{ marginLeft:13, color:T.ink4, flexShrink:0, animation:'spin 0.8s linear infinite' }}/>
+          : <Search   size={14} style={{ marginLeft:13, color:T.ink4, flexShrink:0 }}/>
+        }
         <input
           ref={inputRef}
           value={q}
-          onChange={e => { setQ(e.target.value); setOpen(true) }}
+          onChange={e => doSearch(e.target.value)}
           onFocus={() => setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 200)}
-          placeholder="Buscar por nome, CPF ou telefone..."
+          placeholder="Digite nome, CPF ou telefone..."
           autoComplete="off"
           style={{ flex:1, padding:'11px 14px 11px 8px', border:'none', outline:'none', fontSize:14, color:T.ink, background:'transparent', fontFamily:'Instrument Sans,sans-serif' }}
         />
         {q && (
-          <button onClick={() => setQ('')} style={{ marginRight:10, background:'none', border:'none', cursor:'pointer', color:T.ink4, display:'flex' }}>
+          <button onClick={() => { setQ(''); setResults([]); inputRef.current?.focus() }}
+            style={{ marginRight:10, background:'none', border:'none', cursor:'pointer', color:T.ink4, display:'flex' }}>
             <X size={13}/>
           </button>
         )}
@@ -163,20 +202,30 @@ function ClientSearch({ clients, value, selectedId, onSelect, err }) {
 
       {open && (
         <div style={{ position:'absolute', top:'calc(100% + 4px)', left:0, right:0, background:T.white, border:`1px solid ${T.ink5}`, borderRadius:12, boxShadow:T.shadowLg, zIndex:500, overflow:'hidden' }}>
-          {filtered.length === 0 ? (
+          {q.length < 2 ? (
+            <div style={{ padding:'18px 16px', textAlign:'center' }}>
+              <Search size={18} style={{ color:T.ink5, marginBottom:6, display:'block', margin:'0 auto 8px' }}/>
+              <div style={{ fontSize:13, color:T.ink4, fontWeight:500 }}>Busque por nome, CPF ou telefone</div>
+              <div style={{ fontSize:11, color:T.ink5, marginTop:3 }}>Mínimo 2 caracteres</div>
+            </div>
+          ) : loading ? (
+            <div style={{ padding:'16px', textAlign:'center', fontSize:13, color:T.ink4, display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+              <Loader2 size={13} style={{ animation:'spin 0.8s linear infinite' }}/> Buscando...
+            </div>
+          ) : results.length === 0 ? (
             <div style={{ padding:'20px 16px', textAlign:'center', color:T.ink4, fontSize:13 }}>
-              {q ? `Nenhum cliente encontrado para "${q}"` : 'Nenhum cliente cadastrado'}
+              <User size={18} style={{ color:T.ink5, display:'block', margin:'0 auto 8px' }}/>
+              Nenhum cliente encontrado para <b>"{q}"</b>
             </div>
           ) : (
             <>
-              {q.length < 1 && (
-                <div style={{ padding:'8px 14px 6px', fontSize:10, fontWeight:700, color:T.ink4, textTransform:'uppercase', letterSpacing:'0.6px', background:T.bg, borderBottom:`1px solid ${T.ink6}` }}>
-                  Recentes
-                </div>
-              )}
-              {filtered.map((c, i) => (
-                <div key={c.id} onMouseDown={() => { onSelect(c.id); setOpen(false); setQ('') }}
-                  style={{ display:'flex', alignItems:'center', gap:12, padding:'11px 14px', cursor:'pointer', borderBottom: i < filtered.length-1 ? `1px solid ${T.ink6}` : 'none', transition:'background .1s' }}
+              <div style={{ padding:'7px 14px 5px', fontSize:10, fontWeight:700, color:T.ink4, textTransform:'uppercase', letterSpacing:'0.6px', background:T.bg, borderBottom:`1px solid ${T.ink6}` }}>
+                {results.length} resultado{results.length !== 1 ? 's' : ''} encontrado{results.length !== 1 ? 's' : ''}
+              </div>
+              {results.map((c, i) => (
+                <div key={c.id}
+                  onMouseDown={() => { onSelect(c.id); setOpen(false); setQ('') }}
+                  style={{ display:'flex', alignItems:'center', gap:12, padding:'11px 14px', cursor:'pointer', borderBottom: i < results.length-1 ? `1px solid ${T.ink6}` : 'none', transition:'background .1s' }}
                   onMouseEnter={e => e.currentTarget.style.background = T.ink6}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <div style={{ width:34, height:34, borderRadius:'50%', background:avatarColor(c.name), display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:12, fontWeight:700, flexShrink:0 }}>
@@ -190,11 +239,6 @@ function ClientSearch({ clients, value, selectedId, onSelect, err }) {
                   </div>
                 </div>
               ))}
-              {!q && clients.length > 8 && (
-                <div style={{ padding:'8px 14px', fontSize:11, color:T.ink4, textAlign:'center', borderTop:`1px solid ${T.ink6}` }}>
-                  Digite para filtrar entre {clients.length} clientes
-                </div>
-              )}
             </>
           )}
         </div>
@@ -544,10 +588,7 @@ function StepProduto({ form, set, errors }) {
 
       <div>
         <Label>IMEI</Label>
-        <Field err={errors.imei}>
-          <TextInput value={form.imei} onChange={e => set('imei', e.target.value.replace(/\D/g,'').slice(0,15))}
-            placeholder="15 dígitos" style={{ fontFamily:'JetBrains Mono,monospace', fontSize:13, letterSpacing:'0.5px' }}/>
-        </Field>
+        <IMEIField value={form.imei} onChange={v => set('imei', v)} err={errors.imei}/>
         <ErrMsg msg={errors.imei}/>
       </div>
     </div>
@@ -902,8 +943,6 @@ function StepPagamento({ form, set, errors, isManut }) {
 export default function NewOrderPage() {
   const navigate = useNavigate()
   const createOrder = useCreateOrder()
-  const { data: clientsData } = useClients({ limit:100 })
-  const clients = clientsData?.data || []
 
   const [step, setStep] = useState(1)
   const [errors, setErrors] = useState({})
@@ -1020,16 +1059,11 @@ export default function NewOrderPage() {
 
             <div>
               <Label required>Cliente</Label>
-              <Field err={errors.client_id}>
-                <div style={{ position:'relative', display:'flex', alignItems:'center' }}>
-                  <select value={form.client_id} onChange={e => set('client_id', e.target.value)}
-                    style={{ width:'100%', padding:'11px 36px 11px 14px', border:'none', outline:'none', fontSize:14, color: form.client_id ? T.ink : T.ink4, background:'transparent', fontFamily:'Instrument Sans,sans-serif', appearance:'none', cursor:'pointer' }}>
-                    <option value="">Selecionar cliente...</option>
-                    {clients.map(c => <option key={c.id} value={c.id}>{c.name} — {c.cpf_formatted || formatCPF(c.cpf)}</option>)}
-                  </select>
-                  <ChevronDown size={14} style={{ position:'absolute', right:12, color:T.ink4, pointerEvents:'none' }}/>
-                </div>
-              </Field>
+              <ClientSearch
+                selectedId={form.client_id}
+                onSelect={v => set('client_id', v)}
+                err={errors.client_id}
+              />
               <ErrMsg msg={errors.client_id}/>
             </div>
 

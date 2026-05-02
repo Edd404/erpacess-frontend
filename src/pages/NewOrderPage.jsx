@@ -5,7 +5,7 @@ import { formatCurrencyInput, formatCPF } from '../utils/formatters'
 import { validateIMEI } from '../utils/validators'
 import {
   ArrowLeft, ChevronRight, Check, Smartphone, Wrench, Zap, CreditCard,
-  Banknote, Loader2, Send, Search, AlertCircle, CheckCircle2, X, ChevronDown, Camera, User, Phone
+  Banknote, Loader2, Send, Search, AlertCircle, CheckCircle2, X, ChevronDown, User, Phone
 } from 'lucide-react'
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
@@ -203,154 +203,56 @@ function ClientSearch({ clients, value, selectedId, onSelect, err }) {
   )
 }
 
-// ── IMEI Field with Camera Scanner (zxing — funciona no Safari iOS) ───────────
+// ── IMEI Field (digitação simples + feedback em tempo real) ──────────────────
 function IMEIField({ value, onChange, err }) {
-  const [scanning, setScanning]   = useState(false)
-  const [loading,  setLoading]    = useState(false)
-  const [scanErr,  setScanErr]    = useState('')
-  const videoRef   = useRef()
-  const readerRef  = useRef()   // BrowserMultiFormatReader instance
+  const len     = value.length
+  const isValid = len === 15 && validateIMEI(value)
+  const isWrong = len === 15 && !isValid
 
-  const stopScanner = () => {
-    try { readerRef.current?.reset() } catch {}
-    readerRef.current = null
-    setScanning(false)
-    setLoading(false)
-    setScanErr('')
-  }
-
-  const startScanner = async () => {
-    setScanErr('')
-
-    // ── 1. HTTPS check (câmera só funciona em HTTPS ou localhost) ──
-    if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
-      setScanErr('A câmera requer conexão segura (HTTPS). Acesse pelo link do Vercel.')
-      return
-    }
-
-    // ── 2. API de câmera disponível? ──
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setScanErr('Seu navegador não suporta acesso à câmera. Use Safari (iOS) ou Chrome.')
-      return
-    }
-
-    setLoading(true)
-
-    try {
-      // ── 3. Carrega @zxing/browser dinamicamente (não aumenta bundle inicial) ──
-      const { BrowserMultiFormatReader } = await import('@zxing/browser')
-      const reader = new BrowserMultiFormatReader()
-      readerRef.current = reader
-
-      setScanning(true)
-      setLoading(false)
-
-      // decodeFromVideoDevice(deviceId=undefined → câmera traseira padrão)
-      await reader.decodeFromVideoDevice(
-        undefined,
-        videoRef.current,
-        (result, error) => {
-          if (result) {
-            const raw  = result.getText()
-            const imei = raw.replace(/\D/g, '').slice(0, 15)
-            if (imei.length >= 14) {
-              onChange(imei)
-              stopScanner()
-            }
-          }
-          // erros de frame são normais durante scan — ignorar
-        }
-      )
-    } catch (e) {
-      setLoading(false)
-      setScanning(false)
-      readerRef.current = null
-
-      // ── 4. Erros específicos com mensagens claras ──
-      const name = e?.name || ''
-      if (name === 'NotAllowedError') {
-        setScanErr('Permissão de câmera negada. Vá em Ajustes → Safari → Câmera e permita o acesso.')
-      } else if (name === 'NotFoundError') {
-        setScanErr('Nenhuma câmera encontrada neste dispositivo.')
-      } else if (name === 'NotReadableError' || name === 'AbortError') {
-        setScanErr('A câmera está sendo usada por outro app. Feche e tente novamente.')
-      } else if (name === 'OverconstrainedError') {
-        setScanErr('Câmera traseira não disponível. Tente de outro dispositivo.')
-      } else {
-        setScanErr(`Erro ao abrir câmera: ${e?.message || name || 'desconhecido'}`)
-      }
-    }
-  }
-
-  useEffect(() => () => stopScanner(), [])
+  // cor da borda: erro de submit > dígito errado > válido > neutro
+  const borderColor = err || isWrong ? T.red : isValid ? '#12A150' : T.ink5
+  const shadow      = err || isWrong ? `0 0 0 3px ${T.red}18`
+                    : isValid        ? '0 0 0 3px rgba(18,161,80,0.12)'
+                    : 'none'
 
   return (
     <div>
-      {/* ── Viewfinder ── */}
-      {scanning && (
-        <div style={{ position:'relative', background:'#000', borderRadius:10, overflow:'hidden', marginBottom:8 }}>
-          <video
-            ref={videoRef}
-            style={{ width:'100%', height:180, objectFit:'cover', display:'block' }}
-            playsInline
-            muted
-          />
-          {/* guia azul centralizado */}
-          <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
-            <div style={{ width:'82%', height:64, border:'2px solid #0A66FF', borderRadius:8, boxShadow:'0 0 0 9999px rgba(0,0,0,0.45)' }}/>
-          </div>
-          {/* linha animada de escaneamento */}
-          <div style={{ position:'absolute', left:'9%', right:'9%', top:'50%', height:2, background:'rgba(10,102,255,0.7)',
-            animation:'imeiScanLine 1.4s ease-in-out infinite alternate', borderRadius:1, pointerEvents:'none' }}/>
-          <button onClick={stopScanner}
-            style={{ position:'absolute', top:8, right:8, background:'rgba(0,0,0,0.65)', border:'none',
-              borderRadius:6, padding:'5px 12px', color:'#fff', fontSize:11, fontWeight:500, cursor:'pointer', fontFamily:'Instrument Sans,sans-serif' }}>
-            Cancelar
-          </button>
-          <div style={{ position:'absolute', bottom:7, left:0, right:0, textAlign:'center', fontSize:10, color:'rgba(255,255,255,0.55)', fontFamily:'Instrument Sans,sans-serif' }}>
-            Aponte para o código de barras do IMEI
-          </div>
-          <style>{`@keyframes imeiScanLine { from{transform:translateY(-20px)} to{transform:translateY(20px)} }`}</style>
-        </div>
-      )}
-
-      {/* ── Erro de câmera ── */}
-      {scanErr && (
-        <div style={{ display:'flex', alignItems:'flex-start', gap:8, background:'#FEF2F2', border:'1px solid #FECACA',
-          borderRadius:8, padding:'9px 12px', marginBottom:8 }}>
-          <AlertCircle size={14} style={{ color:'#EF4444', flexShrink:0, marginTop:1 }}/>
-          <span style={{ fontSize:12, color:'#991B1B', lineHeight:1.5, fontFamily:'Instrument Sans,sans-serif' }}>{scanErr}</span>
-        </div>
-      )}
-
-      {/* ── Input + botão câmera ── */}
-      <div style={{ border:`1px solid ${err ? T.red : T.ink5}`, borderRadius:10, background:T.white,
-        display:'flex', alignItems:'center', overflow:'hidden', boxShadow: err ? `0 0 0 3px ${T.red}18` : 'none' }}>
+      <div style={{ border:`1px solid ${borderColor}`, borderRadius:10, background:T.white,
+        display:'flex', alignItems:'center', overflow:'hidden', boxShadow:shadow, transition:'border-color .15s, box-shadow .15s' }}>
         <input
           value={value}
           onChange={e => onChange(e.target.value.replace(/\D/g,'').slice(0,15))}
           placeholder="15 dígitos"
           inputMode="numeric"
+          maxLength={15}
           style={{ flex:1, padding:'11px 14px', border:'none', outline:'none', fontSize:13, color:T.ink,
             background:'transparent', fontFamily:'JetBrains Mono,monospace', letterSpacing:'0.5px' }}
         />
-        <button
-          onClick={scanning ? stopScanner : startScanner}
-          disabled={loading}
-          title="Escanear código de barras do IMEI"
-          style={{ padding:'0 14px', height:44, background: scanning ? '#EF4444' : loading ? T.ink5 : T.ink6,
-            border:'none', borderLeft:`1px solid ${T.ink6}`, cursor: loading ? 'default' : 'pointer',
-            display:'flex', alignItems:'center', gap:5, fontSize:11, fontWeight:500,
-            color: scanning ? '#fff' : loading ? T.ink4 : T.ink3,
-            fontFamily:'Instrument Sans,sans-serif', flexShrink:0, transition:'all .15s' }}>
-          {loading
-            ? <><Loader2 size={13} style={{ animation:'spin 0.8s linear infinite' }}/> Abrindo...</>
-            : scanning
-              ? <><X size={13}/> Parar</>
-              : <><Camera size={13}/> Câmera</>
-          }
-        </button>
+
+        {/* contador + ícone de status */}
+        <div style={{ display:'flex', alignItems:'center', gap:6, paddingRight:12 }}>
+          {len > 0 && (
+            <span style={{ fontSize:11, color: len === 15 ? (isValid ? '#12A150' : T.red) : T.ink4,
+              fontFamily:'JetBrains Mono,monospace', fontWeight:500, transition:'color .15s' }}>
+              {len}/15
+            </span>
+          )}
+          {isValid && <CheckCircle2 size={15} style={{ color:'#12A150', flexShrink:0 }}/>}
+          {isWrong && <AlertCircle  size={15} style={{ color:T.red,     flexShrink:0 }}/>}
+        </div>
       </div>
+
+      {/* mensagem inline — só aparece ao atingir 15 dígitos */}
+      {isWrong && !err && (
+        <p style={{ fontSize:11, color:T.red, marginTop:4, marginLeft:2, fontFamily:'Instrument Sans,sans-serif' }}>
+          IMEI inválido — verifique os dígitos
+        </p>
+      )}
+      {isValid && (
+        <p style={{ fontSize:11, color:'#12A150', marginTop:4, marginLeft:2, fontFamily:'Instrument Sans,sans-serif' }}>
+          IMEI válido ✓
+        </p>
+      )}
     </div>
   )
 }

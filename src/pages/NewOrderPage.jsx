@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useCreateOrder } from '../hooks/useData'
-import { clientService } from '../services/api'
-import { formatCurrencyInput } from '../utils/formatters'
+import { useClients, useCreateOrder } from '../hooks/useData'
+import { formatCurrencyInput, formatCPF } from '../utils/formatters'
 import { validateIMEI } from '../utils/validators'
 import {
   ArrowLeft, ChevronRight, Check, Smartphone, Wrench, Zap, CreditCard,
@@ -105,52 +104,26 @@ const TextInput = ({ value, onChange, placeholder, err, style={}, ...rest }) => 
 )
 
 
-// ── Client Search (API-powered, debounced) ────────────────────────────────────
-function ClientSearch({ selectedId, onSelect, err }) {
-  const [q, setQ]           = useState('')
-  const [open, setOpen]     = useState(false)
-  const [results, setResults] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [selected, setSelected] = useState(null)
-  const inputRef  = useRef()
-  const debounce  = useRef()
+// ── Client Search ─────────────────────────────────────────────────────────────
+function ClientSearch({ clients, value, selectedId, onSelect, err }) {
+  const [q, setQ] = useState('')
+  const [open, setOpen] = useState(false)
+  const inputRef = useRef()
 
-  // Carrega dados do cliente selecionado
-  useEffect(() => {
-    if (!selectedId) { setSelected(null); return }
-    clientService.get(selectedId)
-      .then(r => setSelected(r.data.data))
-      .catch(() => setSelected(null))
-  }, [selectedId])
+  const selected = clients.find(c => c.id === selectedId)
 
-  const doSearch = (val) => {
-    setQ(val)
-    setOpen(true)
-    clearTimeout(debounce.current)
-    if (val.length < 2) { setResults([]); setLoading(false); return }
-    setLoading(true)
-    debounce.current = setTimeout(async () => {
-      try {
-        const r = await clientService.search(val)
-        setResults(r.data.data || [])
-      } catch { setResults([]) }
-      setLoading(false)
-    }, 350)
-  }
+  const filtered = q.length >= 1
+    ? clients.filter(c =>
+        c.name.toLowerCase().includes(q.toLowerCase()) ||
+        (c.cpf || '').includes(q.replace(/\D/g,'')) ||
+        (c.phone || '').includes(q.replace(/\D/g,''))
+      ).slice(0, 8)
+    : clients.slice(0, 8)
 
   const ini = (name) => (name||'?').split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase()
   const colors = ['#0A66FF','#12A150','#D97706','#D93025','#7C3AED','#0891B2']
   const avatarColor = (name) => colors[(name||'').charCodeAt(0) % colors.length]
 
-  const clear = () => {
-    onSelect('')
-    setSelected(null)
-    setQ('')
-    setResults([])
-    setTimeout(() => inputRef.current?.focus(), 50)
-  }
-
-  // ── Cliente selecionado — exibe cartão ──
   if (selected) return (
     <div style={{ border:`1px solid ${err ? T.red : T.ink5}`, borderRadius:10, background:T.white, padding:'10px 14px', display:'flex', alignItems:'center', gap:12 }}>
       <div style={{ width:36, height:36, borderRadius:'50%', background:avatarColor(selected.name), display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:13, fontWeight:700, flexShrink:0 }}>
@@ -158,43 +131,31 @@ function ClientSearch({ selectedId, onSelect, err }) {
       </div>
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ fontSize:14, fontWeight:600, color:T.ink, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{selected.name}</div>
-        <div style={{ fontSize:12, color:T.ink4, marginTop:1 }}>
-          {selected.cpf_formatted || selected.cpf}{selected.phone ? ` · ${selected.phone}` : ''}
-        </div>
+        <div style={{ fontSize:12, color:T.ink4, marginTop:1 }}>{selected.cpf_formatted || selected.cpf}{selected.phone ? ` · ${selected.phone}` : ''}</div>
       </div>
-      <button onClick={clear}
+      <button onClick={() => { onSelect(''); setQ(''); setTimeout(() => inputRef.current?.focus(), 50) }}
         style={{ background:T.ink6, border:'none', borderRadius:'50%', width:26, height:26, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
         <X size={12} style={{ color:T.ink3 }}/>
       </button>
     </div>
   )
 
-  // ── Campo de busca ──
   return (
     <div style={{ position:'relative' }}>
-      <div style={{
-        border:`1px solid ${err ? T.red : open ? T.ink : T.ink5}`,
-        borderRadius:10, background:T.white, display:'flex', alignItems:'center',
-        transition:'border-color .15s',
-        boxShadow: err ? `0 0 0 3px ${T.red}18` : open ? `0 0 0 3px rgba(10,10,11,0.06)` : 'none',
-      }}>
-        {loading
-          ? <Loader2 size={14} style={{ marginLeft:13, color:T.ink4, flexShrink:0, animation:'spin 0.8s linear infinite' }}/>
-          : <Search   size={14} style={{ marginLeft:13, color:T.ink4, flexShrink:0 }}/>
-        }
+      <div style={{ border:`1px solid ${err ? T.red : open ? T.ink : T.ink5}`, borderRadius:10, background:T.white, display:'flex', alignItems:'center', transition:'border-color .15s', boxShadow: err ? `0 0 0 3px ${T.red}18` : open ? `0 0 0 3px rgba(10,10,11,0.06)` : 'none' }}>
+        <Search size={14} style={{ marginLeft:13, color:T.ink4, flexShrink:0 }}/>
         <input
           ref={inputRef}
           value={q}
-          onChange={e => doSearch(e.target.value)}
+          onChange={e => { setQ(e.target.value); setOpen(true) }}
           onFocus={() => setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 200)}
-          placeholder="Digite nome, CPF ou telefone..."
+          placeholder="Buscar por nome, CPF ou telefone..."
           autoComplete="off"
           style={{ flex:1, padding:'11px 14px 11px 8px', border:'none', outline:'none', fontSize:14, color:T.ink, background:'transparent', fontFamily:'Instrument Sans,sans-serif' }}
         />
         {q && (
-          <button onClick={() => { setQ(''); setResults([]); inputRef.current?.focus() }}
-            style={{ marginRight:10, background:'none', border:'none', cursor:'pointer', color:T.ink4, display:'flex' }}>
+          <button onClick={() => setQ('')} style={{ marginRight:10, background:'none', border:'none', cursor:'pointer', color:T.ink4, display:'flex' }}>
             <X size={13}/>
           </button>
         )}
@@ -202,30 +163,20 @@ function ClientSearch({ selectedId, onSelect, err }) {
 
       {open && (
         <div style={{ position:'absolute', top:'calc(100% + 4px)', left:0, right:0, background:T.white, border:`1px solid ${T.ink5}`, borderRadius:12, boxShadow:T.shadowLg, zIndex:500, overflow:'hidden' }}>
-          {q.length < 2 ? (
-            <div style={{ padding:'18px 16px', textAlign:'center' }}>
-              <Search size={18} style={{ color:T.ink5, marginBottom:6, display:'block', margin:'0 auto 8px' }}/>
-              <div style={{ fontSize:13, color:T.ink4, fontWeight:500 }}>Busque por nome, CPF ou telefone</div>
-              <div style={{ fontSize:11, color:T.ink5, marginTop:3 }}>Mínimo 2 caracteres</div>
-            </div>
-          ) : loading ? (
-            <div style={{ padding:'16px', textAlign:'center', fontSize:13, color:T.ink4, display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
-              <Loader2 size={13} style={{ animation:'spin 0.8s linear infinite' }}/> Buscando...
-            </div>
-          ) : results.length === 0 ? (
+          {filtered.length === 0 ? (
             <div style={{ padding:'20px 16px', textAlign:'center', color:T.ink4, fontSize:13 }}>
-              <User size={18} style={{ color:T.ink5, display:'block', margin:'0 auto 8px' }}/>
-              Nenhum cliente encontrado para <b>"{q}"</b>
+              {q ? `Nenhum cliente encontrado para "${q}"` : 'Nenhum cliente cadastrado'}
             </div>
           ) : (
             <>
-              <div style={{ padding:'7px 14px 5px', fontSize:10, fontWeight:700, color:T.ink4, textTransform:'uppercase', letterSpacing:'0.6px', background:T.bg, borderBottom:`1px solid ${T.ink6}` }}>
-                {results.length} resultado{results.length !== 1 ? 's' : ''} encontrado{results.length !== 1 ? 's' : ''}
-              </div>
-              {results.map((c, i) => (
-                <div key={c.id}
-                  onMouseDown={() => { onSelect(c.id); setOpen(false); setQ('') }}
-                  style={{ display:'flex', alignItems:'center', gap:12, padding:'11px 14px', cursor:'pointer', borderBottom: i < results.length-1 ? `1px solid ${T.ink6}` : 'none', transition:'background .1s' }}
+              {q.length < 1 && (
+                <div style={{ padding:'8px 14px 6px', fontSize:10, fontWeight:700, color:T.ink4, textTransform:'uppercase', letterSpacing:'0.6px', background:T.bg, borderBottom:`1px solid ${T.ink6}` }}>
+                  Recentes
+                </div>
+              )}
+              {filtered.map((c, i) => (
+                <div key={c.id} onMouseDown={() => { onSelect(c.id); setOpen(false); setQ('') }}
+                  style={{ display:'flex', alignItems:'center', gap:12, padding:'11px 14px', cursor:'pointer', borderBottom: i < filtered.length-1 ? `1px solid ${T.ink6}` : 'none', transition:'background .1s' }}
                   onMouseEnter={e => e.currentTarget.style.background = T.ink6}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <div style={{ width:34, height:34, borderRadius:'50%', background:avatarColor(c.name), display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:12, fontWeight:700, flexShrink:0 }}>
@@ -239,6 +190,11 @@ function ClientSearch({ selectedId, onSelect, err }) {
                   </div>
                 </div>
               ))}
+              {!q && clients.length > 8 && (
+                <div style={{ padding:'8px 14px', fontSize:11, color:T.ink4, textAlign:'center', borderTop:`1px solid ${T.ink6}` }}>
+                  Digite para filtrar entre {clients.length} clientes
+                </div>
+              )}
             </>
           )}
         </div>
@@ -247,73 +203,152 @@ function ClientSearch({ selectedId, onSelect, err }) {
   )
 }
 
-// ── IMEI Field with Camera Scanner ───────────────────────────────────────────
+// ── IMEI Field with Camera Scanner (zxing — funciona no Safari iOS) ───────────
 function IMEIField({ value, onChange, err }) {
-  const [scanning, setScanning] = useState(false)
-  const videoRef = useRef()
-  const streamRef = useRef()
-
-  const startScanner = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-      streamRef.current = stream
-      setScanning(true)
-      if (videoRef.current) videoRef.current.srcObject = stream
-
-      if ('BarcodeDetector' in window) {
-        const detector = new window.BarcodeDetector({ formats: ['code_128', 'code_39', 'ean_13'] })
-        const scan = async () => {
-          if (!streamRef.current || !videoRef.current) return
-          try {
-            const codes = await detector.detect(videoRef.current)
-            if (codes.length > 0) {
-              const imei = codes[0].rawValue.replace(/\D/g, '').slice(0, 15)
-              if (imei.length >= 14) { stopScanner(); onChange(imei); return }
-            }
-          } catch {}
-          if (streamRef.current) requestAnimationFrame(scan)
-        }
-        videoRef.current.onloadedmetadata = () => { videoRef.current.play(); scan() }
-      }
-    } catch { alert('Câmera não disponível ou permissão negada.') }
-  }
+  const [scanning, setScanning]   = useState(false)
+  const [loading,  setLoading]    = useState(false)
+  const [scanErr,  setScanErr]    = useState('')
+  const videoRef   = useRef()
+  const readerRef  = useRef()   // BrowserMultiFormatReader instance
 
   const stopScanner = () => {
-    streamRef.current?.getTracks().forEach(t => t.stop())
-    streamRef.current = null
+    try { readerRef.current?.reset() } catch {}
+    readerRef.current = null
     setScanning(false)
+    setLoading(false)
+    setScanErr('')
+  }
+
+  const startScanner = async () => {
+    setScanErr('')
+
+    // ── 1. HTTPS check (câmera só funciona em HTTPS ou localhost) ──
+    if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+      setScanErr('A câmera requer conexão segura (HTTPS). Acesse pelo link do Vercel.')
+      return
+    }
+
+    // ── 2. API de câmera disponível? ──
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setScanErr('Seu navegador não suporta acesso à câmera. Use Safari (iOS) ou Chrome.')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      // ── 3. Carrega @zxing/browser dinamicamente (não aumenta bundle inicial) ──
+      const { BrowserMultiFormatReader } = await import('@zxing/browser')
+      const reader = new BrowserMultiFormatReader()
+      readerRef.current = reader
+
+      setScanning(true)
+      setLoading(false)
+
+      // decodeFromVideoDevice(deviceId=undefined → câmera traseira padrão)
+      await reader.decodeFromVideoDevice(
+        undefined,
+        videoRef.current,
+        (result, error) => {
+          if (result) {
+            const raw  = result.getText()
+            const imei = raw.replace(/\D/g, '').slice(0, 15)
+            if (imei.length >= 14) {
+              onChange(imei)
+              stopScanner()
+            }
+          }
+          // erros de frame são normais durante scan — ignorar
+        }
+      )
+    } catch (e) {
+      setLoading(false)
+      setScanning(false)
+      readerRef.current = null
+
+      // ── 4. Erros específicos com mensagens claras ──
+      const name = e?.name || ''
+      if (name === 'NotAllowedError') {
+        setScanErr('Permissão de câmera negada. Vá em Ajustes → Safari → Câmera e permita o acesso.')
+      } else if (name === 'NotFoundError') {
+        setScanErr('Nenhuma câmera encontrada neste dispositivo.')
+      } else if (name === 'NotReadableError' || name === 'AbortError') {
+        setScanErr('A câmera está sendo usada por outro app. Feche e tente novamente.')
+      } else if (name === 'OverconstrainedError') {
+        setScanErr('Câmera traseira não disponível. Tente de outro dispositivo.')
+      } else {
+        setScanErr(`Erro ao abrir câmera: ${e?.message || name || 'desconhecido'}`)
+      }
+    }
   }
 
   useEffect(() => () => stopScanner(), [])
 
   return (
     <div>
+      {/* ── Viewfinder ── */}
       {scanning && (
         <div style={{ position:'relative', background:'#000', borderRadius:10, overflow:'hidden', marginBottom:8 }}>
-          <video ref={videoRef} style={{ width:'100%', height:160, objectFit:'cover', display:'block' }} playsInline muted/>
+          <video
+            ref={videoRef}
+            style={{ width:'100%', height:180, objectFit:'cover', display:'block' }}
+            playsInline
+            muted
+          />
+          {/* guia azul centralizado */}
           <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
-            <div style={{ width:'80%', height:60, border:'2px solid #0A66FF', borderRadius:8, boxShadow:'0 0 0 9999px rgba(0,0,0,0.5)' }}/>
+            <div style={{ width:'82%', height:64, border:'2px solid #0A66FF', borderRadius:8, boxShadow:'0 0 0 9999px rgba(0,0,0,0.45)' }}/>
           </div>
+          {/* linha animada de escaneamento */}
+          <div style={{ position:'absolute', left:'9%', right:'9%', top:'50%', height:2, background:'rgba(10,102,255,0.7)',
+            animation:'imeiScanLine 1.4s ease-in-out infinite alternate', borderRadius:1, pointerEvents:'none' }}/>
           <button onClick={stopScanner}
-            style={{ position:'absolute', top:8, right:8, background:'rgba(0,0,0,0.6)', border:'none', borderRadius:6, padding:'4px 10px', color:'#fff', fontSize:11, cursor:'pointer' }}>
+            style={{ position:'absolute', top:8, right:8, background:'rgba(0,0,0,0.65)', border:'none',
+              borderRadius:6, padding:'5px 12px', color:'#fff', fontSize:11, fontWeight:500, cursor:'pointer', fontFamily:'Instrument Sans,sans-serif' }}>
             Cancelar
           </button>
-          <div style={{ position:'absolute', bottom:6, left:0, right:0, textAlign:'center', fontSize:10, color:'rgba(255,255,255,0.6)' }}>
+          <div style={{ position:'absolute', bottom:7, left:0, right:0, textAlign:'center', fontSize:10, color:'rgba(255,255,255,0.55)', fontFamily:'Instrument Sans,sans-serif' }}>
             Aponte para o código de barras do IMEI
           </div>
+          <style>{`@keyframes imeiScanLine { from{transform:translateY(-20px)} to{transform:translateY(20px)} }`}</style>
         </div>
       )}
-      <div style={{ border:`1px solid ${err ? T.red : T.ink5}`, borderRadius:10, background:T.white, display:'flex', alignItems:'center', overflow:'hidden', boxShadow: err ? `0 0 0 3px ${T.red}18` : 'none' }}>
+
+      {/* ── Erro de câmera ── */}
+      {scanErr && (
+        <div style={{ display:'flex', alignItems:'flex-start', gap:8, background:'#FEF2F2', border:'1px solid #FECACA',
+          borderRadius:8, padding:'9px 12px', marginBottom:8 }}>
+          <AlertCircle size={14} style={{ color:'#EF4444', flexShrink:0, marginTop:1 }}/>
+          <span style={{ fontSize:12, color:'#991B1B', lineHeight:1.5, fontFamily:'Instrument Sans,sans-serif' }}>{scanErr}</span>
+        </div>
+      )}
+
+      {/* ── Input + botão câmera ── */}
+      <div style={{ border:`1px solid ${err ? T.red : T.ink5}`, borderRadius:10, background:T.white,
+        display:'flex', alignItems:'center', overflow:'hidden', boxShadow: err ? `0 0 0 3px ${T.red}18` : 'none' }}>
         <input
           value={value}
           onChange={e => onChange(e.target.value.replace(/\D/g,'').slice(0,15))}
           placeholder="15 dígitos"
-          style={{ flex:1, padding:'11px 14px', border:'none', outline:'none', fontSize:13, color:T.ink, background:'transparent', fontFamily:'JetBrains Mono,monospace', letterSpacing:'0.5px' }}
+          inputMode="numeric"
+          style={{ flex:1, padding:'11px 14px', border:'none', outline:'none', fontSize:13, color:T.ink,
+            background:'transparent', fontFamily:'JetBrains Mono,monospace', letterSpacing:'0.5px' }}
         />
-        <button onClick={scanning ? stopScanner : startScanner}
+        <button
+          onClick={scanning ? stopScanner : startScanner}
+          disabled={loading}
           title="Escanear código de barras do IMEI"
-          style={{ padding:'0 14px', height:44, background:scanning ? T.blue : T.ink6, border:'none', borderLeft:`1px solid ${T.ink6}`, cursor:'pointer', display:'flex', alignItems:'center', gap:5, fontSize:11, fontWeight:500, color: scanning ? '#fff' : T.ink3, fontFamily:'Instrument Sans,sans-serif', flexShrink:0 }}>
-          <Camera size={14}/>{scanning ? 'Escanando...' : 'Câmera'}
+          style={{ padding:'0 14px', height:44, background: scanning ? '#EF4444' : loading ? T.ink5 : T.ink6,
+            border:'none', borderLeft:`1px solid ${T.ink6}`, cursor: loading ? 'default' : 'pointer',
+            display:'flex', alignItems:'center', gap:5, fontSize:11, fontWeight:500,
+            color: scanning ? '#fff' : loading ? T.ink4 : T.ink3,
+            fontFamily:'Instrument Sans,sans-serif', flexShrink:0, transition:'all .15s' }}>
+          {loading
+            ? <><Loader2 size={13} style={{ animation:'spin 0.8s linear infinite' }}/> Abrindo...</>
+            : scanning
+              ? <><X size={13}/> Parar</>
+              : <><Camera size={13}/> Câmera</>
+          }
         </button>
       </div>
     </div>
@@ -588,7 +623,10 @@ function StepProduto({ form, set, errors }) {
 
       <div>
         <Label>IMEI</Label>
-        <IMEIField value={form.imei} onChange={v => set('imei', v)} err={errors.imei}/>
+        <Field err={errors.imei}>
+          <TextInput value={form.imei} onChange={e => set('imei', e.target.value.replace(/\D/g,'').slice(0,15))}
+            placeholder="15 dígitos" style={{ fontFamily:'JetBrains Mono,monospace', fontSize:13, letterSpacing:'0.5px' }}/>
+        </Field>
         <ErrMsg msg={errors.imei}/>
       </div>
     </div>
@@ -943,6 +981,8 @@ function StepPagamento({ form, set, errors, isManut }) {
 export default function NewOrderPage() {
   const navigate = useNavigate()
   const createOrder = useCreateOrder()
+  const { data: clientsData } = useClients({ limit:100 })
+  const clients = clientsData?.data || []
 
   const [step, setStep] = useState(1)
   const [errors, setErrors] = useState({})
@@ -1059,11 +1099,16 @@ export default function NewOrderPage() {
 
             <div>
               <Label required>Cliente</Label>
-              <ClientSearch
-                selectedId={form.client_id}
-                onSelect={v => set('client_id', v)}
-                err={errors.client_id}
-              />
+              <Field err={errors.client_id}>
+                <div style={{ position:'relative', display:'flex', alignItems:'center' }}>
+                  <select value={form.client_id} onChange={e => set('client_id', e.target.value)}
+                    style={{ width:'100%', padding:'11px 36px 11px 14px', border:'none', outline:'none', fontSize:14, color: form.client_id ? T.ink : T.ink4, background:'transparent', fontFamily:'Instrument Sans,sans-serif', appearance:'none', cursor:'pointer' }}>
+                    <option value="">Selecionar cliente...</option>
+                    {clients.map(c => <option key={c.id} value={c.id}>{c.name} — {c.cpf_formatted || formatCPF(c.cpf)}</option>)}
+                  </select>
+                  <ChevronDown size={14} style={{ position:'absolute', right:12, color:T.ink4, pointerEvents:'none' }}/>
+                </div>
+              </Field>
               <ErrMsg msg={errors.client_id}/>
             </div>
 

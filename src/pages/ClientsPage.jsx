@@ -4,6 +4,7 @@ import { Search, Plus, ChevronRight, Phone, Mail, MapPin, X, Loader2, Check, Ale
 import { formatCPF, formatPhone, formatCEP, displayCurrency, getInitials, getAvatarColor } from '../utils/formatters'
 import { validateCPF } from '../utils/validators'
 import toast from 'react-hot-toast'
+import ClientHistory from '../components/ClientHistory'
 
 const T = {
   surface:'#FFFFFF', border:'rgba(0,0,0,0.07)', borderS:'rgba(0,0,0,0.12)',
@@ -212,7 +213,7 @@ export default function ClientsPage() {
                 </thead>
                 <tbody>
                   {clients.map(c=>(
-                    <tr key={c.id} onClick={()=>setSelected(c)} style={{ borderBottom:`1px solid ${T.border}`, cursor:'pointer', transition:'background .1s' }}
+                    <tr key={c.id} onClick={()=>setSelected(c.id)} style={{ borderBottom:`1px solid ${T.border}`, cursor:'pointer', transition:'background .1s' }}
                       onMouseEnter={e=>e.currentTarget.style.background=T.bg}
                       onMouseLeave={e=>e.currentTarget.style.background='transparent'}
                     >
@@ -252,40 +253,10 @@ export default function ClientsPage() {
         <ClientForm onSuccess={()=>setShowNew(false)} onClose={()=>setShowNew(false)}/>
       </Modal>
 
-      {/* Client Detail Modal */}
-      <Modal open={!!selected} onClose={()=>setSelected(null)} title="Perfil do Cliente">
-        {selected && (
-          <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
-            <div style={{ display:'flex', alignItems:'center', gap:16, padding:'16px 18px', background:T.bg, borderRadius:8 }}>
-              <Avatar name={selected.name} size={48}/>
-              <div>
-                <div style={{ fontSize:16, fontWeight:700 }}>{selected.name}</div>
-                <div style={{ fontSize:12, color:T.t2, marginTop:3 }}>{selected.city}/{selected.state}</div>
-              </div>
-            </div>
-            {[['CPF', selected.cpf_formatted || formatCPF(selected.cpf), true],['Telefone', selected.phone],['E-mail', selected.email||'—'],['Endereço', selected.address ? `${selected.address}${selected.neighborhood?`, ${selected.neighborhood}`:''}` : '—']].map(([l,v,mono],i,a)=>(
-              <div key={l} style={{ display:'flex', justifyContent:'space-between', padding:'10px 0', borderBottom:i<a.length-1?`1px solid ${T.border}`:'none' }}>
-                <span style={{ fontSize:12, color:T.t2 }}>{l}</span>
-                <span style={{ fontSize:mono?12:13, fontWeight:500, fontFamily:mono?'JetBrains Mono,monospace':'inherit' }}>{v}</span>
-              </div>
-            ))}
-            {selected.service_orders?.length > 0 && (
-              <>
-                <div style={{ fontSize:13, fontWeight:600 }}>Histórico</div>
-                {selected.service_orders.map(o=>(
-                  <div key={o.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 14px', background:T.bg, borderRadius:8 }}>
-                    <div>
-                      <div style={{ fontSize:13, fontWeight:500 }}>{o.iphone_model}</div>
-                      <div style={{ fontSize:11, color:T.t3, marginTop:2 }}>{o.order_number}</div>
-                    </div>
-                    <span style={{ fontSize:13, fontWeight:700 }}>{displayCurrency(o.price)}</span>
-                  </div>
-                ))}
-              </>
-            )}
-          </div>
-        )}
-      </Modal>
+      {/* Client History — premium drawer */}
+      {selected && (
+        <ClientHistory clientId={selected} onClose={()=>setSelected(null)}/>
+      )}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </>

@@ -305,11 +305,11 @@ export default function ClientHistory({ clientId, onClose }) {
 
   /* endereço completo */
   const addressParts = [
-    client.address && client.number ? `${client.address}, ${client.number}` : client.address,
+    client.address,
     client.complement,
     client.neighborhood,
     client.city && client.state ? `${client.city}/${client.state}` : (client.city || client.state),
-    client.zip_code,
+    client.cep ? client.cep.replace(/(\d{5})(\d{3})/, '$1-$2') : null,
   ].filter(Boolean)
   const addressLine = addressParts.join(' · ') || null
 

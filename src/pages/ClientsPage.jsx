@@ -180,7 +180,14 @@ export default function ClientsPage() {
             <Search size={13} style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:T.t3 }}/>
             <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por nome, CPF, telefone..." style={{ width:'100%', padding:'8px 12px 8px 30px', border:`1px solid ${T.borderS}`, borderRadius:8, fontSize:13, color:T.text, background:T.surface, fontFamily:'Instrument Sans,sans-serif', outline:'none' }}/>
           </div>
-          <button onClick={()=>setShowNew(true)} style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 16px', background:T.text, color:'#fff', border:'none', borderRadius:8, fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'Instrument Sans,sans-serif' }}>
+          <button onClick={()=>setShowNew(true)}
+            style={{ display:'flex', alignItems:'center', gap:7, padding:'9px 18px',
+              background:'#1A7A4A', color:'#fff', border:'none', borderRadius:10,
+              fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'Instrument Sans,sans-serif',
+              boxShadow:'0 2px 8px rgba(26,122,74,0.28)', transition:'background .15s, box-shadow .15s',
+              whiteSpace:'nowrap' }}
+            onMouseEnter={e => { e.currentTarget.style.background='#15693E'; e.currentTarget.style.boxShadow='0 4px 14px rgba(26,122,74,0.38)' }}
+            onMouseLeave={e => { e.currentTarget.style.background='#1A7A4A'; e.currentTarget.style.boxShadow='0 2px 8px rgba(26,122,74,0.28)' }}>
             <Plus size={14}/> Novo Cliente
           </button>
         </div>

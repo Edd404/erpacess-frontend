@@ -41,7 +41,7 @@ function Badge({ status }) {
 function Modal({ open, onClose, children }) {
   if (!open) return null
   return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(4px)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }} onClick={onClose}>
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(4px)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
       <div onClick={e=>e.stopPropagation()} style={{ background:T.surface, borderRadius:16, width:580, maxWidth:'95vw', maxHeight:'88vh', overflow:'auto', boxShadow:'0 24px 80px rgba(0,0,0,0.2)' }}>
         {children}
       </div>

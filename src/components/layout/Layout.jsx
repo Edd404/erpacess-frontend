@@ -134,7 +134,7 @@ function DesktopLayout({ user, logout, location, navigate, info, T }) {
             <div style={{ fontSize:15, fontWeight:700, letterSpacing:'-0.2px', color:T.ink }}>{info.title}</div>
             <div style={{ fontSize:11, color:T.ink4, marginTop:1 }}>{info.sub}</div>
           </div>
-          {['/clients','/orders'].includes(location.pathname) && (
+          {location.pathname === '/orders' && (
             <button onClick={()=>navigate('/orders/new')}
               style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 16px', background:T.ink, color:'#fff', border:'none', borderRadius:8, fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'Instrument Sans,sans-serif' }}>
               <Plus size={14}/>Novo

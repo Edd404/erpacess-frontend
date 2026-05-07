@@ -147,20 +147,34 @@ function StatusPill({ label, count, color, colorSoft, pctVal }) {
   return (
     <div style={{
       flex: 1, minWidth: 0, background: C.surface, borderRadius: 14,
-      boxShadow: C.shadow, padding: '14px 16px',
+      boxShadow: C.shadow, padding: '12px 12px 10px',
+      overflow: 'hidden',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-        <span style={{
-          fontSize: 11, fontWeight: 600, textTransform: 'uppercase',
-          letterSpacing: '0.05em', color: C.t2,
-        }}>{label}</span>
-        <span style={{
-          fontSize: 11, fontWeight: 600, color,
-          background: colorSoft, borderRadius: 20, padding: '2px 8px',
-        }}>{pctVal}%</span>
+      {/* badge no topo */}
+      <div style={{
+        display: 'inline-flex', alignItems: 'center',
+        background: colorSoft, borderRadius: 20, padding: '2px 8px',
+        marginBottom: 8,
+      }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color }}>{pctVal}%</span>
       </div>
-      <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.5px', color: C.text, lineHeight: 1 }}>{count}</div>
-      <div style={{ marginTop: 10, height: 3, background: 'rgba(0,0,0,0.06)', borderRadius: 2 }}>
+
+      {/* número grande */}
+      <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.5px', color: C.text, lineHeight: 1 }}>
+        {count}
+      </div>
+
+      {/* label abaixo do número */}
+      <div style={{
+        fontSize: 10, fontWeight: 600, textTransform: 'uppercase',
+        letterSpacing: '0.04em', color: C.t2, marginTop: 4,
+        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+      }}>
+        {label}
+      </div>
+
+      {/* barra */}
+      <div style={{ marginTop: 8, height: 3, background: 'rgba(0,0,0,0.06)', borderRadius: 2 }}>
         <div style={{
           height: '100%', borderRadius: 2, background: color,
           width: `${pctVal}%`, transition: 'width .5s cubic-bezier(.4,0,.2,1)',

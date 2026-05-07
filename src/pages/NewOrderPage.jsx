@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useCreateOrder } from '../hooks/useData'
 import { clientService } from '../services/api'
 import { formatCurrencyInput } from '../utils/formatters'
@@ -918,12 +918,13 @@ function StepPagamento({ form, set, errors, isManut }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function NewOrderPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const createOrder = useCreateOrder()
 
   const [step, setStep] = useState(1)
   const [errors, setErrors] = useState({})
   const [form, setForm] = useState({
-    client_id:'', type:'venda', iphone_model:'', capacity:'', color:'',
+    client_id: searchParams.get('client_id') || '', type:'venda', iphone_model:'', capacity:'', color:'',
     imei:'', price:'', warranty_months:'', notes:'',
     payment_methods:[], service_types:[], problem_description:'', device_condition:'',
   })

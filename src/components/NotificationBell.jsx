@@ -14,7 +14,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Bell, Shield, Clock, ChevronRight, X, CheckCheck } from 'lucide-react'
-import api from '../../services/api'  // ajuste o path se necessário
+import api from '../services/api'
 
 const C = {
   surface:   '#FFFFFF',

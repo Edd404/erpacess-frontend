@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useOrderStats } from '../hooks/useData'
 import { useIsMobile } from '../hooks/useIsMobile'
-import { useAuth } from '../context/AuthContext'
 import GreetingBanner   from '../components/GreetingBanner'
 import DeviceComparison from '../components/DeviceComparison'
 import SellerRanking    from '../components/SellerRanking'
@@ -214,8 +213,15 @@ function ChartTooltip({ active, payload, label }) {
 export default function DashboardPage() {
   const [period, setPeriod] = useState('30')
   const { data, isLoading } = useOrderStats(period)
-  const { user } = useAuth()
   const isMobile = useIsMobile()
+
+  // Pega nome do usuário do token salvo, sem depender do contexto
+  const userName = useMemo(() => {
+    try {
+      const raw = localStorage.getItem('user') || localStorage.getItem('istore_user') || '{}'
+      return JSON.parse(raw)?.name || ''
+    } catch { return '' }
+  }, [])
 
   const s = data?.summary || {}
   const timeline = data?.revenue_timeline || []
@@ -255,7 +261,7 @@ export default function DashboardPage() {
     }}>
 
       {/* ── Greeting + Meta ── */}
-      <GreetingBanner user={user} totalRevenue={parseFloat(s.total_revenue) || 0} />
+      <GreetingBanner userName={userName} totalRevenue={parseFloat(s.total_revenue) || 0} />
 
       {/* ── Header ── */}
       <div style={{

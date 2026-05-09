@@ -12,7 +12,7 @@ import {
   Trophy, TrendingUp, ShoppingBag, Wrench,
   CheckCircle2, Loader2, Users,
 } from 'lucide-react'
-import { RadialBarChart, RadialBar, ResponsiveContainer, Tooltip } from 'recharts'
+import { ResponsiveContainer, Tooltip } from 'recharts'
 import api from '../services/api'
 
 const C = {

@@ -8,7 +8,7 @@
  *   <GreetingBanner user={user} totalRevenue={parseFloat(s.total_revenue) || 0} />
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { Target, ChevronRight, Check, X } from 'lucide-react'
 
 const C = {
@@ -44,7 +44,7 @@ function todayFormatted() {
 
 const STORAGE_KEY = 'istore_monthly_goal'
 
-export default function GreetingBanner({ user, totalRevenue = 0 }) {
+export default function GreetingBanner({ userName = '', totalRevenue = 0 }) {
   const [goal, setGoal]         = useState(() => parseFloat(localStorage.getItem(STORAGE_KEY)) || 20000)
   const [editing, setEditing]   = useState(false)
   const [draft, setDraft]       = useState('')
@@ -74,7 +74,7 @@ export default function GreetingBanner({ user, totalRevenue = 0 }) {
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
         <div>
           <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.5px', lineHeight: 1.2 }}>
-            {greeting(user?.name)}
+            {greeting(userName)}
           </div>
           <div style={{ fontSize: 12, color: C.t2, marginTop: 4, textTransform: 'capitalize' }}>
             {todayFormatted()}

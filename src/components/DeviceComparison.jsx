@@ -260,7 +260,7 @@ export default function DeviceComparison() {
   const [expanded, setExpanded]     = useState(null)
   const [chartMetric, setChartMetric] = useState('total') // 'total' | 'receita_total'
 
-  const fetch = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     if (!startDate || !endDate) return
     setLoading(true); setError(null)
     try {
@@ -280,11 +280,14 @@ export default function DeviceComparison() {
   }, [startDate, endDate, typeFilter, limit])
 
   // busca automática ao mudar filtros
-  useEffect(() => { fetch() }, [fetch])
+  useEffect(() => { fetchData() }, [fetchData])
 
   const models = data?.models || []
   const totals = data?.totals || {}
-  const maxRevenue = useMemo(() => Math.max(...models.map(m => parseFloat(m.receita_total) || 0), 1), [models])
+  const maxRevenue = useMemo(() => {
+    if (!models.length) return 1
+    return Math.max(1, ...models.map(m => parseFloat(m.receita_total) || 0))
+  }, [models])
 
   // dados para o gráfico — top 5
   const chartData = useMemo(() =>

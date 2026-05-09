@@ -228,13 +228,20 @@ export default function SellerRanking() {
   const [metric,  setMetric]  = useState('ordens')   // 'ordens' | 'receita'
   const [data,    setData]    = useState(null)
   const [loading, setLoading] = useState(false)
+  const [error,   setError]   = useState(null)
 
   const fetchRanking = useCallback(async () => {
     setLoading(true)
+    setError(null)
     try {
       const res = await api.get(`/orders/seller-ranking?period=${period}`)
       setData(res.data.data)
-    } catch { /* silencia */ } finally { setLoading(false) }
+    } catch (e) {
+      setError('Não foi possível carregar o ranking.')
+      setData(null)
+    } finally {
+      setLoading(false)
+    }
   }, [period])
 
   useEffect(() => { fetchRanking() }, [fetchRanking])
@@ -348,8 +355,20 @@ export default function SellerRanking() {
           </div>
         )}
 
+        {/* erro */}
+        {!loading && error && (
+          <div style={{ padding: 40, textAlign: 'center' }}>
+            <div style={{ fontSize: 13, color: C.red, marginBottom: 8 }}>{error}</div>
+            <button onClick={fetchRanking} style={{
+              background: C.accentSoft, color: C.accent, border: 'none',
+              borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 600,
+              cursor: 'pointer', fontFamily: 'Instrument Sans, sans-serif',
+            }}>Tentar novamente</button>
+          </div>
+        )}
+
         {/* empty */}
-        {!loading && sellers.length === 0 && (
+        {!loading && !error && sellers.length === 0 && (
           <div style={{ padding: 48, textAlign: 'center' }}>
             <Users size={32} style={{ color: C.t3, marginBottom: 10 }} />
             <div style={{ fontSize: 14, fontWeight: 600, color: C.t2 }}>Nenhum dado</div>
@@ -358,7 +377,7 @@ export default function SellerRanking() {
         )}
 
         {/* linhas */}
-        {!loading && sellers.map((s, i) => (
+        {!loading && !error && sellers.map((s, i) => (
           <SellerRow
             key={s.id}
             seller={s}

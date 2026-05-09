@@ -1,6 +1,10 @@
 import { useState, useMemo } from 'react'
 import { useOrderStats } from '../hooks/useData'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { useAuth } from '../context/AuthContext'
+import GreetingBanner   from '../components/GreetingBanner'
+import DeviceComparison from '../components/DeviceComparison'
+import SellerRanking    from '../components/SellerRanking'
 import {
   TrendingUp, TrendingDown, ClipboardList, CheckCircle2,
   Users, Loader2, Smartphone, BarChart2, Zap, Clock,
@@ -210,6 +214,7 @@ function ChartTooltip({ active, payload, label }) {
 export default function DashboardPage() {
   const [period, setPeriod] = useState('30')
   const { data, isLoading } = useOrderStats(period)
+  const { user } = useAuth()
   const isMobile = useIsMobile()
 
   const s = data?.summary || {}
@@ -248,6 +253,9 @@ export default function DashboardPage() {
       display: 'flex', flexDirection: 'column', gap: isMobile ? 12 : 16,
       fontFamily: 'Instrument Sans, sans-serif', color: C.text,
     }}>
+
+      {/* ── Greeting + Meta ── */}
+      <GreetingBanner user={user} totalRevenue={parseFloat(s.total_revenue) || 0} />
 
       {/* ── Header ── */}
       <div style={{
@@ -529,6 +537,36 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* ── Divisor ── */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 12,
+        animation: 'dashIn .3s ease forwards', animationDelay: '500ms', opacity: 0,
+      }}>
+        <div style={{ flex: 1, height: 1, background: 'rgba(0,0,0,0.08)' }} />
+        <span style={{ fontSize: 11, fontWeight: 700, color: '#AEAEB2', textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>
+          Comparativo de Aparelhos
+        </span>
+        <div style={{ flex: 1, height: 1, background: 'rgba(0,0,0,0.08)' }} />
+      </div>
+
+      {/* ── Device Comparison ── */}
+      <DeviceComparison />
+
+      {/* ── Divisor ── */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 12,
+        animation: 'dashIn .3s ease forwards', animationDelay: '520ms', opacity: 0,
+      }}>
+        <div style={{ flex: 1, height: 1, background: 'rgba(0,0,0,0.08)' }} />
+        <span style={{ fontSize: 11, fontWeight: 700, color: '#AEAEB2', textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>
+          Ranking de Vendedores
+        </span>
+        <div style={{ flex: 1, height: 1, background: 'rgba(0,0,0,0.08)' }} />
+      </div>
+
+      {/* ── Seller Ranking ── */}
+      <SellerRanking />
 
       <style>{`
         @keyframes dashIn {

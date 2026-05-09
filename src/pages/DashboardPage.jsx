@@ -1,8 +1,38 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, Component } from 'react'
 import { useOrderStats } from '../hooks/useData'
 import { useIsMobile } from '../hooks/useIsMobile'
 import GreetingBanner   from '../components/GreetingBanner'
 import DeviceComparison from '../components/DeviceComparison'
+
+// ─── ErrorBoundary — evita tela branca por crash de componente ─
+class ErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { hasError: false } }
+  static getDerivedStateFromError() { return { hasError: true } }
+  componentDidCatch(err) { console.error('[ErrorBoundary]', err) }
+  render() {
+    if (this.state.hasError) return (
+      <div style={{
+        background: '#fff', borderRadius: 16, padding: '32px 24px',
+        textAlign: 'center', boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+        fontFamily: 'Instrument Sans, sans-serif',
+      }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#6E6E73', marginBottom: 8 }}>
+          Não foi possível carregar esta seção
+        </div>
+        <button
+          onClick={() => this.setState({ hasError: false })}
+          style={{
+            background: 'rgba(10,102,255,0.08)', color: '#0A66FF',
+            border: 'none', borderRadius: 8, padding: '6px 14px',
+            fontSize: 12, fontWeight: 600, cursor: 'pointer',
+            fontFamily: 'Instrument Sans, sans-serif',
+          }}
+        >Tentar novamente</button>
+      </div>
+    )
+    return this.props.children
+  }
+}
 import {
   TrendingUp, TrendingDown, ClipboardList, CheckCircle2,
   Users, Loader2, Smartphone, BarChart2, Zap, Clock,
@@ -260,7 +290,9 @@ export default function DashboardPage() {
     }}>
 
       {/* ── Greeting + Meta ── */}
-      <GreetingBanner userName={userName} totalRevenue={parseFloat(s.total_revenue) || 0} />
+      <ErrorBoundary>
+        <GreetingBanner userName={userName} totalRevenue={parseFloat(s.total_revenue) || 0} />
+      </ErrorBoundary>
 
       {/* ── Header ── */}
       <div style={{
@@ -556,7 +588,9 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Device Comparison ── */}
-      <DeviceComparison />
+      <ErrorBoundary>
+        <DeviceComparison />
+      </ErrorBoundary>
 
       <style>{`
         @keyframes dashIn {

@@ -361,7 +361,6 @@ export default function DeviceComparison() {
                     </div>
                   ))}
                 </div>
-                </div>
               )}
             </div>
           )

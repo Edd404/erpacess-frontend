@@ -558,20 +558,15 @@ export default function DashboardPage() {
 
       {/* ── Top Models ── */}
       {topModels.length > 0 && (() => {
-        const maxCount   = Math.max(...topModels.map(m => parseInt(m.count)   || 0), 1)
-        const maxRevenue = Math.max(...topModels.map(m => parseFloat(m.revenue) || 0), 1)
-        const COLORS     = [C.accent, C.violet, C.teal, C.amber, C.green]
+        const maxCount = Math.max(...topModels.map(m => parseInt(m.count) || 0), 1)
+        const COLORS   = [C.accent, C.violet, C.teal, C.amber, C.green]
         return (
           <div style={{
             background: C.surface, borderRadius: 20, boxShadow: C.shadow,
             overflow: 'hidden',
             animation: 'dashIn .3s ease forwards', animationDelay: '460ms', opacity: 0,
           }}>
-            {/* header */}
-            <div style={{
-              padding: '18px 22px 14px', borderBottom: `1px solid ${C.border}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            }}>
+            <div style={{ padding: '18px 22px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ fontSize: 15, fontWeight: 600 }}>Modelos mais atendidos</div>
                 <div style={{ fontSize: 12, color: C.t2, marginTop: 1 }}>{periodLabel}</div>
@@ -581,79 +576,47 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* column headers */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: isMobile ? '28px 1fr 80px' : '28px 1fr 120px 120px',
-              gap: 12, padding: '8px 22px 4px',
-              borderBottom: `1px solid ${C.border}`,
-            }}>
-              {['', 'Modelo', 'Atend.', !isMobile && 'Receita'].filter(Boolean).map((h, i) => (
-                <div key={i} style={{ fontSize: 10, fontWeight: 700, color: C.t3, textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: i >= 2 ? 'right' : 'left' }}>
-                  {h}
-                </div>
-              ))}
-            </div>
-
-            {/* rows */}
-            <div style={{ padding: '4px 0 8px' }}>
+            <div style={{ padding: '8px 0' }}>
               {topModels.map((m, i) => {
-                const color      = COLORS[i] || C.t2
-                const countPct   = Math.round((parseInt(m.count)     / maxCount)   * 100)
-                const revPct     = Math.round((parseFloat(m.revenue) / maxRevenue) * 100)
-                const BAR_MAX_PX = 100 // max width in px for bars
-
+                const color    = COLORS[i] || C.t2
+                const countPct = Math.round((parseInt(m.count) / maxCount) * 100)
                 return (
                   <div key={i} style={{
-                    display: 'grid',
-                    gridTemplateColumns: isMobile ? '28px 1fr 80px' : '28px 1fr 120px 120px',
-                    alignItems: 'center', gap: 12,
-                    padding: isMobile ? '10px 16px' : '11px 22px',
+                    padding: isMobile ? '12px 18px' : '13px 22px',
                     borderBottom: i < topModels.length - 1 ? `1px solid ${C.border}` : 'none',
+                    display: 'flex', alignItems: 'center', gap: 14,
                   }}>
-
                     {/* rank */}
                     <div style={{
-                      width: 26, height: 26, borderRadius: 7,
-                      background: i === 0 ? C.amberSoft : 'rgba(0,0,0,0.05)',
+                      width: 26, height: 26, borderRadius: 7, flexShrink: 0,
+                      background: i === 0 ? C.amberSoft : 'rgba(0,0,0,0.04)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: 11, fontWeight: 700,
-                      color: i === 0 ? C.amber : C.t2, flexShrink: 0,
+                      color: i === 0 ? C.amber : C.t3,
                     }}>
                       {i + 1}
                     </div>
 
-                    {/* model name */}
-                    <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: C.text }}>
-                      {m.iphone_model}
-                    </div>
-
-                    {/* atendimentos com mini-barra */}
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{m.count}</span>
-                      <div style={{ width: '100%', height: 3, background: 'rgba(0,0,0,0.06)', borderRadius: 2, overflow: 'hidden' }}>
+                    {/* nome + barra */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 7, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {m.iphone_model}
+                      </div>
+                      {/* trilho */}
+                      <div style={{ height: 5, background: 'rgba(0,0,0,0.05)', borderRadius: 10, overflow: 'hidden' }}>
                         <div style={{
-                          height: '100%', borderRadius: 2, background: color,
+                          height: '100%', borderRadius: 10, background: color,
                           width: `${countPct}%`,
                           transition: 'width .7s cubic-bezier(.4,0,.2,1)',
                         }} />
                       </div>
                     </div>
 
-                    {/* receita com mini-barra (desktop only) */}
-                    {!isMobile && (
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{brl(m.revenue)}</span>
-                        <div style={{ width: '100%', height: 3, background: 'rgba(0,0,0,0.06)', borderRadius: 2, overflow: 'hidden' }}>
-                          <div style={{
-                            height: '100%', borderRadius: 2,
-                            background: `linear-gradient(90deg, ${color}88, ${color})`,
-                            width: `${revPct}%`,
-                            transition: 'width .7s cubic-bezier(.4,0,.2,1) .1s',
-                          }} />
-                        </div>
-                      </div>
-                    )}
+                    {/* métricas */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, flexShrink: 0 }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: C.text, letterSpacing: '-0.3px' }}>{brl(m.revenue)}</span>
+                      <span style={{ fontSize: 11, color: C.t3 }}>{m.count} atend.</span>
+                    </div>
                   </div>
                 )
               })}

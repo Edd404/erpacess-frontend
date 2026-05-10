@@ -9,6 +9,7 @@ import DashboardPage from './pages/DashboardPage'
 import ClientsPage from './pages/ClientsPage'
 import OrdersPage from './pages/OrdersPage'
 import NewOrderPage from './pages/NewOrderPage'
+import ClientHistoryPage from './pages/ClientHistoryPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -69,7 +70,8 @@ function AppInner() {
           <Route index            element={<DashboardPage/>}/>
           <Route path="clients"   element={<ClientsPage/>}/>
           <Route path="orders"    element={<OrdersPage/>}/>
-          <Route path="orders/new" element={<NewOrderPage/>}/>
+          <Route path="orders/new"    element={<NewOrderPage/>}/>
+          <Route path="clients/:id"   element={<ClientHistoryPage/>}/>
         </Route>
         <Route path="*" element={<Navigate to="/" replace/>}/>
       </Routes>

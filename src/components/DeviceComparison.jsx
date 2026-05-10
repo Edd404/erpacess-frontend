@@ -276,12 +276,6 @@ export default function DeviceComparison() {
 
       {/* ── Tabela ranking ── */}
       <div style={{ background: C.surface, borderRadius: 20, boxShadow: C.shadow, overflow: 'hidden' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 64px 110px 24px', gap: 10, padding: '10px 20px', background: 'rgba(0,0,0,0.02)', borderBottom: `1px solid ${C.border}` }}>
-          {['#', 'Modelo', 'Qtd', 'Receita', ''].map((h, i) => (
-            <div key={i} style={{ fontSize: 10, fontWeight: 700, color: C.t3, textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: i >= 2 && i <= 4 ? 'center' : 'left' }}>{h}</div>
-          ))}
-        </div>
-
         {loading && (
           <div style={{ padding: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, color: C.t2 }}>
             <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
@@ -307,59 +301,58 @@ export default function DeviceComparison() {
         )}
 
         {!loading && !error && models.map((m, i) => {
-          const color   = PALETTE[i % PALETTE.length]
-          const barPct  = maxRevenue > 0 ? Math.round((parseFloat(m.receita_total) / maxRevenue) * 100) : 0
-          const isOpen  = expanded === i
-          const rowKey  = m.iphone_model ? String(m.iphone_model) : String(i)
+          const color    = PALETTE[i % PALETTE.length]
+          const maxTotal = Math.max(...models.map(x => parseInt(x.total) || 0), 1)
+          const barPct   = Math.round((parseInt(m.total) / maxTotal) * 100)
+          const isOpen   = expanded === i
+          const rowKey   = m.iphone_model ? String(m.iphone_model) : String(i)
 
           return (
             <div key={rowKey}>
               <div
                 onClick={() => toggleExpand(i)}
                 style={{
-                  display: 'grid', gridTemplateColumns: '32px 1fr 64px 110px 24px',
-                  alignItems: 'center', gap: 10, padding: '12px 20px', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '13px 20px', cursor: 'pointer',
                   borderBottom: `1px solid ${C.border}`,
                   background: isOpen ? C.accentSoft : 'transparent',
                 }}
               >
-                <div style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0, background: i === 0 ? C.amberSoft : 'rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: i === 0 ? C.amber : C.t2 }}>
-                  {i === 0 ? <Trophy size={13} style={{ color: C.amber }} /> : i + 1}
+                {/* rank */}
+                <div style={{ width: 26, height: 26, borderRadius: 7, flexShrink: 0, background: i === 0 ? C.amberSoft : 'rgba(0,0,0,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: i === 0 ? C.amber : C.t3 }}>
+                  {i === 0 ? <Trophy size={12} style={{ color: C.amber }} /> : i + 1}
                 </div>
 
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {/* nome + barra */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 7 }}>
                     {String(m.iphone_model || '—')}
                   </div>
-                  <div style={{ marginTop: 5, height: 3, background: 'rgba(0,0,0,0.06)', borderRadius: 2, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${barPct}%`, background: color, borderRadius: 2 }} />
+                  <div style={{ height: 5, background: 'rgba(0,0,0,0.05)', borderRadius: 10, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${barPct}%`, background: color, borderRadius: 10, transition: 'width .7s cubic-bezier(.4,0,.2,1)' }} />
                   </div>
                 </div>
 
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 15, fontWeight: 700 }}>{num(m.total)}</div>
-                  <div style={{ fontSize: 9, color: C.t3 }}>atend.</div>
+                {/* métricas */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, flexShrink: 0 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: C.text, letterSpacing: '-0.3px', whiteSpace: 'nowrap' }}>{brl(m.receita_total)}</span>
+                  <span style={{ fontSize: 11, color: C.t3 }}>{num(m.total)} atend.</span>
                 </div>
 
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' }}>{brl(m.receita_total)}</div>
-                  <div style={{ fontSize: 9, color: C.t3 }}>receita</div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.t3 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.t3, flexShrink: 0 }}>
                   {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                 </div>
               </div>
 
               {isOpen && (
-                <div style={{ padding: '12px 20px 14px 70px', background: C.accentSoft, borderBottom: `1px solid ${C.border}`, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                <div style={{ padding: '12px 20px 14px 58px', background: C.accentSoft, borderBottom: `1px solid ${C.border}`, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
                   {[
-                    { label: 'Vendas',        value: num(m.vendas),       sub: brl(m.receita_vendas)           },
-                    { label: 'Manutenções',   value: num(m.manutencoes),  sub: brl(m.receita_manutencoes)      },
-                    { label: 'Ticket Médio',  value: brl(m.ticket_medio), sub: `Venda: ${brl(m.ticket_venda)}` },
-                    { label: 'Ticket Manut.', value: brl(m.ticket_manutencao), sub: 'por manutenção'           },
+                    { label: 'Vendas',          value: num(m.vendas),            sub: brl(m.receita_vendas)           },
+                    { label: 'Manutenções',     value: num(m.manutencoes),       sub: brl(m.receita_manutencoes)      },
+                    { label: 'Ticket Médio',    value: brl(m.ticket_medio),      sub: `Venda: ${brl(m.ticket_venda)}` },
+                    { label: 'Ticket Manut.',   value: brl(m.ticket_manutencao), sub: 'por manutenção'                },
                     { label: 'Primeiro atend.', value: m.primeiro_atendimento ? new Date(m.primeiro_atendimento).toLocaleDateString('pt-BR') : '—', sub: 'primeira data' },
-                    { label: 'Último atend.', value: m.ultimo_atendimento ? new Date(m.ultimo_atendimento).toLocaleDateString('pt-BR') : '—', sub: 'última data'    },
+                    { label: 'Último atend.',   value: m.ultimo_atendimento     ? new Date(m.ultimo_atendimento).toLocaleDateString('pt-BR')     : '—', sub: 'última data'  },
                   ].map((d) => (
                     <div key={d.label}>
                       <div style={{ fontSize: 10, fontWeight: 600, color: C.t3, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 3 }}>{d.label}</div>
@@ -367,6 +360,7 @@ export default function DeviceComparison() {
                       <div style={{ fontSize: 10, color: C.t3, marginTop: 1 }}>{d.sub}</div>
                     </div>
                   ))}
+                </div>
                 </div>
               )}
             </div>

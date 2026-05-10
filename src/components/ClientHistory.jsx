@@ -284,12 +284,22 @@ function OrderCard({ order, clientEmail, isFirst, isLast }) {
         {/* Detalhes expandíveis */}
         {expanded && (
           <div style={{ padding:'12px 14px', borderTop:'1px solid rgba(0,0,0,0.06)', background:'#FAFAFA' }}>
-            {order.imei && (
-              <div style={{ display:'inline-flex', alignItems:'center', gap:6, background:'#F1F5F9', border:'1px solid #E2E8F0', borderRadius:7, padding:'5px 10px', marginBottom:10 }}>
-                <Hash size={10} style={{ color:'#64748B' }}/>
-                <span style={{ fontSize:11, color:'#475569', fontFamily:'JetBrains Mono,monospace', letterSpacing:'0.4px' }}>IMEI {order.imei}</span>
-              </div>
-            )}
+            <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom: (order.imei || order.condition_sale) ? 10 : 0 }}>
+              {order.imei && (
+                <div style={{ display:'inline-flex', alignItems:'center', gap:6, background:'#F1F5F9', border:'1px solid #E2E8F0', borderRadius:7, padding:'5px 10px' }}>
+                  <Hash size={10} style={{ color:'#64748B' }}/>
+                  <span style={{ fontSize:11, color:'#475569', fontFamily:'JetBrains Mono,monospace', letterSpacing:'0.4px' }}>IMEI {order.imei}</span>
+                </div>
+              )}
+              {order.condition_sale && (
+                <div style={{ display:'inline-flex', alignItems:'center', gap:5, borderRadius:7, padding:'5px 10px', background: order.condition_sale==='lacrado' ? 'rgba(10,102,255,0.07)' : 'rgba(175,82,222,0.08)', border: `1px solid ${order.condition_sale==='lacrado' ? 'rgba(10,102,255,0.15)' : 'rgba(175,82,222,0.15)'}` }}>
+                  <span style={{ fontSize:12 }}>{order.condition_sale==='lacrado' ? '📦' : '✨'}</span>
+                  <span style={{ fontSize:11, fontWeight:700, color: order.condition_sale==='lacrado' ? '#0A66FF' : '#AF52DE' }}>
+                    {order.condition_sale==='lacrado' ? 'Lacrado' : 'Seminovo'}
+                  </span>
+                </div>
+              )}
+            </div>
             {order.notes && (
               <div style={{ fontSize:12, color:'#6B7280', lineHeight:1.6, background:'#F5F5F7', borderRadius:8, padding:'9px 12px', border:'1px solid #EBEBED', marginBottom:10 }}>
                 {order.notes}

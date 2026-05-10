@@ -34,7 +34,7 @@ class ErrorBoundary extends Component {
   }
 }
 import {
-  TrendingUp, TrendingDown, ClipboardList, CheckCircle2,
+  TrendingUp, TrendingDown, ClipboardList,
   Users, Loader2, Smartphone, BarChart2, Zap, Clock,
 } from 'lucide-react'
 import {
@@ -255,13 +255,15 @@ export default function DashboardPage() {
   const s = data?.summary || {}
   const timeline = data?.revenue_timeline || []
   const topModels = data?.top_models || []
-  const byStatus = data?.by_status || []
+  const byType = data?.by_type || []
 
-  const total = (parseInt(s.total_orders) || 0)
-  const open = parseInt(s.open_orders) || 0
-  const completed = parseInt(s.completed_orders) || 0
-  const inProgress = total - open - completed < 0 ? 0 : total - open - completed
-  const completionRate = pct(completed, total)
+  const total       = parseInt(s.total_orders)      || 0
+  const totalSales  = parseInt(s.total_sales)        || 0
+  const totalManut  = parseInt(s.total_maintenance)  || 0
+  const revVenda    = parseFloat(byType.find(t => t.type === 'venda')?.revenue)      || 0
+  const revManut    = parseFloat(byType.find(t => t.type === 'manutencao')?.revenue) || 0
+  const ticketVenda = totalSales > 0 ? revVenda / totalSales : 0
+  const ticketManut = totalManut > 0 ? revManut / totalManut : 0
 
   const chartData = useMemo(() => timeline.map(d => ({
     day: new Date(d.day).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
@@ -330,7 +332,7 @@ export default function DashboardPage() {
         <HeroCard
           icon={ClipboardList} color={C.amber} colorSoft={C.amberSoft}
           label="Total de ordens" value={total}
-          sub={`${open} em aberto`} delay={120}
+          sub={periodLabel} delay={120}
         />
         <HeroCard
           icon={Users} color={C.violet} colorSoft={C.violetSoft}
@@ -339,20 +341,20 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/* ── Status breakdown ── */}
+      {/* ── Vendas vs Manutenções breakdown ── */}
       <div style={{
         display: 'flex', gap: isMobile ? 8 : 12, flexWrap: 'nowrap',
         animation: 'dashIn .3s ease forwards', animationDelay: '200ms', opacity: 0,
       }}>
-        <StatusPill label="Concluídos" count={completed}
-          color={C.green}  colorSoft={C.greenSoft}  pctVal={pct(completed, total)} />
-        <StatusPill label="Em aberto"  count={open}
-          color={C.amber}  colorSoft={C.amberSoft}  pctVal={pct(open, total)} />
-        <StatusPill label="Andamento"  count={inProgress}
-          color={C.accent} colorSoft={C.accentSoft} pctVal={pct(inProgress, total)} />
+        <StatusPill label="Vendas"      count={totalSales}
+          color={C.accent} colorSoft={C.accentSoft} pctVal={pct(totalSales, total)} />
+        <StatusPill label="Manutenções" count={totalManut}
+          color={C.violet} colorSoft={C.violetSoft} pctVal={pct(totalManut, total)} />
+        <StatusPill label="Rec. Vendas" count={brlK(revVenda)}
+          color={C.green}  colorSoft={C.greenSoft}  pctVal={pct(totalSales, total)} />
         {!isMobile && (
-          <StatusPill label="Conclusão" count={`${completionRate}%`}
-            color={C.teal}  colorSoft={C.tealSoft}  pctVal={completionRate} />
+          <StatusPill label="Rec. Manut." count={brlK(revManut)}
+            color={C.teal}  colorSoft={C.tealSoft}  pctVal={pct(totalManut, total)} />
         )}
       </div>
 
@@ -479,8 +481,8 @@ export default function DashboardPage() {
               <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.5px', marginTop: 2 }}>{brl(s.avg_sale_price)}</div>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 11, color: C.t3, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>Conclusão</div>
-              <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.5px', marginTop: 2, color: C.green }}>{completionRate}%</div>
+              <div style={{ fontSize: 11, color: C.t3, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>Clientes únicos</div>
+              <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.5px', marginTop: 2, color: C.violet }}>{s.unique_clients || 0}</div>
             </div>
           </div>
         </div>
@@ -492,14 +494,14 @@ export default function DashboardPage() {
         gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)',
         gap: isMobile ? 10 : 14,
       }}>
-        <StatCard icon={CheckCircle2} color={C.green}  colorSoft={C.greenSoft}
-          label="Concluídos"    value={completed} sub={`de ${total} ordens`} delay={300} />
-        <StatCard icon={Clock}        color={C.amber}  colorSoft={C.amberSoft}
-          label="Em aberto"     value={open}      sub="aguardando" delay={340} />
         <StatCard icon={Smartphone}   color={C.accent} colorSoft={C.accentSoft}
-          label="Vendas"        value={s.total_sales || 0} sub="no período" delay={380} />
+          label="Vendas"         value={totalSales}      sub={brl(revVenda)}       delay={300} />
         <StatCard icon={BarChart2}    color={C.violet} colorSoft={C.violetSoft}
-          label="Manutenções"   value={s.total_maintenance || 0} sub="no período" delay={420} />
+          label="Manutenções"    value={totalManut}      sub={brl(revManut)}       delay={340} />
+        <StatCard icon={Zap}          color={C.green}  colorSoft={C.greenSoft}
+          label="Ticket Venda"   value={brl(ticketVenda)} sub="por venda"          delay={380} />
+        <StatCard icon={Clock}        color={C.teal}   colorSoft={C.tealSoft}
+          label="Ticket Manut."  value={brl(ticketManut)} sub="por manutenção"     delay={420} />
       </div>
 
       {/* ── Top Models ── */}

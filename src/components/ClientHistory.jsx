@@ -21,12 +21,6 @@ const fmtPhone = p => {
   return d.length===11 ? `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}` : p
 }
 
-const STATUS = {
-  aberto:       { label:'Aberto',       bg:'#FFF8E6', text:'#B45309', border:'#FDE68A' },
-  em_andamento: { label:'Em andamento', bg:'#EEF4FF', text:'#1D4ED8', border:'#BFDBFE' },
-  concluido:    { label:'Concluído',    bg:'#F0FDF4', text:'#15803D', border:'#BBF7D0' },
-  cancelado:    { label:'Cancelado',    bg:'#FEF2F2', text:'#B91C1C', border:'#FECACA' },
-}
 const PAY_LABEL = {
   pix:'Pix', dinheiro:'Dinheiro',
   cartao_credito:'Crédito', cartao_debito:'Débito', iphone_entrada:'iPhone Entrada',
@@ -231,7 +225,6 @@ function OrderActions({ order, clientEmail }) {
 /* ── OrderCard ────────────────────────────────────────────────── */
 function OrderCard({ order, clientEmail, isFirst, isLast }) {
   const [expanded, setExpanded] = useState(isFirst)
-  const st      = STATUS[order.status] || STATUS.aberto
   const wStatus = warrantyStatus(order)
   const payments = (() => {
     try { return Array.isArray(order.payment_methods) ? order.payment_methods : JSON.parse(order.payment_methods||'[]') }
@@ -263,7 +256,6 @@ function OrderCard({ order, clientEmail, isFirst, isLast }) {
             <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap', marginBottom:4 }}>
               {order.type==='venda' ? <Smartphone size={12} style={{ color:'#6B7280',flexShrink:0 }}/> : <Wrench size={12} style={{ color:'#6B7280',flexShrink:0 }}/>}
               <span style={{ fontSize:11, fontWeight:700, color:'#374151', letterSpacing:'0.3px', fontFamily:'JetBrains Mono,monospace' }}>{order.order_number}</span>
-              <span style={{ fontSize:10, fontWeight:700, color:st.text, background:st.bg, padding:'2px 8px', borderRadius:999, border:`1px solid ${st.border}` }}>{st.label}</span>
             </div>
             <div style={{ fontSize:14, fontWeight:600, color:'#0C0C0E', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
               {order.iphone_model}{order.capacity?` · ${order.capacity}`:''}{order.color?` · ${order.color}`:''}

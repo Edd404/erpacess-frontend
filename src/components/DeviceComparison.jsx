@@ -40,10 +40,6 @@ const brl = (v) =>
 const num = (v) =>
   new Intl.NumberFormat('pt-BR').format(parseInt(v) || 0)
 
-const safePct = (a, b) => {
-  const nb = parseInt(b)
-  return nb > 0 ? Math.round((parseInt(a) / nb) * 100) : 0
-}
 
 const today = () => new Date().toISOString().slice(0, 10)
 
@@ -280,8 +276,8 @@ export default function DeviceComparison() {
 
       {/* ── Tabela ranking ── */}
       <div style={{ background: C.surface, borderRadius: 20, boxShadow: C.shadow, overflow: 'hidden' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 64px 80px 110px 24px', gap: 10, padding: '10px 20px', background: 'rgba(0,0,0,0.02)', borderBottom: `1px solid ${C.border}` }}>
-          {['#', 'Modelo', 'Qtd', 'Conclusão', 'Receita', ''].map((h, i) => (
+        <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 64px 110px 24px', gap: 10, padding: '10px 20px', background: 'rgba(0,0,0,0.02)', borderBottom: `1px solid ${C.border}` }}>
+          {['#', 'Modelo', 'Qtd', 'Receita', ''].map((h, i) => (
             <div key={i} style={{ fontSize: 10, fontWeight: 700, color: C.t3, textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: i >= 2 && i <= 4 ? 'center' : 'left' }}>{h}</div>
           ))}
         </div>
@@ -313,7 +309,6 @@ export default function DeviceComparison() {
         {!loading && !error && models.map((m, i) => {
           const color   = PALETTE[i % PALETTE.length]
           const barPct  = maxRevenue > 0 ? Math.round((parseFloat(m.receita_total) / maxRevenue) * 100) : 0
-          const concPct = safePct(m.concluidos, m.total)
           const isOpen  = expanded === i
           const rowKey  = m.iphone_model ? String(m.iphone_model) : String(i)
 
@@ -322,7 +317,7 @@ export default function DeviceComparison() {
               <div
                 onClick={() => toggleExpand(i)}
                 style={{
-                  display: 'grid', gridTemplateColumns: '32px 1fr 64px 80px 110px 24px',
+                  display: 'grid', gridTemplateColumns: '32px 1fr 64px 110px 24px',
                   alignItems: 'center', gap: 10, padding: '12px 20px', cursor: 'pointer',
                   borderBottom: `1px solid ${C.border}`,
                   background: isOpen ? C.accentSoft : 'transparent',
@@ -346,13 +341,6 @@ export default function DeviceComparison() {
                   <div style={{ fontSize: 9, color: C.t3 }}>atend.</div>
                 </div>
 
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: concPct >= 80 ? C.green : concPct >= 50 ? C.amber : C.red }}>
-                    {concPct}%
-                  </div>
-                  <div style={{ fontSize: 9, color: C.t3 }}>conclusão</div>
-                </div>
-
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap' }}>{brl(m.receita_total)}</div>
                   <div style={{ fontSize: 9, color: C.t3 }}>receita</div>
@@ -366,12 +354,12 @@ export default function DeviceComparison() {
               {isOpen && (
                 <div style={{ padding: '12px 20px 14px 70px', background: C.accentSoft, borderBottom: `1px solid ${C.border}`, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
                   {[
-                    { label: 'Vendas',        value: num(m.vendas),       sub: brl(m.receita_vendas)      },
-                    { label: 'Manutenções',   value: num(m.manutencoes),  sub: brl(m.receita_manutencoes) },
+                    { label: 'Vendas',        value: num(m.vendas),       sub: brl(m.receita_vendas)           },
+                    { label: 'Manutenções',   value: num(m.manutencoes),  sub: brl(m.receita_manutencoes)      },
                     { label: 'Ticket Médio',  value: brl(m.ticket_medio), sub: `Venda: ${brl(m.ticket_venda)}` },
-                    { label: 'Concluídos',    value: num(m.concluidos),   sub: `${concPct}% do total`     },
-                    { label: 'Em Aberto',     value: num(m.abertos),      sub: 'aguardando'               },
-                    { label: 'Último atend.', value: m.ultimo_atendimento ? new Date(m.ultimo_atendimento).toLocaleDateString('pt-BR') : '—', sub: 'última data' },
+                    { label: 'Ticket Manut.', value: brl(m.ticket_manutencao), sub: 'por manutenção'           },
+                    { label: 'Primeiro atend.', value: m.primeiro_atendimento ? new Date(m.primeiro_atendimento).toLocaleDateString('pt-BR') : '—', sub: 'primeira data' },
+                    { label: 'Último atend.', value: m.ultimo_atendimento ? new Date(m.ultimo_atendimento).toLocaleDateString('pt-BR') : '—', sub: 'última data'    },
                   ].map((d) => (
                     <div key={d.label}>
                       <div style={{ fontSize: 10, fontWeight: 600, color: C.t3, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 3 }}>{d.label}</div>

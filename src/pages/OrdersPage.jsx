@@ -189,6 +189,11 @@ function OrderCard({ order, onClick, onPDF, pdfLoading }) {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
           <WarrantyBadge createdAt={order.created_at} warrantyMonths={order.warranty_months} />
+          {order.condition_sale && (
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20, background: order.condition_sale === 'lacrado' ? 'rgba(10,102,255,0.06)' : 'rgba(175,82,222,0.08)', color: order.condition_sale === 'lacrado' ? '#0A66FF' : '#AF52DE' }}>
+              {order.condition_sale === 'lacrado' ? '📦 Lacrado' : '✨ Seminovo'}
+            </span>
+          )}
           <TypePill type={order.type} />
         </div>
       </div>
@@ -363,6 +368,7 @@ function OrderDetail({ order, onClose }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
           {[
             { label: 'Modelo',      value: order.iphone_model, mono: false },
+            order.condition_sale ? { label: 'Condição',    value: order.condition_sale === 'lacrado' ? '📦 Lacrado' : '✨ Seminovo', mono: false } : null,
             { label: 'Capacidade',  value: order.capacity || '—', mono: false },
             { label: 'Cor',         value: order.color || '—', mono: false },
             { label: 'IMEI',        value: order.imei || '—', mono: true,  copy: order.imei },

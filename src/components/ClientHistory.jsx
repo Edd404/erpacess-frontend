@@ -256,6 +256,11 @@ function OrderCard({ order, clientEmail, isFirst, isLast }) {
             <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap', marginBottom:4 }}>
               {order.type==='venda' ? <Smartphone size={12} style={{ color:'#6B7280',flexShrink:0 }}/> : <Wrench size={12} style={{ color:'#6B7280',flexShrink:0 }}/>}
               <span style={{ fontSize:11, fontWeight:700, color:'#374151', letterSpacing:'0.3px', fontFamily:'JetBrains Mono,monospace' }}>{order.order_number}</span>
+              {order.condition_sale && (
+                <span style={{ fontSize:10, fontWeight:700, padding:'1px 7px', borderRadius:999, background: order.condition_sale==='lacrado' ? 'rgba(10,102,255,0.07)' : 'rgba(175,82,222,0.08)', color: order.condition_sale==='lacrado' ? '#0A66FF' : '#AF52DE' }}>
+                  {order.condition_sale==='lacrado' ? '📦 Lacrado' : '✨ Seminovo'}
+                </span>
+              )}
             </div>
             <div style={{ fontSize:14, fontWeight:600, color:'#0C0C0E', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
               {order.iphone_model}{order.capacity?` · ${order.capacity}`:''}{order.color?` · ${order.color}`:''}

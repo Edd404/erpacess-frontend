@@ -1,5 +1,4 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
-import NotificationBell from '../NotificationBell'
 import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../context/ThemeContext'
 import { useIsMobile } from '../../hooks/useIsMobile'
@@ -49,7 +48,6 @@ function MobileLayout({ user, logout, location, navigate, info, T }) {
         <div style={{ flex:1, fontSize:15, fontWeight:700, color:'#fff', letterSpacing:'-0.2px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
           {info.title}
         </div>
-        <NotificationBell darkMode={true} />
         <button onClick={logout} style={{ background:'none', border:'none', cursor:'pointer', color:'rgba(255,255,255,0.45)', display:'flex' }}>
           <LogOut size={18}/>
         </button>
@@ -136,11 +134,13 @@ function DesktopLayout({ user, logout, location, navigate, info, T }) {
             <div style={{ fontSize:15, fontWeight:700, letterSpacing:'-0.2px', color:T.ink }}>{info.title}</div>
             <div style={{ fontSize:11, color:T.ink4, marginTop:1 }}>{info.sub}</div>
           </div>
-          <NotificationBell darkMode={false} />
           {location.pathname === '/orders' && (
             <button onClick={()=>navigate('/orders/new')}
-              style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 16px', background:T.ink, color:'#fff', border:'none', borderRadius:8, fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'Instrument Sans,sans-serif' }}>
-              <Plus size={14}/>Novo
+              style={{ display:'flex', alignItems:'center', gap:7, padding:'9px 18px', background:'#1A7A4A', color:'#fff', border:'none', borderRadius:9, fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'Instrument Sans,sans-serif', boxShadow:'0 2px 8px rgba(26,122,74,0.28)', transition:'background .15s, box-shadow .15s', whiteSpace:'nowrap' }}
+              onMouseEnter={e => { e.currentTarget.style.background='#15693E'; e.currentTarget.style.boxShadow='0 4px 14px rgba(26,122,74,0.38)' }}
+              onMouseLeave={e => { e.currentTarget.style.background='#1A7A4A'; e.currentTarget.style.boxShadow='0 2px 8px rgba(26,122,74,0.28)' }}
+            >
+              <Plus size={14}/> Novo Atendimento
             </button>
           )}
         </header>

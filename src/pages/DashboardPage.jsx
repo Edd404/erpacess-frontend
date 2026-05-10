@@ -262,8 +262,12 @@ export default function DashboardPage() {
   const totalManut  = parseInt(s.total_maintenance)  || 0
   const revVenda    = parseFloat(byType.find(t => t.type === 'venda')?.revenue)      || 0
   const revManut    = parseFloat(byType.find(t => t.type === 'manutencao')?.revenue) || 0
-  const ticketVenda = totalSales > 0 ? revVenda / totalSales : 0
-  const ticketManut = totalManut > 0 ? revManut / totalManut : 0
+  const ticketVenda   = totalSales > 0 ? revVenda / totalSales : 0
+  const ticketManut   = totalManut > 0 ? revManut / totalManut : 0
+  const totalLacrado  = parseInt(s.total_lacrado)  || 0
+  const totalSeminovo = parseInt(s.total_seminovo) || 0
+  const pctLacrado    = total > 0 ? Math.round((totalLacrado  / total) * 100) : 0
+  const pctSeminovo   = total > 0 ? Math.round((totalSeminovo / total) * 100) : 0
 
   const chartData = useMemo(() => timeline.map(d => ({
     day: new Date(d.day).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
@@ -491,7 +495,7 @@ export default function DashboardPage() {
       {/* ── Compact stats row ── */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)',
+        gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)',
         gap: isMobile ? 10 : 14,
       }}>
         <StatCard icon={Smartphone}   color={C.accent} colorSoft={C.accentSoft}
@@ -500,8 +504,56 @@ export default function DashboardPage() {
           label="Manutenções"    value={totalManut}      sub={brl(revManut)}       delay={340} />
         <StatCard icon={Zap}          color={C.green}  colorSoft={C.greenSoft}
           label="Ticket Venda"   value={brl(ticketVenda)} sub="por venda"          delay={380} />
-        <StatCard icon={Clock}        color={C.teal}   colorSoft={C.tealSoft}
-          label="Ticket Manut."  value={brl(ticketManut)} sub="por manutenção"     delay={420} />
+      </div>
+
+      {/* ── Lacrado vs Seminovo ── */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr',
+        gap: isMobile ? 10 : 14,
+        animation: 'dashIn .3s ease forwards', animationDelay: '440ms', opacity: 0,
+      }}>
+        {/* Lacrado */}
+        <div style={{ background: C.surface, borderRadius: 20, boxShadow: C.shadow, padding: '20px 22px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 24 }}>📦</span>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700 }}>Lacrado</div>
+                <div style={{ fontSize: 11, color: C.t2, marginTop: 1 }}>iPhones novos</div>
+              </div>
+            </div>
+            <div style={{ background: C.accentSoft, color: C.accent, fontSize: 12, fontWeight: 700, borderRadius: 20, padding: '4px 12px' }}>
+              {pctLacrado}%
+            </div>
+          </div>
+          <div style={{ fontSize: 32, fontWeight: 700, letterSpacing: '-1px', lineHeight: 1 }}>{totalLacrado}</div>
+          <div style={{ fontSize: 11, color: C.t2, marginTop: 4 }}>de {totalSales} vendas</div>
+          <div style={{ marginTop: 12, height: 5, background: 'rgba(0,0,0,0.06)', borderRadius: 3, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${pctLacrado}%`, background: C.accent, borderRadius: 3, transition: 'width .6s cubic-bezier(.4,0,.2,1)' }} />
+          </div>
+        </div>
+
+        {/* Seminovo */}
+        <div style={{ background: C.surface, borderRadius: 20, boxShadow: C.shadow, padding: '20px 22px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 24 }}>✨</span>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700 }}>Seminovo</div>
+                <div style={{ fontSize: 11, color: C.t2, marginTop: 1 }}>iPhones usados</div>
+              </div>
+            </div>
+            <div style={{ background: C.violetSoft, color: C.violet, fontSize: 12, fontWeight: 700, borderRadius: 20, padding: '4px 12px' }}>
+              {pctSeminovo}%
+            </div>
+          </div>
+          <div style={{ fontSize: 32, fontWeight: 700, letterSpacing: '-1px', lineHeight: 1 }}>{totalSeminovo}</div>
+          <div style={{ fontSize: 11, color: C.t2, marginTop: 4 }}>de {totalSales} vendas</div>
+          <div style={{ marginTop: 12, height: 5, background: 'rgba(0,0,0,0.06)', borderRadius: 3, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${pctSeminovo}%`, background: C.violet, borderRadius: 3, transition: 'width .6s cubic-bezier(.4,0,.2,1)' }} />
+          </div>
+        </div>
       </div>
 
       {/* ── Top Models ── */}

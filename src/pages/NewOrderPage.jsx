@@ -567,6 +567,36 @@ function StepProduto({ form, set, errors }) {
         </Field>
         <ErrMsg msg={errors.imei}/>
       </div>
+
+      <div>
+        <Label required>Condição do aparelho</Label>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+          {[
+            { v:'lacrado',  l:'Lacrado',  desc:'Na caixa, nunca usado', emoji:'📦' },
+            { v:'seminovo', l:'Seminovo', desc:'Usado, em bom estado',  emoji:'✨' },
+          ].map(opt => {
+            const on = form.condition_sale === opt.v
+            return (
+              <button key={opt.v} onClick={() => set('condition_sale', opt.v)}
+                style={{
+                  padding:'16px 14px', borderRadius:12, cursor:'pointer', textAlign:'left',
+                  border:`1.5px solid ${errors.condition_sale ? T.red : on ? T.ink : T.ink5}`,
+                  background: on ? T.ink : T.white,
+                  transition:'all .15s', display:'flex', flexDirection:'column', gap:8,
+                  fontFamily:'Instrument Sans,sans-serif',
+                  boxShadow: on ? '0 2px 8px rgba(0,0,0,0.12)' : 'none',
+                }}>
+                <div style={{ fontSize:22, lineHeight:1 }}>{opt.emoji}</div>
+                <div>
+                  <div style={{ fontSize:14, fontWeight:700, color: on ? T.white : T.ink, marginBottom:3 }}>{opt.l}</div>
+                  <div style={{ fontSize:12, color: on ? 'rgba(255,255,255,0.45)' : T.ink4 }}>{opt.desc}</div>
+                </div>
+              </button>
+            )
+          })}
+        </div>
+        <ErrMsg msg={errors.condition_sale}/>
+      </div>
     </div>
   )
 }
@@ -882,7 +912,7 @@ function StepPagamento({ form, set, errors, isManut }) {
             <span style={{ fontSize:13, color:'rgba(255,255,255,0.55)', maxWidth:'60%', lineHeight:1.4 }}>
               {isManut
                 ? (form.service_types?.slice(0,2).join(', ') || 'Manutenção') + (form.service_types?.length > 2 ? ` +${form.service_types.length - 2}` : '')
-                : `${form.iphone_model || '—'} ${form.capacity || ''}`}
+                : `${form.iphone_model || '—'} ${form.capacity || ''}${form.condition_sale ? ' · ' + (form.condition_sale === 'lacrado' ? '📦 Lacrado' : '✨ Seminovo') : ''}`}
             </span>
             <span style={{ fontSize:20, fontWeight:700, color:T.white, letterSpacing:'-0.5px' }}>R$ {form.price}</span>
           </div>
@@ -925,7 +955,7 @@ export default function NewOrderPage() {
   const [errors, setErrors] = useState({})
   const [form, setForm] = useState({
     client_id: searchParams.get('client_id') || '', type:'venda', iphone_model:'', capacity:'', color:'',
-    imei:'', price:'', warranty_months:'', notes:'',
+    imei:'', price:'', warranty_months:'', notes:'', condition_sale:'',
     payment_methods:[], service_types:[], problem_description:'', device_condition:'',
   })
 
@@ -943,6 +973,7 @@ export default function NewOrderPage() {
     if (step === 1 && !form.client_id) e.client_id = 'Selecione um cliente'
     if (step === 2) {
       if (!form.iphone_model) e.iphone_model = 'Selecione o modelo'
+      if (!isManut && !form.condition_sale) e.condition_sale = 'Selecione a condição do aparelho'
       if (form.imei && !validateIMEI(form.imei)) e.imei = 'IMEI inválido'
       if (isManut) {
         if (!form.service_types?.length) e.service_types = 'Selecione ao menos um serviço'
@@ -981,6 +1012,7 @@ export default function NewOrderPage() {
       warranty_months: parseInt(form.warranty_months) || (isManut ? 3 : 12),
       payment_methods: form.payment_methods,
       notes:          noteParts.join('\n') || undefined,
+      condition_sale: !isManut ? form.condition_sale || undefined : undefined,
     })
   }
 

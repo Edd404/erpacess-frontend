@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useOrders, useDownloadPDF } from '../hooks/useData'
 import { useIsMobile } from '../hooks/useIsMobile'
@@ -8,6 +8,7 @@ import {
   Search, Download, X, Shield, Loader2, ChevronRight,
   Smartphone, Wrench, Mail, Copy, User, Filter,
   TrendingUp, ClipboardList, Zap, CheckCheck, ChevronLeft,
+  Package, Sparkles, ChevronDown,
 } from 'lucide-react'
 
 // ─── Design tokens ────────────────────────────────────────────
@@ -37,6 +38,19 @@ const PAY = {
   cartao_credito: 'Crédito', cartao_debito: 'Débito',
   iphone_entrada: 'iPhone entrada',
 }
+
+// Modelos iPhone mais comuns — usados no dropdown
+const IPHONE_MODELS = [
+  'iPhone 8', 'iPhone 8 Plus',
+  'iPhone X', 'iPhone XR', 'iPhone XS', 'iPhone XS Max',
+  'iPhone 11', 'iPhone 11 Pro', 'iPhone 11 Pro Max',
+  'iPhone 12', 'iPhone 12 Mini', 'iPhone 12 Pro', 'iPhone 12 Pro Max',
+  'iPhone 13', 'iPhone 13 Mini', 'iPhone 13 Pro', 'iPhone 13 Pro Max',
+  'iPhone 14', 'iPhone 14 Plus', 'iPhone 14 Pro', 'iPhone 14 Pro Max',
+  'iPhone 15', 'iPhone 15 Plus', 'iPhone 15 Pro', 'iPhone 15 Pro Max',
+  'iPhone 16', 'iPhone 16 Plus', 'iPhone 16 Pro', 'iPhone 16 Pro Max',
+  'iPhone 16e',
+]
 
 const brl = (v) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(v) || 0)
@@ -82,7 +96,7 @@ function WarrantyBadge({ createdAt, warrantyMonths }) {
   const exp = new Date(createdAt)
   exp.setMonth(exp.getMonth() + warrantyMonths)
   const daysLeft = Math.round((exp - Date.now()) / 86400000)
-  if (daysLeft < 0) return null // expirada, não exibe
+  if (daysLeft < 0) return null
   const urgent = daysLeft <= 30
   return (
     <span style={{
@@ -128,6 +142,198 @@ function Segments({ value, onChange, options }) {
           </button>
         )
       })}
+    </div>
+  )
+}
+
+// ─── Condition Pill Selector ──────────────────────────────────
+function ConditionFilter({ value, onChange }) {
+  const opts = [
+    { v: '',         label: 'Todos',    icon: null },
+    { v: 'lacrado',  label: 'Lacrado',  icon: '📦' },
+    { v: 'seminovo', label: 'Seminovo', icon: '✨' },
+  ]
+  return (
+    <div style={{
+      display: 'inline-flex', background: 'rgba(0,0,0,0.06)',
+      borderRadius: 10, padding: 3, gap: 2,
+    }}>
+      {opts.map((o) => {
+        const active = value === o.v
+        return (
+          <button key={o.v} onClick={() => onChange(o.v)} style={{
+            padding: '5px 13px', borderRadius: 7, border: 'none', cursor: 'pointer',
+            fontSize: 13, fontWeight: active ? 600 : 400,
+            background: active ? C.surface : 'transparent',
+            color: active
+              ? o.v === 'lacrado' ? C.accent : o.v === 'seminovo' ? C.violet : C.text
+              : C.t2,
+            boxShadow: active ? '0 1px 4px rgba(0,0,0,0.12)' : 'none',
+            transition: 'all .15s', fontFamily: 'Instrument Sans, sans-serif',
+            whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 5,
+          }}>
+            {o.icon && <span style={{ fontSize: 12 }}>{o.icon}</span>}
+            {o.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+// ─── Model Dropdown ───────────────────────────────────────────
+function ModelFilter({ value, onChange }) {
+  const [open, setOpen]   = useState(false)
+  const [input, setInput] = useState(value || '')
+  const ref               = useRef(null)
+
+  // Sync input com value externo (limpar filtros)
+  useEffect(() => { setInput(value || '') }, [value])
+
+  // Fechar ao clicar fora
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const filtered = input.trim()
+    ? IPHONE_MODELS.filter(m => m.toLowerCase().includes(input.toLowerCase()))
+    : IPHONE_MODELS
+
+  const select = (model) => {
+    setInput(model)
+    onChange(model)
+    setOpen(false)
+  }
+
+  const clear = () => {
+    setInput('')
+    onChange('')
+    setOpen(false)
+  }
+
+  const handleInput = (e) => {
+    setInput(e.target.value)
+    onChange(e.target.value)   // filtro em tempo real
+    setOpen(true)
+  }
+
+  return (
+    <div ref={ref} style={{ position: 'relative', minWidth: 200 }}>
+      <div style={{
+        display: 'flex', alignItems: 'center',
+        background: C.surface,
+        border: `1.5px solid ${open || value ? C.accent : C.border}`,
+        borderRadius: 12, overflow: 'hidden',
+        boxShadow: C.shadow,
+        transition: 'border-color .15s',
+      }}>
+        <Smartphone size={13} style={{
+          position: 'absolute', left: 11, color: value ? C.accent : C.t3,
+          pointerEvents: 'none', flexShrink: 0,
+        }} />
+        <input
+          value={input}
+          onChange={handleInput}
+          onFocus={() => setOpen(true)}
+          placeholder="Modelo"
+          style={{
+            flex: 1, padding: '9px 32px 9px 32px',
+            border: 'none', outline: 'none', fontSize: 13,
+            fontFamily: 'Instrument Sans, sans-serif',
+            color: C.text, background: 'transparent',
+            cursor: 'text',
+          }}
+        />
+        {value ? (
+          <button onClick={clear} style={{
+            padding: '0 10px 0 4px', background: 'none',
+            border: 'none', cursor: 'pointer', color: C.t3,
+            display: 'flex', alignItems: 'center',
+          }}>
+            <X size={13} />
+          </button>
+        ) : (
+          <ChevronDown size={13} style={{
+            marginRight: 10, color: C.t3, pointerEvents: 'none', flexShrink: 0,
+          }} />
+        )}
+      </div>
+
+      {open && filtered.length > 0 && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0,
+          background: C.surface,
+          border: `1px solid ${C.border}`,
+          borderRadius: 12,
+          boxShadow: C.shadowMd,
+          zIndex: 200,
+          maxHeight: 220, overflowY: 'auto',
+          animation: 'fadeDown .15s ease',
+        }}>
+          {filtered.map((m) => (
+            <button key={m} onClick={() => select(m)} style={{
+              display: 'block', width: '100%', textAlign: 'left',
+              padding: '9px 14px', border: 'none',
+              background: m === value ? C.accentSoft : 'transparent',
+              color: m === value ? C.accent : C.text,
+              fontSize: 13, fontWeight: m === value ? 600 : 400,
+              cursor: 'pointer', fontFamily: 'Instrument Sans, sans-serif',
+              transition: 'background .1s',
+            }}
+            onMouseEnter={e => { if (m !== value) e.currentTarget.style.background = C.bg }}
+            onMouseLeave={e => { if (m !== value) e.currentTarget.style.background = 'transparent' }}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Active Filters Bar ───────────────────────────────────────
+function ActiveFilters({ model, condition, onClearModel, onClearCondition, onClearAll }) {
+  const active = [
+    model     && { key: 'model',     label: `Modelo: ${model}`,       onClear: onClearModel },
+    condition && { key: 'condition', label: condition === 'lacrado' ? '📦 Lacrado' : '✨ Seminovo', onClear: onClearCondition },
+  ].filter(Boolean)
+
+  if (!active.length) return null
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+      animation: 'fadeUp .2s ease',
+    }}>
+      <span style={{ fontSize: 11, color: C.t3, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        Filtros ativos:
+      </span>
+      {active.map(f => (
+        <span key={f.key} style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          background: C.accentSoft, color: C.accent,
+          padding: '4px 10px 4px 12px', borderRadius: 20,
+          fontSize: 12, fontWeight: 600,
+        }}>
+          {f.label}
+          <button onClick={f.onClear} style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: C.accent, display: 'flex', alignItems: 'center', padding: 0,
+          }}>
+            <X size={11} />
+          </button>
+        </span>
+      ))}
+      <button onClick={onClearAll} style={{
+        fontSize: 11, color: C.t2, background: 'none', border: 'none',
+        cursor: 'pointer', textDecoration: 'underline', fontFamily: 'Instrument Sans, sans-serif',
+        padding: 0,
+      }}>
+        Limpar tudo
+      </button>
     </div>
   )
 }
@@ -222,7 +428,6 @@ function OrderCard({ order, onClick, onPDF, pdfLoading }) {
           {new Date(order.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          {/* PDF button (visible on hover) */}
           <button
             onClick={(e) => { e.stopPropagation(); onPDF(order.id) }}
             style={{
@@ -270,7 +475,7 @@ function CopyBtn({ value }) {
 
 // ─── Order Detail Modal ───────────────────────────────────────
 function OrderDetail({ order, onClose }) {
-  const navigate   = useNavigate()
+  const navigate    = useNavigate()
   const downloadPDF = useDownloadPDF()
   const payments    = parsePayments(order.payment_methods)
 
@@ -285,7 +490,6 @@ function OrderDetail({ order, onClose }) {
 
   return (
     <>
-      {/* sticky header */}
       <div style={{
         padding: '16px 20px 14px', borderBottom: `1px solid ${C.border}`,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -326,9 +530,7 @@ function OrderDetail({ order, onClose }) {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
-            {order.client_phone && (
-              <CopyBtn value={order.client_phone} />
-            )}
+            {order.client_phone && <CopyBtn value={order.client_phone} />}
             <button onClick={goToClient} style={{
               background: C.accentSoft, border: 'none', borderRadius: 8, padding: '5px 10px',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
@@ -368,12 +570,12 @@ function OrderDetail({ order, onClose }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
           {[
             { label: 'Modelo',      value: order.iphone_model, mono: false },
-            order.condition_sale ? { label: 'Condição',    value: order.condition_sale === 'lacrado' ? '📦 Lacrado' : '✨ Seminovo', mono: false } : null,
+            order.condition_sale ? { label: 'Condição', value: order.condition_sale === 'lacrado' ? '📦 Lacrado' : '✨ Seminovo', mono: false } : null,
             { label: 'Capacidade',  value: order.capacity || '—', mono: false },
             { label: 'Cor',         value: order.color || '—', mono: false },
             { label: 'IMEI',        value: order.imei || '—', mono: true,  copy: order.imei },
             { label: 'Valor',       value: brl(order.price), mono: false },
-            { label: 'Pagamento',   value: payments.map(p => PAY[p] || p).join(' + ') || '—', mono: false },
+            { label: 'Pagamento',   value: parsePayments(order.payment_methods).map(p => PAY[p] || p).join(' + ') || '—', mono: false },
             { label: 'Data',        value: new Date(order.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }), mono: false },
             order.notes ? { label: 'Observações', value: order.notes, mono: false } : null,
           ].filter(Boolean).map((row, i, arr) => (
@@ -416,15 +618,12 @@ function OrderDetail({ order, onClose }) {
             Baixar Garantia
           </button>
           {order.client_email && (
-            <button
-              onClick={() => {}}
-              style={{
-                flex: 1, padding: '11px 0', background: C.accentSoft, color: C.accent,
-                border: 'none', borderRadius: 12, cursor: 'pointer', fontSize: 13, fontWeight: 600,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-                fontFamily: 'Instrument Sans, sans-serif',
-              }}
-            >
+            <button onClick={() => {}} style={{
+              flex: 1, padding: '11px 0', background: C.accentSoft, color: C.accent,
+              border: 'none', borderRadius: 12, cursor: 'pointer', fontSize: 13, fontWeight: 600,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+              fontFamily: 'Instrument Sans, sans-serif',
+            }}>
               <Mail size={14} />
               Reenviar e-mail
             </button>
@@ -453,7 +652,6 @@ function Pagination({ page, totalPages, onChange }) {
       >
         <ChevronLeft size={14} />
       </button>
-
       {pages.map(p => (
         <button key={p} onClick={() => onChange(p)} style={{
           width: 34, height: 34, borderRadius: 9, border: 'none', cursor: 'pointer',
@@ -464,7 +662,6 @@ function Pagination({ page, totalPages, onChange }) {
           fontFamily: 'Instrument Sans, sans-serif',
         }}>{p}</button>
       ))}
-
       <button
         onClick={() => onChange(page + 1)} disabled={page === totalPages}
         style={{ width: 34, height: 34, borderRadius: 9, border: `1px solid ${C.border}`, background: C.surface, cursor: page === totalPages ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: page === totalPages ? C.t3 : C.t2 }}
@@ -477,32 +674,44 @@ function Pagination({ page, totalPages, onChange }) {
 
 // ─── Main Page ────────────────────────────────────────────────
 export default function OrdersPage() {
-  const [search,   setSearch]   = useState('')
-  const [typeTab,  setTypeTab]  = useState('')
-  const [period,   setPeriod]   = useState('30')
-  const [page,     setPage]     = useState(1)
-  const [selected, setSelected] = useState(null)
+  const [search,    setSearch]    = useState('')
+  const [typeTab,   setTypeTab]   = useState('')
+  const [condition, setCondition] = useState('')   // '' | 'lacrado' | 'seminovo'
+  const [model,     setModel]     = useState('')   // texto livre / modelo selecionado
+  const [period,    setPeriod]    = useState('30')
+  const [page,      setPage]      = useState(1)
+  const [selected,  setSelected]  = useState(null)
 
   const isMobile = useIsMobile()
 
-  // reset page on filter change
-  const handleType   = useCallback((v) => { setTypeTab(v); setPage(1) }, [])
-  const handleSearch = useCallback((v) => { setSearch(v);  setPage(1) }, [])
+  // Reset page em qualquer mudança de filtro
+  const resetPage = useCallback(() => setPage(1), [])
+  const handleSearch    = useCallback((v) => { setSearch(v);    resetPage() }, [resetPage])
+  const handleType      = useCallback((v) => { setTypeTab(v);   resetPage() }, [resetPage])
+  const handleCondition = useCallback((v) => { setCondition(v); resetPage() }, [resetPage])
+  const handleModel     = useCallback((v) => { setModel(v);     resetPage() }, [resetPage])
+
+  const clearAll = () => {
+    setSearch(''); setTypeTab(''); setCondition(''); setModel(''); setPage(1)
+  }
 
   const limit = 12
-  const { data, isLoading } = useOrders({ search, type: typeTab, page, limit })
-  const orders    = data?.data || []
-  const meta      = data?.meta || {}
+  const { data, isLoading } = useOrders({
+    search,
+    type: typeTab,
+    condition_sale: condition,
+    model,
+    page,
+    limit,
+  })
+  const orders     = data?.data || []
+  const meta       = data?.meta || {}
   const totalPages = Math.ceil((meta.total || 0) / limit)
 
-  // stats for metric cards
   const { data: stats } = useOrderStats(period)
   const s = stats?.summary || {}
 
   const downloadPDF = useDownloadPDF()
-
-  // counts for tabs (local, from current page + total)
-  const allCount   = meta.total || 0
 
   const periodOpts = [
     { v: '7',  l: '7d'  },
@@ -516,7 +725,7 @@ export default function OrdersPage() {
 
         {/* ── Metric cards ── */}
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: isMobile ? 10 : 14 }}>
-          <MetricCard icon={ClipboardList} label="Total de ordens" value={allCount}
+          <MetricCard icon={ClipboardList} label="Total de ordens" value={meta.total || 0}
             sub={`últimos ${period} dias`} color={C.accent} colorSoft={C.accentSoft} delay={0} />
           <MetricCard icon={TrendingUp} label="Receita" value={brl(s.total_revenue)}
             sub="no período" color={C.green} colorSoft={C.greenSoft} delay={60} />
@@ -531,40 +740,67 @@ export default function OrdersPage() {
           display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center',
           animation: 'fadeUp .3s ease forwards', animationDelay: '200ms', opacity: 0,
         }}>
-          {/* search */}
+          {/* Busca textual */}
           <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
             <Search size={13} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: C.t3, pointerEvents: 'none' }} />
             <input
               value={search}
               onChange={(e) => handleSearch(e.target.value)}
-              placeholder="Buscar cliente, modelo, número..."
+              placeholder="Buscar cliente, número, IMEI..."
               style={{
                 width: '100%', padding: '9px 14px 9px 34px', boxSizing: 'border-box',
                 border: `1.5px solid ${C.border}`, borderRadius: 12, fontSize: 13,
                 color: C.text, background: C.surface, outline: 'none',
-                fontFamily: 'Instrument Sans, sans-serif',
-                boxShadow: C.shadow,
+                fontFamily: 'Instrument Sans, sans-serif', boxShadow: C.shadow,
               }}
             />
+            {search && (
+              <button onClick={() => handleSearch('')} style={{
+                position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                background: 'none', border: 'none', cursor: 'pointer', color: C.t3,
+                display: 'flex', alignItems: 'center', padding: 0,
+              }}>
+                <X size={13} />
+              </button>
+            )}
           </div>
 
-          {/* period */}
+          {/* Dropdown modelo */}
+          <ModelFilter value={model} onChange={handleModel} />
+
+          {/* Período */}
           <Segments value={period} onChange={setPeriod} options={periodOpts} />
         </div>
 
-        {/* ── Type tabs ── */}
+        {/* ── Segunda linha: tipo + condição ── */}
         <div style={{
+          display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center',
           animation: 'fadeUp .3s ease forwards', animationDelay: '240ms', opacity: 0,
         }}>
           <Segments
             value={typeTab} onChange={handleType}
             options={[
-              { v: '',           l: 'Todos',        count: meta.total || 0 },
-              { v: 'venda',      l: 'Vendas',       icon: Smartphone },
-              { v: 'manutencao', l: 'Manutenções',  icon: Wrench     },
+              { v: '',           l: 'Todos',       count: meta.total || 0 },
+              { v: 'venda',      l: 'Vendas',      icon: Smartphone },
+              { v: 'manutencao', l: 'Manutenções', icon: Wrench },
             ]}
           />
+
+          {/* Separador visual */}
+          <div style={{ width: 1, height: 28, background: C.border, flexShrink: 0 }} />
+
+          {/* Condição */}
+          <ConditionFilter value={condition} onChange={handleCondition} />
         </div>
+
+        {/* ── Filtros ativos ── */}
+        <ActiveFilters
+          model={model}
+          condition={condition}
+          onClearModel={() => handleModel('')}
+          onClearCondition={() => handleCondition('')}
+          onClearAll={clearAll}
+        />
 
         {/* ── Grid de cards ── */}
         {isLoading ? (
@@ -629,6 +865,10 @@ export default function OrdersPage() {
       <style>{`
         @keyframes fadeUp {
           from { opacity: 0; transform: translateY(8px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeDown {
+          from { opacity: 0; transform: translateY(-4px); }
           to   { opacity: 1; transform: translateY(0); }
         }
         @keyframes spin { to { transform: rotate(360deg); } }

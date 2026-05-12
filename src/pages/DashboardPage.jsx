@@ -1,4 +1,4 @@
-import { useState, useMemo, Component } from 'react'
+import { useState, useMemo, useCallback, Component } from 'react'
 import { useOrderStats } from '../hooks/useData'
 import { useIsMobile } from '../hooks/useIsMobile'
 import GreetingBanner   from '../components/GreetingBanner'
@@ -6,8 +6,8 @@ import DeviceComparison from '../components/DeviceComparison'
 import {
   TrendingUp, TrendingDown, ClipboardList,
   Users, Loader2, Smartphone, BarChart2, Zap,
-  ChevronDown, ChevronUp, Package, Sparkles,
-  DollarSign, ArrowUpRight,
+  ChevronDown, ChevronUp, DollarSign, ArrowUpRight,
+  RefreshCw,
 } from 'lucide-react'
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip,
@@ -21,20 +21,9 @@ class ErrorBoundary extends Component {
   componentDidCatch(err) { console.error('[ErrorBoundary]', err) }
   render() {
     if (this.state.hasError) return (
-      <div style={{
-        background: '#fff', borderRadius: 16, padding: '32px 24px',
-        textAlign: 'center', boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
-        fontFamily: 'Instrument Sans, sans-serif',
-      }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: '#6E6E73', marginBottom: 8 }}>
-          Não foi possível carregar esta seção
-        </div>
-        <button onClick={() => this.setState({ hasError: false })} style={{
-          background: 'rgba(10,102,255,0.08)', color: '#0A66FF',
-          border: 'none', borderRadius: 8, padding: '6px 14px',
-          fontSize: 12, fontWeight: 600, cursor: 'pointer',
-          fontFamily: 'Instrument Sans, sans-serif',
-        }}>Tentar novamente</button>
+      <div style={{ background: '#fff', borderRadius: 16, padding: '32px 24px', textAlign: 'center', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', fontFamily: 'Instrument Sans, sans-serif' }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#6E6E73', marginBottom: 8 }}>Não foi possível carregar esta seção</div>
+        <button onClick={() => this.setState({ hasError: false })} style={{ background: 'rgba(10,102,255,0.08)', color: '#0A66FF', border: 'none', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'Instrument Sans, sans-serif' }}>Tentar novamente</button>
       </div>
     )
     return this.props.children
@@ -69,6 +58,120 @@ const brl  = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency
 const brlK = (v) => { const n = parseFloat(v) || 0; return n >= 1000 ? `R$${(n / 1000).toFixed(1)}k` : brl(n) }
 const pct  = (a, b) => b ? Math.round((a / b) * 100) : 0
 
+// ─── Relative time ────────────────────────────────────────────
+function relativeTime(date) {
+  if (!date) return null
+  const diff = Math.floor((Date.now() - date.getTime()) / 1000)
+  if (diff < 10)  return 'agora mesmo'
+  if (diff < 60)  return `há ${diff}s`
+  if (diff < 120) return 'há 1 min'
+  if (diff < 3600) return `há ${Math.floor(diff / 60)} min`
+  return `há ${Math.floor(diff / 3600)}h`
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SKELETON COMPONENTS
+// ═══════════════════════════════════════════════════════════════
+function SkeletonBox({ w = '100%', h = 16, r = 8, style = {} }) {
+  return (
+    <div style={{
+      width: w, height: h, borderRadius: r,
+      background: 'linear-gradient(90deg, #F0F0F2 25%, #E8E8EA 50%, #F0F0F2 75%)',
+      backgroundSize: '200% 100%',
+      animation: 'shimmer 1.4s ease infinite',
+      ...style,
+    }} />
+  )
+}
+
+function HeroCardSkeleton() {
+  return (
+    <div style={{ background: C.surface, borderRadius: 20, boxShadow: C.shadow, padding: '24px 24px 20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+        <SkeletonBox w={44} h={44} r={12} />
+        <SkeletonBox w={60} h={26} r={13} />
+      </div>
+      <SkeletonBox w="55%" h={30} r={6} style={{ marginBottom: 10 }} />
+      <SkeletonBox w="70%" h={14} r={4} style={{ marginBottom: 6 }} />
+      <SkeletonBox w="45%" h={11} r={4} />
+    </div>
+  )
+}
+
+function StatusPillSkeleton() {
+  return (
+    <div style={{ flex: 1, background: C.surface, borderRadius: 14, boxShadow: C.shadow, padding: '12px 12px 10px' }}>
+      <SkeletonBox w={40} h={20} r={10} style={{ marginBottom: 8 }} />
+      <SkeletonBox w="50%" h={22} r={4} style={{ marginBottom: 6 }} />
+      <SkeletonBox w="80%" h={10} r={3} style={{ marginBottom: 8 }} />
+      <SkeletonBox w="100%" h={3} r={2} />
+    </div>
+  )
+}
+
+function ChartSkeleton({ isMobile }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 280px', gap: isMobile ? 12 : 14 }}>
+      <div style={{ background: C.surface, borderRadius: 20, boxShadow: C.shadow, padding: '22px 24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
+          <div><SkeletonBox w={120} h={16} r={4} style={{ marginBottom: 8 }} /><SkeletonBox w={80} h={12} r={4} /></div>
+          <div style={{ textAlign: 'right' }}><SkeletonBox w={100} h={20} r={4} style={{ marginBottom: 6 }} /><SkeletonBox w={60} h={11} r={4} /></div>
+        </div>
+        <SkeletonBox w="100%" h={isMobile ? 140 : 170} r={8} />
+      </div>
+      <div style={{ background: C.surface, borderRadius: 20, boxShadow: C.shadow, padding: '22px 22px 18px' }}>
+        <SkeletonBox w={80} h={16} r={4} style={{ marginBottom: 8 }} />
+        <SkeletonBox w={120} h={12} r={4} style={{ marginBottom: 24 }} />
+        {[0, 1].map(i => (
+          <div key={i} style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+              <SkeletonBox w={100} h={14} r={4} />
+              <SkeletonBox w={30} h={14} r={4} />
+            </div>
+            <SkeletonBox w="100%" h={6} r={3} />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function DashboardSkeleton({ isMobile }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 12 : 16, fontFamily: 'Instrument Sans, sans-serif' }}>
+      {/* Header skeleton */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div><SkeletonBox w={160} h={24} r={6} style={{ marginBottom: 8 }} /><SkeletonBox w={110} h={13} r={4} /></div>
+        <SkeletonBox w={120} h={34} r={10} />
+      </div>
+      {/* Hero cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: isMobile ? 10 : 14 }}>
+        {[0,1,2,3].map(i => <HeroCardSkeleton key={i} />)}
+      </div>
+      {/* Pills */}
+      <div style={{ display: 'flex', gap: isMobile ? 8 : 12 }}>
+        {[0,1,2,3].slice(0, isMobile ? 3 : 4).map(i => <StatusPillSkeleton key={i} />)}
+      </div>
+      {/* Chart */}
+      <ChartSkeleton isMobile={isMobile} />
+      {/* Stat cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)', gap: isMobile ? 10 : 14 }}>
+        {[0,1,2].map(i => (
+          <div key={i} style={{ background: C.surface, borderRadius: 16, boxShadow: C.shadow, padding: '16px 18px' }}>
+            <SkeletonBox w={36} h={36} r={10} style={{ marginBottom: 14 }} />
+            <SkeletonBox w="50%" h={22} r={4} style={{ marginBottom: 8 }} />
+            <SkeletonBox w="70%" h={12} r={4} />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DASHBOARD COMPONENTS
+// ═══════════════════════════════════════════════════════════════
+
 // ─── Period Selector ──────────────────────────────────────────
 function PeriodSelector({ value, onChange }) {
   return (
@@ -90,20 +193,51 @@ function PeriodSelector({ value, onChange }) {
   )
 }
 
-// ─── Hero Card ────────────────────────────────────────────────
-function HeroCard({ label, value, sub, icon: Icon, color, colorSoft, delay = 0 }) {
+// ─── Hero Card com trend badge ────────────────────────────────
+function HeroCard({ label, value, sub, icon: Icon, color, colorSoft, trend, delay = 0 }) {
+  const hasTrend = trend !== undefined && trend !== null
+  const up       = trend >= 0
+
   return (
     <div style={{
       background: C.surface, borderRadius: 20, boxShadow: C.shadow,
       padding: '24px 24px 20px',
       animation: 'dashIn .3s ease forwards', animationDelay: `${delay}ms`, opacity: 0,
+      transition: 'box-shadow .2s',
     }}>
-      <div style={{ width: 44, height: 44, borderRadius: 12, background: colorSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-        <Icon size={20} style={{ color }} />
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div style={{ width: 44, height: 44, borderRadius: 12, background: colorSoft, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Icon size={20} style={{ color }} />
+        </div>
+
+        {/* ── Trend badge ── */}
+        {hasTrend && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 4,
+            background: up ? C.greenSoft : C.redSoft,
+            color: up ? C.green : C.red,
+            borderRadius: 20, padding: '4px 10px',
+            fontSize: 12, fontWeight: 700,
+            transition: 'all .2s',
+          }}>
+            {up ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+            {trend === 0 ? '0%' : `${up ? '+' : ''}${trend}%`}
+          </div>
+        )}
       </div>
-      <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-1px', lineHeight: 1, color: C.text }}>{value}</div>
+
+      <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-1px', lineHeight: 1, color: C.text }}>
+        {value}
+      </div>
       <div style={{ fontSize: 13, color: C.t2, marginTop: 5, fontWeight: 500 }}>{label}</div>
       {sub && <div style={{ fontSize: 11, color: C.t3, marginTop: 3 }}>{sub}</div>}
+
+      {/* ── Tooltip "vs período anterior" ── */}
+      {hasTrend && (
+        <div style={{ fontSize: 10, color: C.t3, marginTop: 6 }}>
+          vs período anterior
+        </div>
+      )}
     </div>
   )
 }
@@ -144,12 +278,7 @@ function ChartTooltip({ active, payload, label }) {
 // ─── Stat Card ────────────────────────────────────────────────
 function StatCard({ label, value, icon: Icon, color, colorSoft, sub, delay = 0 }) {
   return (
-    <div style={{
-      background: C.surface, borderRadius: 16, boxShadow: C.shadow,
-      padding: '16px 18px',
-      animation: 'dashIn .3s ease forwards', animationDelay: `${delay}ms`, opacity: 0,
-      display: 'flex', flexDirection: 'column', gap: 10,
-    }}>
+    <div style={{ background: C.surface, borderRadius: 16, boxShadow: C.shadow, padding: '16px 18px', animation: 'dashIn .3s ease forwards', animationDelay: `${delay}ms`, opacity: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ width: 36, height: 36, borderRadius: 10, background: colorSoft, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Icon size={16} style={{ color }} />
       </div>
@@ -162,76 +291,41 @@ function StatCard({ label, value, icon: Icon, color, colorSoft, sub, delay = 0 }
   )
 }
 
-// ─────────────────────────────────────────────────────────────
-// ConditionPanel — card premium expansível Lacrado vs Seminovo
-// ─────────────────────────────────────────────────────────────
+// ─── Condition Panel ──────────────────────────────────────────
 function ConditionPanel({ totalLacrado, totalSeminovo, revLacrado, revSeminovo, avgLacrado, avgSeminovo, totalSales, isMobile }) {
   const [expanded, setExpanded] = useState(false)
 
   const totalCond = totalLacrado + totalSeminovo
   const pctL = pct(totalLacrado,  totalCond)
   const pctS = pct(totalSeminovo, totalCond)
-
-  // receita total das condições
   const revTotal = revLacrado + revSeminovo
-
-  // participação na receita
   const revPctL = revTotal > 0 ? Math.round((revLacrado  / revTotal) * 100) : 0
   const revPctS = revTotal > 0 ? Math.round((revSeminovo / revTotal) * 100) : 0
 
-  // insight automático
-  const insight = totalCond === 0
-    ? 'Sem dados no período.'
-    : totalLacrado > totalSeminovo
-      ? `Lacrados dominam com ${pctL}% das vendas por condição.`
-      : totalSeminovo > totalLacrado
-        ? `Seminovos lideram com ${pctS}% das vendas por condição.`
-        : 'Empate entre Lacrado e Seminovo no período.'
+  const insight = totalCond === 0 ? 'Sem dados no período.'
+    : totalLacrado > totalSeminovo ? `Lacrados dominam com ${pctL}% das vendas por condição.`
+    : totalSeminovo > totalLacrado ? `Seminovos lideram com ${pctS}% das vendas por condição.`
+    : 'Empate entre Lacrado e Seminovo no período.'
 
   return (
-    <div style={{
-      background: C.surface, borderRadius: 20, boxShadow: C.shadow,
-      overflow: 'hidden',
-      animation: 'dashIn .3s ease forwards', animationDelay: '440ms', opacity: 0,
-    }}>
-
-      {/* ── Cabeçalho do painel ── */}
+    <div style={{ background: C.surface, borderRadius: 20, boxShadow: C.shadow, overflow: 'hidden', animation: 'dashIn .3s ease forwards', animationDelay: '440ms', opacity: 0 }}>
       <div style={{ padding: '20px 24px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.2px' }}>Condições de Venda</div>
-            <div style={{ fontSize: 12, color: C.t2, marginTop: 2 }}>
-              {totalCond} vendas · {brlK(revTotal)} em receita
-            </div>
+            <div style={{ fontSize: 12, color: C.t2, marginTop: 2 }}>{totalCond} vendas · {brlK(revTotal)} em receita</div>
           </div>
-          <button
-            onClick={() => setExpanded(e => !e)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              background: expanded ? C.text : 'rgba(0,0,0,0.05)',
-              color: expanded ? '#fff' : C.t2,
-              border: 'none', borderRadius: 10, padding: '7px 14px',
-              fontSize: 12, fontWeight: 600, cursor: 'pointer',
-              fontFamily: 'Instrument Sans, sans-serif',
-              transition: 'all .2s',
-            }}
-          >
+          <button onClick={() => setExpanded(e => !e)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: expanded ? C.text : 'rgba(0,0,0,0.05)', color: expanded ? '#fff' : C.t2, border: 'none', borderRadius: 10, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'Instrument Sans, sans-serif', transition: 'all .2s' }}>
             {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
             {expanded ? 'Recolher' : 'Ver detalhes'}
           </button>
         </div>
 
-        {/* ── Barra comparativa ── */}
+        {/* Barra comparativa */}
         <div style={{ marginBottom: 20 }}>
           <div style={{ height: 10, borderRadius: 5, overflow: 'hidden', display: 'flex', background: 'rgba(0,0,0,0.05)' }}>
-            <div style={{
-              width: `${pctL}%`, background: C.accent, borderRadius: '5px 0 0 5px',
-              transition: 'width .7s cubic-bezier(.4,0,.2,1)',
-            }} />
-            <div style={{
-              width: `${pctS}%`, background: C.violet, borderRadius: '0 5px 5px 0',
-              transition: 'width .7s cubic-bezier(.4,0,.2,1)',
-            }} />
+            <div style={{ width: `${pctL}%`, background: C.accent, borderRadius: '5px 0 0 5px', transition: 'width .7s cubic-bezier(.4,0,.2,1)' }} />
+            <div style={{ width: `${pctS}%`, background: C.violet, borderRadius: '0 5px 5px 0', transition: 'width .7s cubic-bezier(.4,0,.2,1)' }} />
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
             <span style={{ fontSize: 11, color: C.accent, fontWeight: 600 }}>📦 Lacrado {pctL}%</span>
@@ -239,28 +333,13 @@ function ConditionPanel({ totalLacrado, totalSeminovo, revLacrado, revSeminovo, 
           </div>
         </div>
 
-        {/* ── Cards lado a lado (sempre visíveis) ── */}
+        {/* Cards lado a lado */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, paddingBottom: 20 }}>
           {[
-            {
-              label: 'Lacrado',   sub: 'iPhones novos',
-              icon: '📦',         color: C.accent, colorSoft: C.accentSoft,
-              count: totalLacrado, pctVal: pctL,
-              rev: revLacrado,    avg: avgLacrado,
-            },
-            {
-              label: 'Seminovo',  sub: 'iPhones usados',
-              icon: '✨',          color: C.violet, colorSoft: C.violetSoft,
-              count: totalSeminovo, pctVal: pctS,
-              rev: revSeminovo,   avg: avgSeminovo,
-            },
+            { label: 'Lacrado', sub: 'iPhones novos', icon: '📦', color: C.accent, colorSoft: C.accentSoft, count: totalLacrado, pctVal: pctL, rev: revLacrado, avg: avgLacrado },
+            { label: 'Seminovo', sub: 'iPhones usados', icon: '✨', color: C.violet, colorSoft: C.violetSoft, count: totalSeminovo, pctVal: pctS, rev: revSeminovo, avg: avgSeminovo },
           ].map(d => (
-            <div key={d.label} style={{
-              background: d.colorSoft,
-              borderRadius: 14, padding: '16px 18px',
-              border: `1px solid ${d.color}22`,
-            }}>
-              {/* top */}
+            <div key={d.label} style={{ background: d.colorSoft, borderRadius: 14, padding: '16px 18px', border: `1px solid ${d.color}22` }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: 20 }}>{d.icon}</span>
@@ -269,26 +348,11 @@ function ConditionPanel({ totalLacrado, totalSeminovo, revLacrado, revSeminovo, 
                     <div style={{ fontSize: 10, color: C.t2 }}>{d.sub}</div>
                   </div>
                 </div>
-                <div style={{
-                  background: d.color, color: '#fff',
-                  fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '3px 9px',
-                }}>
-                  {d.pctVal}%
-                </div>
+                <div style={{ background: d.color, color: '#fff', fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '3px 9px' }}>{d.pctVal}%</div>
               </div>
-
-              {/* número */}
-              <div style={{ fontSize: 36, fontWeight: 700, letterSpacing: '-1.5px', lineHeight: 1, color: C.text }}>
-                {d.count}
-              </div>
+              <div style={{ fontSize: 36, fontWeight: 700, letterSpacing: '-1.5px', lineHeight: 1, color: C.text }}>{d.count}</div>
               <div style={{ fontSize: 11, color: C.t2, marginTop: 4 }}>de {totalSales} vendas</div>
-
-              {/* receita resumida */}
-              <div style={{
-                marginTop: 14, paddingTop: 12,
-                borderTop: `1px solid ${d.color}22`,
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              }}>
+              <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${d.color}22`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ fontSize: 10, color: C.t3, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Receita</div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginTop: 1 }}>{brlK(d.rev)}</div>
@@ -303,57 +367,18 @@ function ConditionPanel({ totalLacrado, totalSeminovo, revLacrado, revSeminovo, 
         </div>
       </div>
 
-      {/* ══════════════════════════════════════════════
-          PAINEL EXPANDIDO
-      ══════════════════════════════════════════════ */}
-      <div style={{
-        maxHeight: expanded ? 800 : 0,
-        overflow: 'hidden',
-        transition: 'max-height .35s cubic-bezier(.4,0,.2,1)',
-      }}>
-        <div style={{
-          borderTop: `1px solid ${C.border}`,
-          padding: '20px 24px 24px',
-          display: 'flex', flexDirection: 'column', gap: 20,
-        }}>
-
-          {/* ── Título da seção ── */}
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.t2, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            Análise detalhada
-          </div>
-
-          {/* ── Grid de KPIs expandidos ── */}
+      {/* Painel expandido */}
+      <div style={{ maxHeight: expanded ? 600 : 0, overflow: 'hidden', transition: 'max-height .35s cubic-bezier(.4,0,.2,1)' }}>
+        <div style={{ borderTop: `1px solid ${C.border}`, padding: '20px 24px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.t2, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Análise detalhada</div>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 10 }}>
             {[
-              {
-                label: 'Ticket Lacrado',
-                value: brl(avgLacrado),
-                icon: DollarSign, color: C.accent, colorSoft: C.accentSoft,
-                sub: `${totalLacrado} vendas`,
-              },
-              {
-                label: 'Ticket Seminovo',
-                value: brl(avgSeminovo),
-                icon: DollarSign, color: C.violet, colorSoft: C.violetSoft,
-                sub: `${totalSeminovo} vendas`,
-              },
-              {
-                label: 'Receita Lacrado',
-                value: brlK(revLacrado),
-                icon: TrendingUp, color: C.accent, colorSoft: C.accentSoft,
-                sub: `${revPctL}% da receita total`,
-              },
-              {
-                label: 'Receita Seminovo',
-                value: brlK(revSeminovo),
-                icon: TrendingUp, color: C.violet, colorSoft: C.violetSoft,
-                sub: `${revPctS}% da receita total`,
-              },
+              { label: 'Ticket Lacrado',   value: brl(avgLacrado),   icon: DollarSign, color: C.accent, colorSoft: C.accentSoft, sub: `${totalLacrado} vendas` },
+              { label: 'Ticket Seminovo',  value: brl(avgSeminovo),  icon: DollarSign, color: C.violet, colorSoft: C.violetSoft, sub: `${totalSeminovo} vendas` },
+              { label: 'Receita Lacrado',  value: brlK(revLacrado),  icon: TrendingUp, color: C.accent, colorSoft: C.accentSoft, sub: `${revPctL}% da receita total` },
+              { label: 'Receita Seminovo', value: brlK(revSeminovo), icon: TrendingUp, color: C.violet, colorSoft: C.violetSoft, sub: `${revPctS}% da receita total` },
             ].map(k => (
-              <div key={k.label} style={{
-                background: C.bg, borderRadius: 14, padding: '14px 16px',
-                border: `1px solid ${C.border}`,
-              }}>
+              <div key={k.label} style={{ background: C.bg, borderRadius: 14, padding: '14px 16px', border: `1px solid ${C.border}` }}>
                 <div style={{ width: 32, height: 32, borderRadius: 8, background: k.colorSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
                   <k.icon size={14} style={{ color: k.color }} />
                 </div>
@@ -364,13 +389,12 @@ function ConditionPanel({ totalLacrado, totalSeminovo, revLacrado, revSeminovo, 
             ))}
           </div>
 
-          {/* ── Barras comparativas de receita ── */}
+          {/* Barras de participação na receita */}
           <div style={{ background: C.bg, borderRadius: 14, padding: '16px 18px', border: `1px solid ${C.border}` }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 16 }}>Participação na receita</div>
-
             {[
-              { label: 'Lacrado',  color: C.accent,  value: revLacrado,  pctVal: revPctL },
-              { label: 'Seminovo', color: C.violet,  value: revSeminovo, pctVal: revPctS },
+              { label: 'Lacrado',  color: C.accent, value: revLacrado,  pctVal: revPctL },
+              { label: 'Seminovo', color: C.violet, value: revSeminovo, pctVal: revPctS },
             ].map(row => (
               <div key={row.label} style={{ marginBottom: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
@@ -381,49 +405,58 @@ function ConditionPanel({ totalLacrado, totalSeminovo, revLacrado, revSeminovo, 
                   </div>
                 </div>
                 <div style={{ height: 8, background: 'rgba(0,0,0,0.06)', borderRadius: 4, overflow: 'hidden' }}>
-                  <div style={{
-                    height: '100%', background: row.color, borderRadius: 4,
-                    width: `${row.pctVal}%`,
-                    transition: 'width .7s cubic-bezier(.4,0,.2,1)',
-                  }} />
+                  <div style={{ height: '100%', background: row.color, borderRadius: 4, width: `${row.pctVal}%`, transition: 'width .7s cubic-bezier(.4,0,.2,1)' }} />
                 </div>
               </div>
             ))}
           </div>
 
-          {/* ── Insight box ── */}
-          <div style={{
-            background: 'linear-gradient(135deg, rgba(10,102,255,0.05) 0%, rgba(175,82,222,0.05) 100%)',
-            border: '1px solid rgba(10,102,255,0.12)',
-            borderRadius: 14, padding: '14px 18px',
-            display: 'flex', alignItems: 'center', gap: 12,
-          }}>
-            <div style={{
-              width: 36, height: 36, borderRadius: 10,
-              background: 'linear-gradient(135deg, rgba(10,102,255,0.12), rgba(175,82,222,0.12))',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-            }}>
+          {/* Insight */}
+          <div style={{ background: 'linear-gradient(135deg, rgba(10,102,255,0.05) 0%, rgba(175,82,222,0.05) 100%)', border: '1px solid rgba(10,102,255,0.12)', borderRadius: 14, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, rgba(10,102,255,0.12), rgba(175,82,222,0.12))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <ArrowUpRight size={16} style={{ color: C.accent }} />
             </div>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: C.t2, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>
-                Insight do período
-              </div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.t2, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>Insight do período</div>
               <div style={{ fontSize: 13, color: C.text, fontWeight: 500 }}>{insight}</div>
             </div>
           </div>
-
         </div>
       </div>
     </div>
   )
 }
 
-// ─── Dashboard Principal ──────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// DASHBOARD PRINCIPAL
+// ═══════════════════════════════════════════════════════════════
 export default function DashboardPage() {
-  const [period, setPeriod] = useState('30')
-  const { data, isLoading } = useOrderStats(period)
+  const [period,      setPeriod]      = useState('30')
+  const [lastUpdated, setLastUpdated] = useState(new Date())
+  const [tick,        setTick]        = useState(0)   // força relativeTime a re-render
+  const [spinning,    setSpinning]    = useState(false)
   const isMobile = useIsMobile()
+
+  const { data, isLoading, refetch } = useOrderStats(period)
+
+  // Atualiza o relativeTime a cada 30s
+  useState(() => {
+    const id = setInterval(() => setTick(t => t + 1), 30_000)
+    return () => clearInterval(id)
+  })
+
+  const handleRefresh = useCallback(async () => {
+    setSpinning(true)
+    await refetch()
+    setLastUpdated(new Date())
+    setTimeout(() => setSpinning(false), 600)
+  }, [refetch])
+
+  // Quando o período muda, marca como atualizado
+  const handlePeriod = useCallback((v) => {
+    setPeriod(v)
+    setLastUpdated(new Date())
+  }, [])
 
   const userName = useMemo(() => {
     try {
@@ -432,9 +465,10 @@ export default function DashboardPage() {
     } catch { return '' }
   }, [])
 
-  const s        = data?.summary || {}
+  const s        = data?.summary         || {}
+  const trends   = data?.trends          || {}
   const timeline = data?.revenue_timeline || []
-  const byType   = data?.by_type || []
+  const byType   = data?.by_type          || []
 
   const total         = parseInt(s.total_orders)     || 0
   const totalSales    = parseInt(s.total_sales)       || 0
@@ -457,10 +491,13 @@ export default function DashboardPage() {
 
   const periodLabel = period === '7' ? 'últimos 7 dias' : period === '30' ? 'últimos 30 dias' : 'últimos 90 dias'
 
-  if (isLoading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 320, color: C.t2, gap: 10, fontFamily: 'Instrument Sans, sans-serif' }}>
-      <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
-      <span style={{ fontSize: 14 }}>Carregando dashboard…</span>
+  // ── Skeleton no primeiro carregamento ──
+  if (isLoading && !data) return (
+    <div style={{ fontFamily: 'Instrument Sans, sans-serif', color: C.text }}>
+      <DashboardSkeleton isMobile={isMobile} />
+      <style>{`
+        @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+      `}</style>
     </div>
   )
 
@@ -472,21 +509,50 @@ export default function DashboardPage() {
         <GreetingBanner userName={userName} totalRevenue={parseFloat(s.total_revenue) || 0} />
       </ErrorBoundary>
 
-      {/* Header + período */}
+      {/* ── Header: título + última atualização + período ── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, animation: 'dashIn .25s ease forwards', opacity: 0 }}>
         <div>
           <h1 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 700, letterSpacing: '-0.5px', margin: 0 }}>Dashboard</h1>
           <p style={{ fontSize: 13, color: C.t2, margin: '2px 0 0', textTransform: 'capitalize' }}>{periodLabel}</p>
         </div>
-        <PeriodSelector value={period} onChange={setPeriod} />
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          {/* Última atualização + botão refresh */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.surface, borderRadius: 10, padding: '7px 12px', boxShadow: C.shadow }}>
+            <span style={{ fontSize: 12, color: C.t3 }}>
+              Atualizado {relativeTime(lastUpdated)}
+            </span>
+            <button
+              onClick={handleRefresh}
+              disabled={spinning}
+              title="Atualizar dados"
+              style={{
+                background: 'none', border: 'none', cursor: spinning ? 'default' : 'pointer',
+                display: 'flex', alignItems: 'center', padding: 0,
+                color: spinning ? C.t3 : C.accent,
+                transition: 'color .2s',
+              }}
+            >
+              <RefreshCw
+                size={14}
+                style={{
+                  animation: spinning ? 'spin .6s linear infinite' : 'none',
+                  transition: 'color .2s',
+                }}
+              />
+            </button>
+          </div>
+
+          <PeriodSelector value={period} onChange={handlePeriod} />
+        </div>
       </div>
 
-      {/* Hero cards */}
+      {/* Hero cards com trend */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: isMobile ? 10 : 14 }}>
-        <HeroCard icon={TrendingUp}   color={C.green}  colorSoft={C.greenSoft}  label="Receita total"   value={brl(s.total_revenue)}  sub={periodLabel}       delay={0} />
-        <HeroCard icon={Zap}          color={C.accent} colorSoft={C.accentSoft} label="Ticket médio"    value={brl(s.avg_sale_price)}  sub="por atendimento"   delay={60} />
-        <HeroCard icon={ClipboardList} color={C.amber} colorSoft={C.amberSoft}  label="Total de ordens" value={total}                  sub={periodLabel}       delay={120} />
-        <HeroCard icon={Users}        color={C.violet} colorSoft={C.violetSoft} label="Clientes únicos" value={s.unique_clients || 0}  sub={periodLabel}       delay={180} />
+        <HeroCard icon={TrendingUp}    color={C.green}  colorSoft={C.greenSoft}  label="Receita total"   value={brl(s.total_revenue)}  sub={periodLabel}      trend={trends.revenue}        delay={0} />
+        <HeroCard icon={Zap}           color={C.accent} colorSoft={C.accentSoft} label="Ticket médio"    value={brl(s.avg_sale_price)}  sub="por atendimento"  trend={trends.avg_sale_price} delay={60} />
+        <HeroCard icon={ClipboardList} color={C.amber}  colorSoft={C.amberSoft}  label="Total de ordens" value={total}                  sub={periodLabel}      trend={trends.total_orders}   delay={120} />
+        <HeroCard icon={Users}         color={C.violet} colorSoft={C.violetSoft} label="Clientes únicos" value={s.unique_clients || 0}  sub={periodLabel}      trend={trends.unique_clients} delay={180} />
       </div>
 
       {/* Status pills */}
@@ -494,15 +560,11 @@ export default function DashboardPage() {
         <StatusPill label="Vendas"       count={totalSales}     color={C.accent} colorSoft={C.accentSoft} pctVal={pct(totalSales, total)} />
         <StatusPill label="Manutenções"  count={totalManut}     color={C.violet} colorSoft={C.violetSoft} pctVal={pct(totalManut, total)} />
         <StatusPill label="Rec. Vendas"  count={brlK(revVenda)} color={C.green}  colorSoft={C.greenSoft}  pctVal={pct(totalSales, total)} />
-        {!isMobile && (
-          <StatusPill label="Rec. Manut." count={brlK(revManut)} color={C.teal} colorSoft={C.tealSoft}   pctVal={pct(totalManut, total)} />
-        )}
+        {!isMobile && <StatusPill label="Rec. Manut." count={brlK(revManut)} color={C.teal} colorSoft={C.tealSoft} pctVal={pct(totalManut, total)} />}
       </div>
 
       {/* Chart + Por tipo */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 280px', gap: isMobile ? 12 : 14 }}>
-
-        {/* Area chart */}
         <div style={{ background: C.surface, borderRadius: 20, boxShadow: C.shadow, padding: isMobile ? '18px 14px' : '22px 24px', animation: 'dashIn .3s ease forwards', animationDelay: '240ms', opacity: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
             <div>
@@ -535,7 +597,6 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Por tipo */}
         <div style={{ background: C.surface, borderRadius: 20, boxShadow: C.shadow, padding: '22px 22px 18px', animation: 'dashIn .3s ease forwards', animationDelay: '280ms', opacity: 0, display: 'flex', flexDirection: 'column' }}>
           <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>Por tipo</div>
           <div style={{ fontSize: 12, color: C.t2, marginBottom: 20 }}>{total} atendimentos</div>
@@ -548,9 +609,7 @@ export default function DashboardPage() {
               <div key={d.l} style={{ marginBottom: 18 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ width: 28, height: 28, borderRadius: 8, background: d.cs, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <d.icon size={13} style={{ color: d.c }} />
-                    </div>
+                    <div style={{ width: 28, height: 28, borderRadius: 8, background: d.cs, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><d.icon size={13} style={{ color: d.c }} /></div>
                     <span style={{ fontSize: 13, fontWeight: 500 }}>{d.l}</span>
                   </div>
                   <span style={{ fontSize: 13, fontWeight: 700 }}>{d.v}</span>
@@ -578,14 +637,14 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Compact stats */}
+      {/* Stat cards */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)', gap: isMobile ? 10 : 14 }}>
         <StatCard icon={Smartphone} color={C.accent} colorSoft={C.accentSoft} label="Vendas"       value={totalSales}       sub={brl(revVenda)}   delay={300} />
         <StatCard icon={BarChart2}  color={C.violet} colorSoft={C.violetSoft} label="Manutenções"  value={totalManut}       sub={brl(revManut)}   delay={340} />
         <StatCard icon={Zap}        color={C.green}  colorSoft={C.greenSoft}  label="Ticket Venda" value={brl(ticketVenda)} sub="por venda"        delay={380} />
       </div>
 
-      {/* ── Condições de Venda — painel expansível ── */}
+      {/* Condições de venda */}
       <ConditionPanel
         totalLacrado={totalLacrado}   totalSeminovo={totalSeminovo}
         revLacrado={revLacrado}       revSeminovo={revSeminovo}
@@ -599,8 +658,9 @@ export default function DashboardPage() {
       </ErrorBoundary>
 
       <style>{`
-        @keyframes dashIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes spin   { to { transform:rotate(360deg); } }
+        @keyframes dashIn  { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes spin    { to { transform:rotate(360deg); } }
+        @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
       `}</style>
     </div>
   )

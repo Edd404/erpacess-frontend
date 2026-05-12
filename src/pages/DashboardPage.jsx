@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, Component } from 'react'
+import { useState, useMemo, Component } from 'react'
 import { useOrderStats } from '../hooks/useData'
 import { useIsMobile } from '../hooks/useIsMobile'
 import GreetingBanner   from '../components/GreetingBanner'
@@ -7,7 +7,6 @@ import {
   TrendingUp, TrendingDown, ClipboardList,
   Users, Loader2, Smartphone, BarChart2, Zap,
   ChevronDown, ChevronUp, DollarSign, ArrowUpRight,
-  RefreshCw,
 } from 'lucide-react'
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip,
@@ -51,34 +50,23 @@ const C = {
   teal:        '#32ADE6',
   tealSoft:    'rgba(50,173,230,0.10)',
   shadow:      '0 2px 12px rgba(0,0,0,0.06), 0 0 0 0.5px rgba(0,0,0,0.07)',
-  shadowHover: '0 4px 20px rgba(0,0,0,0.10), 0 0 0 0.5px rgba(0,0,0,0.08)',
 }
 
 const brl  = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0)
 const brlK = (v) => { const n = parseFloat(v) || 0; return n >= 1000 ? `R$${(n / 1000).toFixed(1)}k` : brl(n) }
 const pct  = (a, b) => b ? Math.round((a / b) * 100) : 0
 
-// ─── Relative time ────────────────────────────────────────────
-function relativeTime(date) {
-  if (!date) return null
-  const diff = Math.floor((Date.now() - date.getTime()) / 1000)
-  if (diff < 10)  return 'agora mesmo'
-  if (diff < 60)  return `há ${diff}s`
-  if (diff < 120) return 'há 1 min'
-  if (diff < 3600) return `há ${Math.floor(diff / 60)} min`
-  return `há ${Math.floor(diff / 3600)}h`
-}
-
 // ═══════════════════════════════════════════════════════════════
-// SKELETON COMPONENTS
+// SKELETON
 // ═══════════════════════════════════════════════════════════════
 function SkeletonBox({ w = '100%', h = 16, r = 8, style = {} }) {
   return (
     <div style={{
       width: w, height: h, borderRadius: r,
-      background: 'linear-gradient(90deg, #F0F0F2 25%, #E8E8EA 50%, #F0F0F2 75%)',
+      background: 'linear-gradient(90deg,#F0F0F2 25%,#E8E8EA 50%,#F0F0F2 75%)',
       backgroundSize: '200% 100%',
       animation: 'shimmer 1.4s ease infinite',
+      flexShrink: 0,
       ...style,
     }} />
   )
@@ -98,94 +86,66 @@ function HeroCardSkeleton() {
   )
 }
 
-function StatusPillSkeleton() {
-  return (
-    <div style={{ flex: 1, background: C.surface, borderRadius: 14, boxShadow: C.shadow, padding: '12px 12px 10px' }}>
-      <SkeletonBox w={40} h={20} r={10} style={{ marginBottom: 8 }} />
-      <SkeletonBox w="50%" h={22} r={4} style={{ marginBottom: 6 }} />
-      <SkeletonBox w="80%" h={10} r={3} style={{ marginBottom: 8 }} />
-      <SkeletonBox w="100%" h={3} r={2} />
-    </div>
-  )
-}
-
-function ChartSkeleton({ isMobile }) {
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 280px', gap: isMobile ? 12 : 14 }}>
-      <div style={{ background: C.surface, borderRadius: 20, boxShadow: C.shadow, padding: '22px 24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
-          <div><SkeletonBox w={120} h={16} r={4} style={{ marginBottom: 8 }} /><SkeletonBox w={80} h={12} r={4} /></div>
-          <div style={{ textAlign: 'right' }}><SkeletonBox w={100} h={20} r={4} style={{ marginBottom: 6 }} /><SkeletonBox w={60} h={11} r={4} /></div>
-        </div>
-        <SkeletonBox w="100%" h={isMobile ? 140 : 170} r={8} />
-      </div>
-      <div style={{ background: C.surface, borderRadius: 20, boxShadow: C.shadow, padding: '22px 22px 18px' }}>
-        <SkeletonBox w={80} h={16} r={4} style={{ marginBottom: 8 }} />
-        <SkeletonBox w={120} h={12} r={4} style={{ marginBottom: 24 }} />
-        {[0, 1].map(i => (
-          <div key={i} style={{ marginBottom: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-              <SkeletonBox w={100} h={14} r={4} />
-              <SkeletonBox w={30} h={14} r={4} />
-            </div>
-            <SkeletonBox w="100%" h={6} r={3} />
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 function DashboardSkeleton({ isMobile }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 12 : 16, fontFamily: 'Instrument Sans, sans-serif' }}>
-      {/* Header skeleton */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 12 : 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div><SkeletonBox w={160} h={24} r={6} style={{ marginBottom: 8 }} /><SkeletonBox w={110} h={13} r={4} /></div>
         <SkeletonBox w={120} h={34} r={10} />
       </div>
-      {/* Hero cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: isMobile ? 10 : 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4,1fr)', gap: isMobile ? 10 : 14 }}>
         {[0,1,2,3].map(i => <HeroCardSkeleton key={i} />)}
       </div>
-      {/* Pills */}
       <div style={{ display: 'flex', gap: isMobile ? 8 : 12 }}>
-        {[0,1,2,3].slice(0, isMobile ? 3 : 4).map(i => <StatusPillSkeleton key={i} />)}
-      </div>
-      {/* Chart */}
-      <ChartSkeleton isMobile={isMobile} />
-      {/* Stat cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)', gap: isMobile ? 10 : 14 }}>
-        {[0,1,2].map(i => (
-          <div key={i} style={{ background: C.surface, borderRadius: 16, boxShadow: C.shadow, padding: '16px 18px' }}>
-            <SkeletonBox w={36} h={36} r={10} style={{ marginBottom: 14 }} />
-            <SkeletonBox w="50%" h={22} r={4} style={{ marginBottom: 8 }} />
-            <SkeletonBox w="70%" h={12} r={4} />
+        {(isMobile ? [0,1,2] : [0,1,2,3]).map(i => (
+          <div key={i} style={{ flex:1, background:C.surface, borderRadius:14, boxShadow:C.shadow, padding:'12px 12px 10px' }}>
+            <SkeletonBox w={40} h={20} r={10} style={{ marginBottom:8 }} />
+            <SkeletonBox w="50%" h={22} r={4} style={{ marginBottom:6 }} />
+            <SkeletonBox w="100%" h={3} r={2} />
           </div>
         ))}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 280px', gap: isMobile ? 12 : 14 }}>
+        <div style={{ background:C.surface, borderRadius:20, boxShadow:C.shadow, padding:'22px 24px' }}>
+          <SkeletonBox w="60%" h={16} r={4} style={{ marginBottom:8 }} />
+          <SkeletonBox w="40%" h={12} r={4} style={{ marginBottom:20 }} />
+          <SkeletonBox w="100%" h={isMobile ? 140 : 170} r={8} />
+        </div>
+        <div style={{ background:C.surface, borderRadius:20, boxShadow:C.shadow, padding:'22px 22px 18px' }}>
+          <SkeletonBox w={80} h={16} r={4} style={{ marginBottom:8 }} />
+          <SkeletonBox w={120} h={12} r={4} style={{ marginBottom:24 }} />
+          {[0,1].map(i=>(
+            <div key={i} style={{ marginBottom:18 }}>
+              <div style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}>
+                <SkeletonBox w={100} h={14} r={4} />
+                <SkeletonBox w={30} h={14} r={4} />
+              </div>
+              <SkeletonBox w="100%" h={6} r={3} />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )
 }
 
 // ═══════════════════════════════════════════════════════════════
-// DASHBOARD COMPONENTS
+// UI COMPONENTS
 // ═══════════════════════════════════════════════════════════════
 
-// ─── Period Selector ──────────────────────────────────────────
 function PeriodSelector({ value, onChange }) {
   return (
-    <div style={{ display: 'inline-flex', background: 'rgba(0,0,0,0.06)', borderRadius: 10, padding: 3, gap: 2 }}>
-      {[{ v: '7', l: '7d' }, { v: '30', l: '30d' }, { v: '90', l: '90d' }].map(o => {
+    <div style={{ display:'inline-flex', background:'rgba(0,0,0,0.06)', borderRadius:10, padding:3, gap:2 }}>
+      {[{ v:'7', l:'7d' },{ v:'30', l:'30d' },{ v:'90', l:'90d' }].map(o => {
         const active = value === o.v
         return (
           <button key={o.v} onClick={() => onChange(o.v)} style={{
-            padding: '5px 14px', borderRadius: 7, border: 'none', cursor: 'pointer',
-            fontSize: 13, fontWeight: active ? 600 : 400,
+            padding:'5px 14px', borderRadius:7, border:'none', cursor:'pointer',
+            fontSize:13, fontWeight: active ? 600 : 400,
             background: active ? C.surface : 'transparent',
             color: active ? C.text : C.t2,
             boxShadow: active ? '0 1px 4px rgba(0,0,0,0.12)' : 'none',
-            transition: 'all .15s', fontFamily: 'Instrument Sans, sans-serif',
+            transition:'all .15s', fontFamily:'Instrument Sans, sans-serif',
           }}>{o.l}</button>
         )
       })}
@@ -193,105 +153,88 @@ function PeriodSelector({ value, onChange }) {
   )
 }
 
-// ─── Hero Card com trend badge ────────────────────────────────
+// Hero card com badge de variação vs período anterior
 function HeroCard({ label, value, sub, icon: Icon, color, colorSoft, trend, delay = 0 }) {
   const hasTrend = trend !== undefined && trend !== null
-  const up       = trend >= 0
-
+  const up = trend >= 0
   return (
     <div style={{
-      background: C.surface, borderRadius: 20, boxShadow: C.shadow,
-      padding: '24px 24px 20px',
-      animation: 'dashIn .3s ease forwards', animationDelay: `${delay}ms`, opacity: 0,
-      transition: 'box-shadow .2s',
+      background:C.surface, borderRadius:20, boxShadow:C.shadow,
+      padding:'24px 24px 20px',
+      animation:'dashIn .3s ease forwards', animationDelay:`${delay}ms`, opacity:0,
     }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
-        <div style={{ width: 44, height: 44, borderRadius: 12, background: colorSoft, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:16 }}>
+        <div style={{ width:44, height:44, borderRadius:12, background:colorSoft, display:'flex', alignItems:'center', justifyContent:'center' }}>
           <Icon size={20} style={{ color }} />
         </div>
-
-        {/* ── Trend badge ── */}
         {hasTrend && (
           <div style={{
-            display: 'flex', alignItems: 'center', gap: 4,
+            display:'flex', alignItems:'center', gap:4,
             background: up ? C.greenSoft : C.redSoft,
             color: up ? C.green : C.red,
-            borderRadius: 20, padding: '4px 10px',
-            fontSize: 12, fontWeight: 700,
-            transition: 'all .2s',
+            borderRadius:20, padding:'4px 10px',
+            fontSize:12, fontWeight:700,
           }}>
-            {up ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
-            {trend === 0 ? '0%' : `${up ? '+' : ''}${trend}%`}
+            {up ? <TrendingUp size={11}/> : <TrendingDown size={11}/>}
+            {trend === 0 ? '0%' : `${up?'+':''}${trend}%`}
           </div>
         )}
       </div>
-
-      <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-1px', lineHeight: 1, color: C.text }}>
-        {value}
-      </div>
-      <div style={{ fontSize: 13, color: C.t2, marginTop: 5, fontWeight: 500 }}>{label}</div>
-      {sub && <div style={{ fontSize: 11, color: C.t3, marginTop: 3 }}>{sub}</div>}
-
-      {/* ── Tooltip "vs período anterior" ── */}
-      {hasTrend && (
-        <div style={{ fontSize: 10, color: C.t3, marginTop: 6 }}>
-          vs período anterior
-        </div>
-      )}
+      <div style={{ fontSize:30, fontWeight:700, letterSpacing:'-1px', lineHeight:1, color:C.text }}>{value}</div>
+      <div style={{ fontSize:13, color:C.t2, marginTop:5, fontWeight:500 }}>{label}</div>
+      {sub && <div style={{ fontSize:11, color:C.t3, marginTop:3 }}>{sub}</div>}
+      {hasTrend && <div style={{ fontSize:10, color:C.t3, marginTop:6 }}>vs período anterior</div>}
     </div>
   )
 }
 
-// ─── Status Pill ──────────────────────────────────────────────
 function StatusPill({ label, count, color, colorSoft, pctVal }) {
   return (
-    <div style={{ flex: 1, minWidth: 0, background: C.surface, borderRadius: 14, boxShadow: C.shadow, padding: '12px 12px 10px' }}>
-      <div style={{ display: 'inline-flex', background: colorSoft, borderRadius: 20, padding: '2px 8px', marginBottom: 8 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color }}>{pctVal}%</span>
+    <div style={{ flex:1, minWidth:0, background:C.surface, borderRadius:14, boxShadow:C.shadow, padding:'12px 12px 10px' }}>
+      <div style={{ display:'inline-flex', background:colorSoft, borderRadius:20, padding:'2px 8px', marginBottom:8 }}>
+        <span style={{ fontSize:11, fontWeight:700, color }}>{pctVal}%</span>
       </div>
-      <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.5px', color: C.text, lineHeight: 1 }}>{count}</div>
-      <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: C.t2, marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</div>
-      <div style={{ marginTop: 8, height: 3, background: 'rgba(0,0,0,0.06)', borderRadius: 2 }}>
-        <div style={{ height: '100%', borderRadius: 2, background: color, width: `${pctVal}%`, transition: 'width .5s cubic-bezier(.4,0,.2,1)' }} />
+      <div style={{ fontSize:22, fontWeight:700, letterSpacing:'-0.5px', color:C.text, lineHeight:1 }}>{count}</div>
+      <div style={{ fontSize:10, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.04em', color:C.t2, marginTop:4, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{label}</div>
+      <div style={{ marginTop:8, height:3, background:'rgba(0,0,0,0.06)', borderRadius:2 }}>
+        <div style={{ height:'100%', borderRadius:2, background:color, width:`${pctVal}%`, transition:'width .5s cubic-bezier(.4,0,.2,1)' }} />
       </div>
     </div>
   )
 }
 
-// ─── Chart Tooltip ────────────────────────────────────────────
 function ChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
   return (
-    <div style={{ background: C.text, borderRadius: 10, padding: '10px 14px', boxShadow: '0 4px 16px rgba(0,0,0,0.2)', color: '#fff', fontSize: 12 }}>
-      <div style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 6 }}>{label}</div>
+    <div style={{ background:C.text, borderRadius:10, padding:'10px 14px', boxShadow:'0 4px 16px rgba(0,0,0,0.2)', color:'#fff', fontSize:12 }}>
+      <div style={{ color:'rgba(255,255,255,0.5)', marginBottom:6 }}>{label}</div>
       {payload.map(p => (
-        <div key={p.dataKey} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-          <div style={{ width: 6, height: 6, borderRadius: 3, background: p.color }} />
-          <span style={{ color: 'rgba(255,255,255,0.7)' }}>{p.name}:</span>
-          <span style={{ fontWeight: 600 }}>{p.dataKey === 'receita' ? brl(p.value) : p.value}</span>
+        <div key={p.dataKey} style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2 }}>
+          <div style={{ width:6, height:6, borderRadius:3, background:p.color }} />
+          <span style={{ color:'rgba(255,255,255,0.7)' }}>{p.name}:</span>
+          <span style={{ fontWeight:600 }}>{p.dataKey === 'receita' ? brl(p.value) : p.value}</span>
         </div>
       ))}
     </div>
   )
 }
 
-// ─── Stat Card ────────────────────────────────────────────────
 function StatCard({ label, value, icon: Icon, color, colorSoft, sub, delay = 0 }) {
   return (
-    <div style={{ background: C.surface, borderRadius: 16, boxShadow: C.shadow, padding: '16px 18px', animation: 'dashIn .3s ease forwards', animationDelay: `${delay}ms`, opacity: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div style={{ width: 36, height: 36, borderRadius: 10, background: colorSoft, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ background:C.surface, borderRadius:16, boxShadow:C.shadow, padding:'16px 18px', animation:'dashIn .3s ease forwards', animationDelay:`${delay}ms`, opacity:0, display:'flex', flexDirection:'column', gap:10 }}>
+      <div style={{ width:36, height:36, borderRadius:10, background:colorSoft, display:'flex', alignItems:'center', justifyContent:'center' }}>
         <Icon size={16} style={{ color }} />
       </div>
       <div>
-        <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.5px', lineHeight: 1, color: C.text }}>{value}</div>
-        <div style={{ fontSize: 12, color: C.t2, marginTop: 4, fontWeight: 500 }}>{label}</div>
-        {sub && <div style={{ fontSize: 11, color: C.t3, marginTop: 2 }}>{sub}</div>}
+        <div style={{ fontSize:22, fontWeight:700, letterSpacing:'-0.5px', lineHeight:1, color:C.text }}>{value}</div>
+        <div style={{ fontSize:12, color:C.t2, marginTop:4, fontWeight:500 }}>{label}</div>
+        {sub && <div style={{ fontSize:11, color:C.t3, marginTop:2 }}>{sub}</div>}
       </div>
     </div>
   )
 }
 
-// ─── Condition Panel ──────────────────────────────────────────
+// ─── ConditionPanel ───────────────────────────────────────────
 function ConditionPanel({ totalLacrado, totalSeminovo, revLacrado, revSeminovo, avgLacrado, avgSeminovo, totalSales, isMobile }) {
   const [expanded, setExpanded] = useState(false)
 
@@ -307,59 +250,75 @@ function ConditionPanel({ totalLacrado, totalSeminovo, revLacrado, revSeminovo, 
     : totalSeminovo > totalLacrado ? `Seminovos lideram com ${pctS}% das vendas por condição.`
     : 'Empate entre Lacrado e Seminovo no período.'
 
+  const conditions = [
+    { label:'Lacrado',  sub:'iPhones novos',  icon:'📦', color:C.accent, colorSoft:C.accentSoft, count:totalLacrado,  pctVal:pctL, rev:revLacrado,  avg:avgLacrado  },
+    { label:'Seminovo', sub:'iPhones usados', icon:'✨', color:C.violet, colorSoft:C.violetSoft, count:totalSeminovo, pctVal:pctS, rev:revSeminovo, avg:avgSeminovo },
+  ]
+
   return (
-    <div style={{ background: C.surface, borderRadius: 20, boxShadow: C.shadow, overflow: 'hidden', animation: 'dashIn .3s ease forwards', animationDelay: '440ms', opacity: 0 }}>
-      <div style={{ padding: '20px 24px 0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+    <div style={{ background:C.surface, borderRadius:20, boxShadow:C.shadow, overflow:'hidden', animation:'dashIn .3s ease forwards', animationDelay:'440ms', opacity:0 }}>
+      <div style={{ padding: isMobile ? '18px 16px 0' : '20px 24px 0' }}>
+
+        {/* Header */}
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20, gap:10, flexWrap:'wrap' }}>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.2px' }}>Condições de Venda</div>
-            <div style={{ fontSize: 12, color: C.t2, marginTop: 2 }}>{totalCond} vendas · {brlK(revTotal)} em receita</div>
+            <div style={{ fontSize:15, fontWeight:700, letterSpacing:'-0.2px' }}>Condições de Venda</div>
+            <div style={{ fontSize:12, color:C.t2, marginTop:2 }}>{totalCond} vendas · {brlK(revTotal)} em receita</div>
           </div>
-          <button onClick={() => setExpanded(e => !e)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: expanded ? C.text : 'rgba(0,0,0,0.05)', color: expanded ? '#fff' : C.t2, border: 'none', borderRadius: 10, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'Instrument Sans, sans-serif', transition: 'all .2s' }}>
-            {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+          <button onClick={() => setExpanded(e => !e)} style={{
+            display:'flex', alignItems:'center', gap:6,
+            background: expanded ? C.text : 'rgba(0,0,0,0.05)',
+            color: expanded ? '#fff' : C.t2,
+            border:'none', borderRadius:10, padding:'7px 14px',
+            fontSize:12, fontWeight:600, cursor:'pointer',
+            fontFamily:'Instrument Sans, sans-serif', transition:'all .2s', whiteSpace:'nowrap',
+          }}>
+            {expanded ? <ChevronUp size={13}/> : <ChevronDown size={13}/>}
             {expanded ? 'Recolher' : 'Ver detalhes'}
           </button>
         </div>
 
         {/* Barra comparativa */}
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ height: 10, borderRadius: 5, overflow: 'hidden', display: 'flex', background: 'rgba(0,0,0,0.05)' }}>
-            <div style={{ width: `${pctL}%`, background: C.accent, borderRadius: '5px 0 0 5px', transition: 'width .7s cubic-bezier(.4,0,.2,1)' }} />
-            <div style={{ width: `${pctS}%`, background: C.violet, borderRadius: '0 5px 5px 0', transition: 'width .7s cubic-bezier(.4,0,.2,1)' }} />
+        <div style={{ marginBottom:20 }}>
+          <div style={{ height:10, borderRadius:5, overflow:'hidden', display:'flex', background:'rgba(0,0,0,0.05)' }}>
+            <div style={{ width:`${pctL}%`, background:C.accent, borderRadius:'5px 0 0 5px', transition:'width .7s cubic-bezier(.4,0,.2,1)' }} />
+            <div style={{ width:`${pctS}%`, background:C.violet, borderRadius:'0 5px 5px 0', transition:'width .7s cubic-bezier(.4,0,.2,1)' }} />
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-            <span style={{ fontSize: 11, color: C.accent, fontWeight: 600 }}>📦 Lacrado {pctL}%</span>
-            <span style={{ fontSize: 11, color: C.violet, fontWeight: 600 }}>{pctS}% Seminovo ✨</span>
+          <div style={{ display:'flex', justifyContent:'space-between', marginTop:6 }}>
+            <span style={{ fontSize:11, color:C.accent, fontWeight:600 }}>📦 Lacrado {pctL}%</span>
+            <span style={{ fontSize:11, color:C.violet, fontWeight:600 }}>{pctS}% Seminovo ✨</span>
           </div>
         </div>
 
-        {/* Cards lado a lado */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, paddingBottom: 20 }}>
-          {[
-            { label: 'Lacrado', sub: 'iPhones novos', icon: '📦', color: C.accent, colorSoft: C.accentSoft, count: totalLacrado, pctVal: pctL, rev: revLacrado, avg: avgLacrado },
-            { label: 'Seminovo', sub: 'iPhones usados', icon: '✨', color: C.violet, colorSoft: C.violetSoft, count: totalSeminovo, pctVal: pctS, rev: revSeminovo, avg: avgSeminovo },
-          ].map(d => (
-            <div key={d.label} style={{ background: d.colorSoft, borderRadius: 14, padding: '16px 18px', border: `1px solid ${d.color}22` }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 20 }}>{d.icon}</span>
+        {/* Cards — 1 coluna no mobile, 2 no desktop */}
+        <div style={{
+          display:'grid',
+          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+          gap:12,
+          paddingBottom:20,
+        }}>
+          {conditions.map(d => (
+            <div key={d.label} style={{ background:d.colorSoft, borderRadius:14, padding:'16px 18px', border:`1px solid ${d.color}22` }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <span style={{ fontSize:20 }}>{d.icon}</span>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{d.label}</div>
-                    <div style={{ fontSize: 10, color: C.t2 }}>{d.sub}</div>
+                    <div style={{ fontSize:13, fontWeight:700, color:C.text }}>{d.label}</div>
+                    <div style={{ fontSize:10, color:C.t2 }}>{d.sub}</div>
                   </div>
                 </div>
-                <div style={{ background: d.color, color: '#fff', fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '3px 9px' }}>{d.pctVal}%</div>
+                <div style={{ background:d.color, color:'#fff', fontSize:11, fontWeight:700, borderRadius:20, padding:'3px 9px', flexShrink:0 }}>{d.pctVal}%</div>
               </div>
-              <div style={{ fontSize: 36, fontWeight: 700, letterSpacing: '-1.5px', lineHeight: 1, color: C.text }}>{d.count}</div>
-              <div style={{ fontSize: 11, color: C.t2, marginTop: 4 }}>de {totalSales} vendas</div>
-              <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${d.color}22`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize:36, fontWeight:700, letterSpacing:'-1.5px', lineHeight:1, color:C.text }}>{d.count}</div>
+              <div style={{ fontSize:11, color:C.t2, marginTop:4 }}>de {totalSales} vendas</div>
+              <div style={{ marginTop:14, paddingTop:12, borderTop:`1px solid ${d.color}22`, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                 <div>
-                  <div style={{ fontSize: 10, color: C.t3, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Receita</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginTop: 1 }}>{brlK(d.rev)}</div>
+                  <div style={{ fontSize:10, color:C.t3, textTransform:'uppercase', letterSpacing:'0.05em', fontWeight:600 }}>Receita</div>
+                  <div style={{ fontSize:14, fontWeight:700, color:C.text, marginTop:1 }}>{brlK(d.rev)}</div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 10, color: C.t3, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Ticket</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: d.color, marginTop: 1 }}>{brlK(d.avg)}</div>
+                <div style={{ textAlign:'right' }}>
+                  <div style={{ fontSize:10, color:C.t3, textTransform:'uppercase', letterSpacing:'0.05em', fontWeight:600 }}>Ticket</div>
+                  <div style={{ fontSize:14, fontWeight:700, color:d.color, marginTop:1 }}>{brlK(d.avg)}</div>
                 </div>
               </div>
             </div>
@@ -368,57 +327,60 @@ function ConditionPanel({ totalLacrado, totalSeminovo, revLacrado, revSeminovo, 
       </div>
 
       {/* Painel expandido */}
-      <div style={{ maxHeight: expanded ? 600 : 0, overflow: 'hidden', transition: 'max-height .35s cubic-bezier(.4,0,.2,1)' }}>
-        <div style={{ borderTop: `1px solid ${C.border}`, padding: '20px 24px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.t2, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Análise detalhada</div>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 10 }}>
+      <div style={{ maxHeight: expanded ? 700 : 0, overflow:'hidden', transition:'max-height .35s cubic-bezier(.4,0,.2,1)' }}>
+        <div style={{ borderTop:`1px solid ${C.border}`, padding: isMobile ? '18px 16px 20px' : '20px 24px 24px', display:'flex', flexDirection:'column', gap:20 }}>
+
+          <div style={{ fontSize:13, fontWeight:700, color:C.t2, textTransform:'uppercase', letterSpacing:'0.06em' }}>Análise detalhada</div>
+
+          {/* 4 KPIs — 2 colunas no mobile, 4 no desktop */}
+          <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4,1fr)', gap:10 }}>
             {[
-              { label: 'Ticket Lacrado',   value: brl(avgLacrado),   icon: DollarSign, color: C.accent, colorSoft: C.accentSoft, sub: `${totalLacrado} vendas` },
-              { label: 'Ticket Seminovo',  value: brl(avgSeminovo),  icon: DollarSign, color: C.violet, colorSoft: C.violetSoft, sub: `${totalSeminovo} vendas` },
-              { label: 'Receita Lacrado',  value: brlK(revLacrado),  icon: TrendingUp, color: C.accent, colorSoft: C.accentSoft, sub: `${revPctL}% da receita total` },
-              { label: 'Receita Seminovo', value: brlK(revSeminovo), icon: TrendingUp, color: C.violet, colorSoft: C.violetSoft, sub: `${revPctS}% da receita total` },
+              { label:'Ticket Lacrado',   value:brl(avgLacrado),   icon:DollarSign, color:C.accent, colorSoft:C.accentSoft, sub:`${totalLacrado} vendas` },
+              { label:'Ticket Seminovo',  value:brl(avgSeminovo),  icon:DollarSign, color:C.violet, colorSoft:C.violetSoft, sub:`${totalSeminovo} vendas` },
+              { label:'Receita Lacrado',  value:brlK(revLacrado),  icon:TrendingUp, color:C.accent, colorSoft:C.accentSoft, sub:`${revPctL}% da receita total` },
+              { label:'Receita Seminovo', value:brlK(revSeminovo), icon:TrendingUp, color:C.violet, colorSoft:C.violetSoft, sub:`${revPctS}% da receita total` },
             ].map(k => (
-              <div key={k.label} style={{ background: C.bg, borderRadius: 14, padding: '14px 16px', border: `1px solid ${C.border}` }}>
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: k.colorSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
-                  <k.icon size={14} style={{ color: k.color }} />
+              <div key={k.label} style={{ background:C.bg, borderRadius:14, padding:'14px 16px', border:`1px solid ${C.border}` }}>
+                <div style={{ width:32, height:32, borderRadius:8, background:k.colorSoft, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:10 }}>
+                  <k.icon size={14} style={{ color:k.color }} />
                 </div>
-                <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.5px', color: C.text }}>{k.value}</div>
-                <div style={{ fontSize: 12, color: C.t2, marginTop: 3, fontWeight: 500 }}>{k.label}</div>
-                <div style={{ fontSize: 10, color: C.t3, marginTop: 2 }}>{k.sub}</div>
+                <div style={{ fontSize:16, fontWeight:700, letterSpacing:'-0.4px', color:C.text }}>{k.value}</div>
+                <div style={{ fontSize:11, color:C.t2, marginTop:3, fontWeight:500 }}>{k.label}</div>
+                <div style={{ fontSize:10, color:C.t3, marginTop:2 }}>{k.sub}</div>
               </div>
             ))}
           </div>
 
-          {/* Barras de participação na receita */}
-          <div style={{ background: C.bg, borderRadius: 14, padding: '16px 18px', border: `1px solid ${C.border}` }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 16 }}>Participação na receita</div>
+          {/* Barras participação receita */}
+          <div style={{ background:C.bg, borderRadius:14, padding:'16px 18px', border:`1px solid ${C.border}` }}>
+            <div style={{ fontSize:13, fontWeight:600, color:C.text, marginBottom:16 }}>Participação na receita</div>
             {[
-              { label: 'Lacrado',  color: C.accent, value: revLacrado,  pctVal: revPctL },
-              { label: 'Seminovo', color: C.violet, value: revSeminovo, pctVal: revPctS },
+              { label:'Lacrado',  color:C.accent, value:revLacrado,  pctVal:revPctL },
+              { label:'Seminovo', color:C.violet, value:revSeminovo, pctVal:revPctS },
             ].map(row => (
-              <div key={row.label} style={{ marginBottom: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <span style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{row.label}</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: row.color }}>{row.pctVal}%</span>
-                    <span style={{ fontSize: 12, color: C.t2 }}>{brlK(row.value)}</span>
+              <div key={row.label} style={{ marginBottom:12 }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+                  <span style={{ fontSize:13, fontWeight:500, color:C.text }}>{row.label}</span>
+                  <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                    <span style={{ fontSize:12, fontWeight:700, color:row.color }}>{row.pctVal}%</span>
+                    <span style={{ fontSize:12, color:C.t2 }}>{brlK(row.value)}</span>
                   </div>
                 </div>
-                <div style={{ height: 8, background: 'rgba(0,0,0,0.06)', borderRadius: 4, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', background: row.color, borderRadius: 4, width: `${row.pctVal}%`, transition: 'width .7s cubic-bezier(.4,0,.2,1)' }} />
+                <div style={{ height:8, background:'rgba(0,0,0,0.06)', borderRadius:4, overflow:'hidden' }}>
+                  <div style={{ height:'100%', background:row.color, borderRadius:4, width:`${row.pctVal}%`, transition:'width .7s cubic-bezier(.4,0,.2,1)' }} />
                 </div>
               </div>
             ))}
           </div>
 
           {/* Insight */}
-          <div style={{ background: 'linear-gradient(135deg, rgba(10,102,255,0.05) 0%, rgba(175,82,222,0.05) 100%)', border: '1px solid rgba(10,102,255,0.12)', borderRadius: 14, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, rgba(10,102,255,0.12), rgba(175,82,222,0.12))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <ArrowUpRight size={16} style={{ color: C.accent }} />
+          <div style={{ background:'linear-gradient(135deg,rgba(10,102,255,0.05) 0%,rgba(175,82,222,0.05) 100%)', border:'1px solid rgba(10,102,255,0.12)', borderRadius:14, padding:'14px 18px', display:'flex', alignItems:'center', gap:12 }}>
+            <div style={{ width:36, height:36, borderRadius:10, background:'linear-gradient(135deg,rgba(10,102,255,0.12),rgba(175,82,222,0.12))', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+              <ArrowUpRight size={16} style={{ color:C.accent }} />
             </div>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: C.t2, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>Insight do período</div>
-              <div style={{ fontSize: 13, color: C.text, fontWeight: 500 }}>{insight}</div>
+              <div style={{ fontSize:11, fontWeight:700, color:C.t2, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:3 }}>Insight do período</div>
+              <div style={{ fontSize:13, color:C.text, fontWeight:500 }}>{insight}</div>
             </div>
           </div>
         </div>
@@ -431,32 +393,9 @@ function ConditionPanel({ totalLacrado, totalSeminovo, revLacrado, revSeminovo, 
 // DASHBOARD PRINCIPAL
 // ═══════════════════════════════════════════════════════════════
 export default function DashboardPage() {
-  const [period,      setPeriod]      = useState('30')
-  const [lastUpdated, setLastUpdated] = useState(new Date())
-  const [tick,        setTick]        = useState(0)   // força relativeTime a re-render
-  const [spinning,    setSpinning]    = useState(false)
+  const [period, setPeriod] = useState('30')
   const isMobile = useIsMobile()
-
-  const { data, isLoading, refetch } = useOrderStats(period)
-
-  // Atualiza o relativeTime a cada 30s
-  useState(() => {
-    const id = setInterval(() => setTick(t => t + 1), 30_000)
-    return () => clearInterval(id)
-  })
-
-  const handleRefresh = useCallback(async () => {
-    setSpinning(true)
-    await refetch()
-    setLastUpdated(new Date())
-    setTimeout(() => setSpinning(false), 600)
-  }, [refetch])
-
-  // Quando o período muda, marca como atualizado
-  const handlePeriod = useCallback((v) => {
-    setPeriod(v)
-    setLastUpdated(new Date())
-  }, [])
+  const { data, isLoading } = useOrderStats(period)
 
   const userName = useMemo(() => {
     try {
@@ -465,8 +404,8 @@ export default function DashboardPage() {
     } catch { return '' }
   }, [])
 
-  const s        = data?.summary         || {}
-  const trends   = data?.trends          || {}
+  const s        = data?.summary          || {}
+  const trends   = data?.trends           || {}
   const timeline = data?.revenue_timeline || []
   const byType   = data?.by_type          || []
 
@@ -476,109 +415,76 @@ export default function DashboardPage() {
   const revVenda      = parseFloat(byType.find(t => t.type === 'venda')?.revenue)      || 0
   const revManut      = parseFloat(byType.find(t => t.type === 'manutencao')?.revenue) || 0
   const ticketVenda   = totalSales > 0 ? revVenda / totalSales : 0
-  const totalLacrado  = parseInt(s.total_lacrado)   || 0
-  const totalSeminovo = parseInt(s.total_seminovo)  || 0
+  const totalLacrado  = parseInt(s.total_lacrado)     || 0
+  const totalSeminovo = parseInt(s.total_seminovo)    || 0
   const revLacrado    = parseFloat(s.revenue_lacrado)  || 0
   const revSeminovo   = parseFloat(s.revenue_seminovo) || 0
   const avgLacrado    = parseFloat(s.avg_lacrado)      || 0
   const avgSeminovo   = parseFloat(s.avg_seminovo)     || 0
 
   const chartData = useMemo(() => timeline.map(d => ({
-    day:     new Date(d.day).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+    day:     new Date(d.day).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' }),
     receita: parseFloat(d.revenue) || 0,
     ordens:  parseInt(d.orders)    || 0,
   })), [timeline])
 
   const periodLabel = period === '7' ? 'últimos 7 dias' : period === '30' ? 'últimos 30 dias' : 'últimos 90 dias'
 
-  // ── Skeleton no primeiro carregamento ──
   if (isLoading && !data) return (
-    <div style={{ fontFamily: 'Instrument Sans, sans-serif', color: C.text }}>
+    <div style={{ fontFamily:'Instrument Sans, sans-serif', color:C.text }}>
       <DashboardSkeleton isMobile={isMobile} />
-      <style>{`
-        @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-      `}</style>
+      <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
     </div>
   )
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 12 : 16, fontFamily: 'Instrument Sans, sans-serif', color: C.text }}>
+    <div style={{ display:'flex', flexDirection:'column', gap: isMobile ? 12 : 16, fontFamily:'Instrument Sans, sans-serif', color:C.text }}>
 
-      {/* Greeting */}
       <ErrorBoundary>
         <GreetingBanner userName={userName} totalRevenue={parseFloat(s.total_revenue) || 0} />
       </ErrorBoundary>
 
-      {/* ── Header: título + última atualização + período ── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, animation: 'dashIn .25s ease forwards', opacity: 0 }}>
+      {/* Header */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:10, animation:'dashIn .25s ease forwards', opacity:0 }}>
         <div>
-          <h1 style={{ fontSize: isMobile ? 20 : 24, fontWeight: 700, letterSpacing: '-0.5px', margin: 0 }}>Dashboard</h1>
-          <p style={{ fontSize: 13, color: C.t2, margin: '2px 0 0', textTransform: 'capitalize' }}>{periodLabel}</p>
+          <h1 style={{ fontSize: isMobile ? 20 : 24, fontWeight:700, letterSpacing:'-0.5px', margin:0 }}>Dashboard</h1>
+          <p style={{ fontSize:13, color:C.t2, margin:'2px 0 0', textTransform:'capitalize' }}>{periodLabel}</p>
         </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          {/* Última atualização + botão refresh */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.surface, borderRadius: 10, padding: '7px 12px', boxShadow: C.shadow }}>
-            <span style={{ fontSize: 12, color: C.t3 }}>
-              Atualizado {relativeTime(lastUpdated)}
-            </span>
-            <button
-              onClick={handleRefresh}
-              disabled={spinning}
-              title="Atualizar dados"
-              style={{
-                background: 'none', border: 'none', cursor: spinning ? 'default' : 'pointer',
-                display: 'flex', alignItems: 'center', padding: 0,
-                color: spinning ? C.t3 : C.accent,
-                transition: 'color .2s',
-              }}
-            >
-              <RefreshCw
-                size={14}
-                style={{
-                  animation: spinning ? 'spin .6s linear infinite' : 'none',
-                  transition: 'color .2s',
-                }}
-              />
-            </button>
-          </div>
-
-          <PeriodSelector value={period} onChange={handlePeriod} />
-        </div>
+        <PeriodSelector value={period} onChange={setPeriod} />
       </div>
 
-      {/* Hero cards com trend */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: isMobile ? 10 : 14 }}>
+      {/* Hero cards */}
+      <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4,1fr)', gap: isMobile ? 10 : 14 }}>
         <HeroCard icon={TrendingUp}    color={C.green}  colorSoft={C.greenSoft}  label="Receita total"   value={brl(s.total_revenue)}  sub={periodLabel}      trend={trends.revenue}        delay={0} />
         <HeroCard icon={Zap}           color={C.accent} colorSoft={C.accentSoft} label="Ticket médio"    value={brl(s.avg_sale_price)}  sub="por atendimento"  trend={trends.avg_sale_price} delay={60} />
         <HeroCard icon={ClipboardList} color={C.amber}  colorSoft={C.amberSoft}  label="Total de ordens" value={total}                  sub={periodLabel}      trend={trends.total_orders}   delay={120} />
         <HeroCard icon={Users}         color={C.violet} colorSoft={C.violetSoft} label="Clientes únicos" value={s.unique_clients || 0}  sub={periodLabel}      trend={trends.unique_clients} delay={180} />
       </div>
 
-      {/* Status pills */}
-      <div style={{ display: 'flex', gap: isMobile ? 8 : 12, flexWrap: 'nowrap', animation: 'dashIn .3s ease forwards', animationDelay: '200ms', opacity: 0 }}>
-        <StatusPill label="Vendas"       count={totalSales}     color={C.accent} colorSoft={C.accentSoft} pctVal={pct(totalSales, total)} />
-        <StatusPill label="Manutenções"  count={totalManut}     color={C.violet} colorSoft={C.violetSoft} pctVal={pct(totalManut, total)} />
-        <StatusPill label="Rec. Vendas"  count={brlK(revVenda)} color={C.green}  colorSoft={C.greenSoft}  pctVal={pct(totalSales, total)} />
+      {/* Pills */}
+      <div style={{ display:'flex', gap: isMobile ? 8 : 12, animation:'dashIn .3s ease forwards', animationDelay:'200ms', opacity:0 }}>
+        <StatusPill label="Vendas"      count={totalSales}     color={C.accent} colorSoft={C.accentSoft} pctVal={pct(totalSales, total)} />
+        <StatusPill label="Manutenções" count={totalManut}     color={C.violet} colorSoft={C.violetSoft} pctVal={pct(totalManut, total)} />
+        <StatusPill label="Rec. Vendas" count={brlK(revVenda)} color={C.green}  colorSoft={C.greenSoft}  pctVal={pct(totalSales, total)} />
         {!isMobile && <StatusPill label="Rec. Manut." count={brlK(revManut)} color={C.teal} colorSoft={C.tealSoft} pctVal={pct(totalManut, total)} />}
       </div>
 
       {/* Chart + Por tipo */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 280px', gap: isMobile ? 12 : 14 }}>
-        <div style={{ background: C.surface, borderRadius: 20, boxShadow: C.shadow, padding: isMobile ? '18px 14px' : '22px 24px', animation: 'dashIn .3s ease forwards', animationDelay: '240ms', opacity: 0 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+      <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 280px', gap: isMobile ? 12 : 14 }}>
+        <div style={{ background:C.surface, borderRadius:20, boxShadow:C.shadow, padding: isMobile ? '18px 14px' : '22px 24px', animation:'dashIn .3s ease forwards', animationDelay:'240ms', opacity:0 }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:20 }}>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 600 }}>Receita Diária</div>
-              <div style={{ fontSize: 12, color: C.t2, marginTop: 2 }}>{periodLabel}</div>
+              <div style={{ fontSize:15, fontWeight:600 }}>Receita Diária</div>
+              <div style={{ fontSize:12, color:C.t2, marginTop:2 }}>{periodLabel}</div>
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: isMobile ? 16 : 20, fontWeight: 700, letterSpacing: '-0.5px' }}>{brl(s.total_revenue)}</div>
-              <div style={{ fontSize: 11, color: C.t3, marginTop: 1 }}>{total} ordens</div>
+            <div style={{ textAlign:'right' }}>
+              <div style={{ fontSize: isMobile ? 16 : 20, fontWeight:700, letterSpacing:'-0.5px' }}>{brl(s.total_revenue)}</div>
+              <div style={{ fontSize:11, color:C.t3, marginTop:1 }}>{total} ordens</div>
             </div>
           </div>
           {chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={isMobile ? 140 : 170}>
-              <AreaChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: -18 }}>
+              <AreaChart data={chartData} margin={{ top:4, right:4, bottom:0, left:-18 }}>
                 <defs>
                   <linearGradient id="gRevenue" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%"   stopColor={C.accent} stopOpacity={0.18} />
@@ -586,59 +492,59 @@ export default function DashboardPage() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.04)" vertical={false} />
-                <XAxis dataKey="day" tick={{ fontSize: 10, fill: C.t3, fontFamily: 'Instrument Sans' }} axisLine={false} tickLine={false} interval={period === '7' ? 0 : period === '30' ? 4 : 10} />
-                <YAxis tick={{ fontSize: 10, fill: C.t3, fontFamily: 'Instrument Sans' }} axisLine={false} tickLine={false} tickFormatter={v => brlK(v)} width={44} />
+                <XAxis dataKey="day" tick={{ fontSize:10, fill:C.t3, fontFamily:'Instrument Sans' }} axisLine={false} tickLine={false} interval={period === '7' ? 0 : period === '30' ? 4 : 10} />
+                <YAxis tick={{ fontSize:10, fill:C.t3, fontFamily:'Instrument Sans' }} axisLine={false} tickLine={false} tickFormatter={v => brlK(v)} width={44} />
                 <Tooltip content={<ChartTooltip />} />
-                <Area type="monotone" dataKey="receita" name="Receita" stroke={C.accent} strokeWidth={2.5} fill="url(#gRevenue)" dot={false} activeDot={{ r: 5, fill: C.accent, stroke: '#fff', strokeWidth: 2 }} />
+                <Area type="monotone" dataKey="receita" name="Receita" stroke={C.accent} strokeWidth={2.5} fill="url(#gRevenue)" dot={false} activeDot={{ r:5, fill:C.accent, stroke:'#fff', strokeWidth:2 }} />
               </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <div style={{ height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.t3, fontSize: 13 }}>Nenhum dado no período</div>
+            <div style={{ height:140, display:'flex', alignItems:'center', justifyContent:'center', color:C.t3, fontSize:13 }}>Nenhum dado no período</div>
           )}
         </div>
 
-        <div style={{ background: C.surface, borderRadius: 20, boxShadow: C.shadow, padding: '22px 22px 18px', animation: 'dashIn .3s ease forwards', animationDelay: '280ms', opacity: 0, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>Por tipo</div>
-          <div style={{ fontSize: 12, color: C.t2, marginBottom: 20 }}>{total} atendimentos</div>
+        <div style={{ background:C.surface, borderRadius:20, boxShadow:C.shadow, padding:'22px 22px 18px', animation:'dashIn .3s ease forwards', animationDelay:'280ms', opacity:0, display:'flex', flexDirection:'column' }}>
+          <div style={{ fontSize:15, fontWeight:600, marginBottom:4 }}>Por tipo</div>
+          <div style={{ fontSize:12, color:C.t2, marginBottom:20 }}>{total} atendimentos</div>
           {[
-            { l: 'Vendas',      icon: Smartphone, v: totalSales, rev: revVenda, c: C.accent, cs: C.accentSoft },
-            { l: 'Manutenções', icon: BarChart2,  v: totalManut, rev: revManut, c: C.violet, cs: C.violetSoft },
+            { l:'Vendas',       icon:Smartphone, v:totalSales, rev:revVenda, c:C.accent, cs:C.accentSoft },
+            { l:'Manutenções',  icon:BarChart2,  v:totalManut, rev:revManut, c:C.violet, cs:C.violetSoft },
           ].map(d => {
             const p2 = pct(d.v, total)
             return (
-              <div key={d.l} style={{ marginBottom: 18 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ width: 28, height: 28, borderRadius: 8, background: d.cs, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><d.icon size={13} style={{ color: d.c }} /></div>
-                    <span style={{ fontSize: 13, fontWeight: 500 }}>{d.l}</span>
+              <div key={d.l} style={{ marginBottom:18 }}>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <div style={{ width:28, height:28, borderRadius:8, background:d.cs, display:'flex', alignItems:'center', justifyContent:'center' }}><d.icon size={13} style={{ color:d.c }} /></div>
+                    <span style={{ fontSize:13, fontWeight:500 }}>{d.l}</span>
                   </div>
-                  <span style={{ fontSize: 13, fontWeight: 700 }}>{d.v}</span>
+                  <span style={{ fontSize:13, fontWeight:700 }}>{d.v}</span>
                 </div>
-                <div style={{ height: 6, background: 'rgba(0,0,0,0.06)', borderRadius: 3, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', background: d.c, borderRadius: 3, width: `${p2}%`, transition: 'width .6s cubic-bezier(.4,0,.2,1)' }} />
+                <div style={{ height:6, background:'rgba(0,0,0,0.06)', borderRadius:3, overflow:'hidden' }}>
+                  <div style={{ height:'100%', background:d.c, borderRadius:3, width:`${p2}%`, transition:'width .6s cubic-bezier(.4,0,.2,1)' }} />
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5 }}>
-                  <span style={{ fontSize: 11, color: C.t3 }}>{p2}% do total</span>
-                  <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>{brl(d.rev)}</span>
+                <div style={{ display:'flex', justifyContent:'space-between', marginTop:5 }}>
+                  <span style={{ fontSize:11, color:C.t3 }}>{p2}% do total</span>
+                  <span style={{ fontSize:11, color:C.t2, fontWeight:600 }}>{brl(d.rev)}</span>
                 </div>
               </div>
             )
           })}
-          <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 14, marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ borderTop:`1px solid ${C.border}`, paddingTop:14, marginTop:'auto', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
             <div>
-              <div style={{ fontSize: 11, color: C.t3, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>Ticket médio</div>
-              <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.5px', marginTop: 2 }}>{brl(s.avg_sale_price)}</div>
+              <div style={{ fontSize:11, color:C.t3, textTransform:'uppercase', letterSpacing:'0.04em', fontWeight:600 }}>Ticket médio</div>
+              <div style={{ fontSize:18, fontWeight:700, letterSpacing:'-0.5px', marginTop:2 }}>{brl(s.avg_sale_price)}</div>
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 11, color: C.t3, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>Clientes únicos</div>
-              <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.5px', marginTop: 2, color: C.violet }}>{s.unique_clients || 0}</div>
+            <div style={{ textAlign:'right' }}>
+              <div style={{ fontSize:11, color:C.t3, textTransform:'uppercase', letterSpacing:'0.04em', fontWeight:600 }}>Clientes únicos</div>
+              <div style={{ fontSize:18, fontWeight:700, letterSpacing:'-0.5px', marginTop:2, color:C.violet }}>{s.unique_clients || 0}</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Stat cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)', gap: isMobile ? 10 : 14 }}>
+      <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3,1fr)', gap: isMobile ? 10 : 14 }}>
         <StatCard icon={Smartphone} color={C.accent} colorSoft={C.accentSoft} label="Vendas"       value={totalSales}       sub={brl(revVenda)}   delay={300} />
         <StatCard icon={BarChart2}  color={C.violet} colorSoft={C.violetSoft} label="Manutenções"  value={totalManut}       sub={brl(revManut)}   delay={340} />
         <StatCard icon={Zap}        color={C.green}  colorSoft={C.greenSoft}  label="Ticket Venda" value={brl(ticketVenda)} sub="por venda"        delay={380} />
@@ -652,14 +558,13 @@ export default function DashboardPage() {
         totalSales={totalSales}       isMobile={isMobile}
       />
 
-      {/* Comparativo de aparelhos */}
       <ErrorBoundary>
         <DeviceComparison />
       </ErrorBoundary>
 
       <style>{`
-        @keyframes dashIn  { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes spin    { to { transform:rotate(360deg); } }
+        @keyframes dashIn  { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes spin    { to{transform:rotate(360deg)} }
         @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
       `}</style>
     </div>

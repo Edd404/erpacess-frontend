@@ -1,6 +1,6 @@
 /**
  * DeviceComparison.jsx
- * Comparativo de aparelhos com date picker e métricas.
+ * Comparativo de aparelhos com date picker e métricas — mobile-first layout.
  */
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
@@ -12,9 +12,11 @@ import {
   Smartphone, Loader2, ChevronDown, ChevronUp, Trophy,
 } from 'lucide-react'
 import api from '../services/api'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 const C = {
   surface:    '#FFFFFF',
+  bg:         '#F5F5F7',
   border:     'rgba(0,0,0,0.08)',
   text:       '#1D1D1F',
   t2:         '#6E6E73',
@@ -40,15 +42,12 @@ const brl = (v) =>
 const num = (v) =>
   new Intl.NumberFormat('pt-BR').format(parseInt(v) || 0)
 
-
-const today = () => new Date().toISOString().slice(0, 10)
-
+const today   = () => new Date().toISOString().slice(0, 10)
 const daysAgo = (n) => {
   const d = new Date()
   d.setDate(d.getDate() - n)
   return d.toISOString().slice(0, 10)
 }
-
 const shortModel = (name) =>
   String(name || '—').replace(/^iPhone\s*/i, '').trim() || '—'
 
@@ -57,7 +56,7 @@ function Segments({ value, onChange, options }) {
   return (
     <div style={{
       display: 'inline-flex', background: 'rgba(0,0,0,0.06)',
-      borderRadius: 10, padding: 3, gap: 2, flexShrink: 0,
+      borderRadius: 10, padding: 3, gap: 2,
     }}>
       {options.map((o) => {
         const active = value === o.v
@@ -115,6 +114,7 @@ export default function DeviceComparison() {
   const [error,       setError]       = useState(null)
   const [expanded,    setExpanded]    = useState(null)
   const [chartMetric, setChartMetric] = useState('total')
+  const isMobile = useIsMobile()
 
   const fetchData = useCallback(async () => {
     if (!startDate || !endDate) return
@@ -149,12 +149,6 @@ export default function DeviceComparison() {
     return data.totals || {}
   }, [data])
 
-  const maxRevenue = useMemo(() => {
-    if (!models.length) return 1
-    const vals = models.map((m) => parseFloat(m.receita_total) || 0)
-    return Math.max(1, ...vals)
-  }, [models])
-
   const chartData = useMemo(() =>
     models.slice(0, 5).map((m) => ({
       name:          shortModel(m.iphone_model),
@@ -164,58 +158,82 @@ export default function DeviceComparison() {
   , [models])
 
   const diffDays = useMemo(() => {
-    try {
-      return Math.round((new Date(endDate) - new Date(startDate)) / 86400000)
-    } catch {
-      return 0
-    }
+    try { return Math.round((new Date(endDate) - new Date(startDate)) / 86400000) }
+    catch { return 0 }
   }, [startDate, endDate])
 
   const toggleExpand = (i) => setExpanded((prev) => (prev === i ? null : i))
+
+  const inputStyle = {
+    border: `1.5px solid ${C.border}`,
+    borderRadius: 10,
+    padding: '9px 12px',
+    fontSize: 14,
+    fontFamily: 'Instrument Sans, sans-serif',
+    color: C.text,
+    background: C.surface,
+    outline: 'none',
+    width: '100%',
+    boxSizing: 'border-box',
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontFamily: 'Instrument Sans, sans-serif', color: C.text }}>
 
       {/* ── Filtros ── */}
-      <div style={{ background: C.surface, borderRadius: 20, boxShadow: C.shadow, padding: '20px 22px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 9, background: C.accentSoft, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Smartphone size={15} style={{ color: C.accent }} />
-            </div>
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 700 }}>Comparativo de Aparelhos</div>
-              <div style={{ fontSize: 11, color: C.t2, marginTop: 1 }}>
-                {diffDays > 0 ? `${diffDays} dias` : '—'}
-                {totals.total_orders ? ` · ${num(totals.total_orders)} atendimentos` : ''}
-              </div>
+      <div style={{ background: C.surface, borderRadius: 20, boxShadow: C.shadow, padding: isMobile ? '18px 16px' : '20px 22px' }}>
+
+        {/* Título */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          <div style={{ width: 32, height: 32, borderRadius: 9, background: C.accentSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Smartphone size={15} style={{ color: C.accent }} />
+          </div>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700 }}>Comparativo de Aparelhos</div>
+            <div style={{ fontSize: 11, color: C.t2, marginTop: 1 }}>
+              {diffDays > 0 ? `${diffDays} dias` : '—'}
+              {totals.total_orders ? ` · ${num(totals.total_orders)} atendimentos` : ''}
             </div>
           </div>
+        </div>
+
+        {/* Tipo — linha separada no mobile */}
+        <div style={{ marginBottom: 14 }}>
           <Segments
             value={typeFilter} onChange={setTypeFilter}
             options={[{ v: '', l: 'Todos' }, { v: 'venda', l: 'Vendas' }, { v: 'manutencao', l: 'Manutenções' }]}
           />
         </div>
 
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 120 }}>
+        {/* Datas + Top — grid responsivo */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr auto',
+          gap: 10,
+          alignItems: 'flex-end',
+        }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <label style={{ fontSize: 11, fontWeight: 600, color: C.t2, textTransform: 'uppercase', letterSpacing: '0.04em' }}>De</label>
             <input type="date" value={startDate} max={endDate}
               onChange={(e) => setStartDate(e.target.value)}
-              style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, padding: '8px 12px', fontSize: 14, fontFamily: 'Instrument Sans, sans-serif', color: C.text, background: C.surface, outline: 'none' }}
-            />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 120 }}>
-            <label style={{ fontSize: 11, fontWeight: 600, color: C.t2, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Até</label>
-            <input type="date" value={endDate} max={today()}
-              onChange={(e) => setEndDate(e.target.value)}
-              style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, padding: '8px 12px', fontSize: 14, fontFamily: 'Instrument Sans, sans-serif', color: C.text, background: C.surface, outline: 'none' }}
+              style={inputStyle}
             />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <label style={{ fontSize: 11, fontWeight: 600, color: C.t2, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Até</label>
+            <input type="date" value={endDate} max={today()}
+              onChange={(e) => setEndDate(e.target.value)}
+              style={inputStyle}
+            />
+          </div>
+          {/* Top — linha própria no mobile para não quebrar */}
+          <div style={{
+            display: 'flex', flexDirection: 'column', gap: 4,
+            gridColumn: isMobile ? '1 / -1' : 'auto',
+          }}>
             <label style={{ fontSize: 11, fontWeight: 600, color: C.t2, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Top</label>
             <select value={limit} onChange={(e) => setLimit(Number(e.target.value))}
-              style={{ border: `1.5px solid ${C.border}`, borderRadius: 10, padding: '8px 12px', fontSize: 14, fontFamily: 'Instrument Sans, sans-serif', color: C.text, background: C.surface, outline: 'none', minWidth: 80 }}>
+              style={{ ...inputStyle, width: isMobile ? '50%' : 'auto', minWidth: 80, cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none' }}>
               <option value={5}>5</option>
               <option value={10}>10</option>
               <option value={20}>20</option>
@@ -226,15 +244,15 @@ export default function DeviceComparison() {
 
       {/* ── Summary cards ── */}
       {!loading && !error && totals.total_orders && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: isMobile ? 8 : 12 }}>
           {[
             { label: 'Receita Total',   value: brl(totals.total_revenue),  color: C.green  },
             { label: 'Total de Ordens', value: num(totals.total_orders),   color: C.accent },
             { label: 'Clientes Únicos', value: num(totals.unique_clients), color: C.violet },
           ].map((d) => (
-            <div key={d.label} style={{ background: C.surface, borderRadius: 16, boxShadow: C.shadow, padding: '14px 16px' }}>
-              <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.5px', color: d.color }}>{d.value}</div>
-              <div style={{ fontSize: 11, color: C.t2, marginTop: 3 }}>{d.label}</div>
+            <div key={d.label} style={{ background: C.surface, borderRadius: 16, boxShadow: C.shadow, padding: isMobile ? '12px 12px' : '14px 16px' }}>
+              <div style={{ fontSize: isMobile ? 14 : 18, fontWeight: 700, letterSpacing: '-0.4px', color: d.color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.value}</div>
+              <div style={{ fontSize: isMobile ? 10 : 11, color: C.t2, marginTop: 3 }}>{d.label}</div>
             </div>
           ))}
         </div>
@@ -242,8 +260,8 @@ export default function DeviceComparison() {
 
       {/* ── Gráfico top 5 ── */}
       {!loading && !error && chartData.length > 0 && (
-        <div style={{ background: C.surface, borderRadius: 20, boxShadow: C.shadow, padding: '20px 20px 12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 18 }}>
+        <div style={{ background: C.surface, borderRadius: 20, boxShadow: C.shadow, padding: isMobile ? '16px 14px 12px' : '20px 20px 12px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
             <div>
               <div style={{ fontSize: 14, fontWeight: 600 }}>Top 5 — Visão Gráfica</div>
               <div style={{ fontSize: 12, color: C.t2, marginTop: 1 }}>Comparativo lado a lado</div>
@@ -253,14 +271,14 @@ export default function DeviceComparison() {
               options={[{ v: 'total', l: 'Atendimentos' }, { v: 'receita_total', l: 'Receita' }]}
             />
           </div>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={chartData} margin={{ top: 0, right: 4, bottom: 0, left: -10 }} barSize={28}>
+          <ResponsiveContainer width="100%" height={isMobile ? 160 : 200}>
+            <BarChart data={chartData} margin={{ top: 0, right: 4, bottom: 0, left: -10 }} barSize={isMobile ? 20 : 28}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.04)" vertical={false} />
-              <XAxis dataKey="name" tick={{ fontSize: 11, fill: C.t3, fontFamily: 'Instrument Sans' }} axisLine={false} tickLine={false} />
+              <XAxis dataKey="name" tick={{ fontSize: isMobile ? 9 : 11, fill: C.t3, fontFamily: 'Instrument Sans' }} axisLine={false} tickLine={false} />
               <YAxis
                 tick={{ fontSize: 10, fill: C.t3, fontFamily: 'Instrument Sans' }}
                 axisLine={false} tickLine={false}
-                width={chartMetric === 'receita_total' ? 52 : 32}
+                width={chartMetric === 'receita_total' ? 48 : 28}
                 tickFormatter={(v) => chartMetric === 'receita_total' ? (v >= 1000 ? `${Math.round(v / 1000)}k` : String(v)) : String(v)}
               />
               <Tooltip content={<ChartTip />} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
@@ -312,8 +330,9 @@ export default function DeviceComparison() {
               <div
                 onClick={() => toggleExpand(i)}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  padding: '13px 20px', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 12,
+                  padding: isMobile ? '12px 14px' : '13px 20px',
+                  cursor: 'pointer',
                   borderBottom: `1px solid ${C.border}`,
                   background: isOpen ? C.accentSoft : 'transparent',
                 }}
@@ -325,7 +344,7 @@ export default function DeviceComparison() {
 
                 {/* nome + barra */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 7 }}>
+                  <div style={{ fontSize: isMobile ? 12 : 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 6 }}>
                     {String(m.iphone_model || '—')}
                   </div>
                   <div style={{ height: 5, background: 'rgba(0,0,0,0.05)', borderRadius: 10, overflow: 'hidden' }}>
@@ -335,17 +354,25 @@ export default function DeviceComparison() {
 
                 {/* métricas */}
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, flexShrink: 0 }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: C.text, letterSpacing: '-0.3px', whiteSpace: 'nowrap' }}>{brl(m.receita_total)}</span>
+                  <span style={{ fontSize: isMobile ? 13 : 14, fontWeight: 700, color: C.text, letterSpacing: '-0.3px', whiteSpace: 'nowrap' }}>{brl(m.receita_total)}</span>
                   <span style={{ fontSize: 11, color: C.t3 }}>{num(m.total)} atend.</span>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.t3, flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', color: C.t3, flexShrink: 0 }}>
                   {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                 </div>
               </div>
 
+              {/* Detalhe expandido */}
               {isOpen && (
-                <div style={{ padding: '12px 20px 14px 58px', background: C.accentSoft, borderBottom: `1px solid ${C.border}`, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                <div style={{
+                  padding: isMobile ? '12px 14px 14px 48px' : '12px 20px 14px 58px',
+                  background: C.accentSoft,
+                  borderBottom: `1px solid ${C.border}`,
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3,1fr)',
+                  gap: isMobile ? 10 : 12,
+                }}>
                   {[
                     { label: 'Vendas',          value: num(m.vendas),            sub: brl(m.receita_vendas)           },
                     { label: 'Manutenções',     value: num(m.manutencoes),       sub: brl(m.receita_manutencoes)      },
@@ -356,7 +383,7 @@ export default function DeviceComparison() {
                   ].map((d) => (
                     <div key={d.label}>
                       <div style={{ fontSize: 10, fontWeight: 600, color: C.t3, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 3 }}>{d.label}</div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{d.value}</div>
+                      <div style={{ fontSize: isMobile ? 13 : 14, fontWeight: 700, color: C.text }}>{d.value}</div>
                       <div style={{ fontSize: 10, color: C.t3, marginTop: 1 }}>{d.sub}</div>
                     </div>
                   ))}

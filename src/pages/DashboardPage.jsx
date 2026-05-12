@@ -391,54 +391,6 @@ function ConditionPanel({ totalLacrado, totalSeminovo, revLacrado, revSeminovo, 
             ))}
           </div>
 
-          {/* ── Comparação visual Unidades vs Receita ── */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            {/* Unidades */}
-            <div style={{ background: C.bg, borderRadius: 14, padding: '16px 18px', border: `1px solid ${C.border}` }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: C.t2, marginBottom: 14, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Unidades
-              </div>
-              {[
-                { label: '📦 Lacrado',  val: totalLacrado,  color: C.accent, pctVal: pctL },
-                { label: '✨ Seminovo', val: totalSeminovo, color: C.violet, pctVal: pctS },
-              ].map(r => (
-                <div key={r.label} style={{ marginBottom: 10 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <span style={{ fontSize: 12, color: C.text }}>{r.label}</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: r.color }}>{r.val}</span>
-                  </div>
-                  <div style={{ height: 5, background: 'rgba(0,0,0,0.06)', borderRadius: 3, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', background: r.color, borderRadius: 3, width: `${r.pctVal}%`, transition: 'width .6s cubic-bezier(.4,0,.2,1)' }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Ticket comparativo */}
-            <div style={{ background: C.bg, borderRadius: 14, padding: '16px 18px', border: `1px solid ${C.border}` }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: C.t2, marginBottom: 14, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Ticket médio
-              </div>
-              {[
-                { label: '📦 Lacrado',  val: avgLacrado,  color: C.accent  },
-                { label: '✨ Seminovo', val: avgSeminovo, color: C.violet  },
-              ].map(r => {
-                const maxAvg = Math.max(avgLacrado, avgSeminovo, 1)
-                return (
-                  <div key={r.label} style={{ marginBottom: 10 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <span style={{ fontSize: 12, color: C.text }}>{r.label}</span>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: r.color }}>{brlK(r.val)}</span>
-                    </div>
-                    <div style={{ height: 5, background: 'rgba(0,0,0,0.06)', borderRadius: 3, overflow: 'hidden' }}>
-                      <div style={{ height: '100%', background: r.color, borderRadius: 3, width: `${Math.round((r.val / maxAvg) * 100)}%`, transition: 'width .6s cubic-bezier(.4,0,.2,1)' }} />
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-
           {/* ── Insight box ── */}
           <div style={{
             background: 'linear-gradient(135deg, rgba(10,102,255,0.05) 0%, rgba(175,82,222,0.05) 100%)',

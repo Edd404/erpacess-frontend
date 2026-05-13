@@ -414,30 +414,29 @@ export default function ClientHistory({ clientId, onClose }) {
         {/* ══ HERO ════════════════════════════════════════════════ */}
         <div style={{ background:'#0C0C0E', padding:'22px 22px 20px', flexShrink:0, position:'relative' }}>
           {/* Ações do header */}
-          <div style={{ position:'absolute', top:14, right:14, display:'flex', gap:8 }}>
-            {!editing && !isLoading && (
-              <>
-                {/* Novo atendimento */}
-                <button onClick={handleNovoAtendimento}
-                  style={{ background:'#1A7A4A', border:'none', borderRadius:8, padding:'6px 12px', cursor:'pointer', color:'#fff', display:'flex', alignItems:'center', gap:5, fontSize:12, fontWeight:600, fontFamily:'Instrument Sans,sans-serif', transition:'background .15s' }}
-                  onMouseEnter={e=>e.currentTarget.style.background='#15693E'}
-                  onMouseLeave={e=>e.currentTarget.style.background='#1A7A4A'}>
-                  <Plus size={12}/> Novo atendimento
-                </button>
-                {/* Editar */}
-                <button onClick={()=>setEditing(true)}
-                  style={{ background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:8, padding:'6px 12px', cursor:'pointer', color:'rgba(255,255,255,0.8)', display:'flex', alignItems:'center', gap:5, fontSize:12, fontWeight:500, fontFamily:'Instrument Sans,sans-serif', transition:'background .15s' }}
-                  onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.18)'}
-                  onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,0.1)'}>
-                  <Pencil size={12}/> Editar
-                </button>
-              </>
-            )}
-            <button onClick={onClose}
-              style={{ background:'rgba(255,255,255,0.08)', border:'none', borderRadius:8, width:32, height:32, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'rgba(255,255,255,0.5)' }}>
-              <X size={15}/>
-            </button>
-          </div>
+          {/* Fechar — sempre no canto */}
+          <button onClick={onClose}
+            style={{ position:'absolute', top:14, right:14, background:'rgba(255,255,255,0.08)', border:'none', borderRadius:8, width:32, height:32, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'rgba(255,255,255,0.5)', zIndex:2 }}>
+            <X size={15}/>
+          </button>
+
+          {/* Ações — abaixo do avatar, no mobile ficam em linha */}
+          {!editing && !isLoading && (
+            <div style={{ position:'absolute', top:14, right:54, display:'flex', gap:6, zIndex:2 }}>
+              <button onClick={handleNovoAtendimento}
+                style={{ background:'#1A7A4A', border:'none', borderRadius:8, padding:'6px 10px', cursor:'pointer', color:'#fff', display:'flex', alignItems:'center', gap:4, fontSize:11, fontWeight:600, fontFamily:'Instrument Sans,sans-serif', whiteSpace:'nowrap' }}
+                onMouseEnter={e=>e.currentTarget.style.background='#15693E'}
+                onMouseLeave={e=>e.currentTarget.style.background='#1A7A4A'}>
+                <Plus size={11}/> Novo atendimento
+              </button>
+              <button onClick={()=>setEditing(true)}
+                style={{ background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:8, padding:'6px 10px', cursor:'pointer', color:'rgba(255,255,255,0.8)', display:'flex', alignItems:'center', gap:4, fontSize:11, fontWeight:500, fontFamily:'Instrument Sans,sans-serif', whiteSpace:'nowrap' }}
+                onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.18)'}
+                onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,0.1)'}>
+                <Pencil size={11}/> Editar
+              </button>
+            </div>
+          )}
 
           {isLoading ? (
             <div style={{ display:'flex', alignItems:'center', gap:8, color:'rgba(255,255,255,0.4)', height:80 }}>
@@ -445,7 +444,7 @@ export default function ClientHistory({ clientId, onClose }) {
             </div>
           ) : (
             <>
-              <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:20 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:20, paddingTop:40 }}>
                 <div style={{ width:54, height:54, borderRadius:'50%', background:avatarBg, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:19, fontWeight:700, letterSpacing:'-0.5px', boxShadow:'0 0 0 3px rgba(255,255,255,0.12)' }}>
                   {initials}
                 </div>
@@ -464,7 +463,7 @@ export default function ClientHistory({ clientId, onClose }) {
               </div>
 
               {/* KPIs */}
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8 }}>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:8 }}>
                 {[
                   { label:'Total gasto',   value:brl(metrics.totalSpent)        },
                   { label:'Atendimentos',  value:metrics.totalOrders||0          },

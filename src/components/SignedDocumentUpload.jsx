@@ -60,6 +60,7 @@ export default function SignedDocumentUpload({
   const uploadToCloudinary = async (file) => {
     const formData = new FormData()
     // Sanitiza o nome do cliente para uso como pasta (remove caracteres especiais)
+    console.log('[SignedDocumentUpload] clientName recebido:', clientName)
     const safeClient = (clientName || 'sem-nome')
       .normalize('NFD').replace(/[̀-ͯ]/g, '') // remove acentos
       .replace(/[^a-zA-Z0-9 _-]/g, '')                 // só letras, números, espaço, _ e -

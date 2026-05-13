@@ -234,7 +234,6 @@ function OrderActions({ order, clientEmail, clientName }) {
           orderNumber={order.order_number}
           existingUrl={docUrl}
           onSaved={setDocUrl}
-          compact={true}
         />
       </div>
     </>
@@ -324,7 +323,7 @@ function OrderCard({ order, clientEmail, clientName, isFirst, isLast }) {
                 {order.notes}
               </div>
             )}
-            <OrderActions order={order} clientEmail={clientEmail} clientName={clientName}/>
+            <OrderActions order={order} clientEmail={clientEmail} clientName={order.client_name || clientName}/>
           </div>
         )}
       </div>

@@ -43,6 +43,7 @@ const C = {
 export default function SignedDocumentUpload({
   orderId,
   orderNumber,
+  clientName,
   existingUrl,
   onSaved,
   compact = false,
@@ -58,11 +59,20 @@ export default function SignedDocumentUpload({
   // ── Upload para Cloudinary ────────────────────────────────
   const uploadToCloudinary = async (file) => {
     const formData = new FormData()
+    // Sanitiza o nome do cliente para uso como pasta (remove caracteres especiais)
+    const safeClient = (clientName || 'sem-nome')
+      .normalize('NFD').replace(/[̀-ͯ]/g, '') // remove acentos
+      .replace(/[^a-zA-Z0-9 _-]/g, '')                 // só letras, números, espaço, _ e -
+      .trim().replace(/\s+/g, '_')                      // espaços → underscore
+      .toLowerCase()
+
+    const folder    = `istore/documentos/${safeClient}`
+    const publicId  = `OS-${orderNumber || orderId}_${Date.now()}`
+
     formData.append('file',         file)
     formData.append('upload_preset', UPLOAD_PRESET)
-    formData.append('folder',       'istore/documentos')
-    // Nome do arquivo: OS-número_timestamp
-    formData.append('public_id', `OS-${orderNumber || orderId}_${Date.now()}`)
+    formData.append('folder',        folder)
+    formData.append('public_id',     publicId)
 
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest()

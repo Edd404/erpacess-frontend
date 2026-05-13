@@ -182,7 +182,7 @@ function EditForm({ client, onClose, onSaved }) {
 }
 
 /* ── OrderActions ─────────────────────────────────────────────── */
-function OrderActions({ order, clientEmail }) {
+function OrderActions({ order, clientEmail, clientName }) {
   const [docUrl, setDocUrl] = useState(order.signed_document_url || null)
   const [dlLoading,   setDlLoading]   = useState(false)
   const [mailLoading, setMailLoading] = useState(false)
@@ -324,7 +324,7 @@ function OrderCard({ order, clientEmail, isFirst, isLast }) {
                 {order.notes}
               </div>
             )}
-            <OrderActions order={order} clientEmail={clientEmail}/>
+            <OrderActions order={order} clientEmail={clientEmail} clientName={order.client_name || ''}/>
           </div>
         )}
       </div>

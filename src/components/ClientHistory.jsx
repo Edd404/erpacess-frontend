@@ -242,7 +242,7 @@ function OrderActions({ order, clientEmail, clientName }) {
 }
 
 /* ── OrderCard ────────────────────────────────────────────────── */
-function OrderCard({ order, clientEmail, isFirst, isLast }) {
+function OrderCard({ order, clientEmail, clientName, isFirst, isLast }) {
   const [expanded, setExpanded] = useState(isFirst)
   const wStatus = warrantyStatus(order)
   const payments = (() => {
@@ -324,7 +324,7 @@ function OrderCard({ order, clientEmail, isFirst, isLast }) {
                 {order.notes}
               </div>
             )}
-            <OrderActions order={order} clientEmail={clientEmail} clientName={order.client_name || ''}/>
+            <OrderActions order={order} clientEmail={clientEmail} clientName={clientName}/>
           </div>
         )}
       </div>
@@ -559,7 +559,7 @@ export default function ClientHistory({ clientId, onClose }) {
                   Histórico de atendimentos ({orders.length})
                 </div>
                 {orders.map((o,idx)=>(
-                  <OrderCard key={o.id} order={o} clientEmail={client.email} isFirst={idx===0} isLast={idx===orders.length-1}/>
+                  <OrderCard key={o.id} order={o} clientEmail={client.email} clientName={client.name} isFirst={idx===0} isLast={idx===orders.length-1}/>
                 ))}
               </>
             )}

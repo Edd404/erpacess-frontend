@@ -15,6 +15,38 @@ const CLOUD_NAME    = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME    || ''
 const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || ''
 const UPLOAD_URL    = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`
 
+
+// ── Compressão client-side via Canvas ────────────────────────
+// Reduz para no máximo 1200px e qualidade 0.75 → ~200-400KB
+const compressImage = (file) =>
+  new Promise((resolve) => {
+    const MAX_PX  = 1200   // largura/altura máxima
+    const QUALITY = 0.75   // 0 = menor, 1 = original
+
+    const img = new Image()
+    img.onload = () => {
+      let { width, height } = img
+
+      // Redimensiona mantendo proporção
+      if (width > MAX_PX || height > MAX_PX) {
+        if (width > height) { height = Math.round(height * MAX_PX / width); width = MAX_PX }
+        else                 { width  = Math.round(width  * MAX_PX / height); height = MAX_PX }
+      }
+
+      const canvas = document.createElement('canvas')
+      canvas.width  = width
+      canvas.height = height
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height)
+
+      canvas.toBlob(
+        (blob) => resolve(new File([blob], file.name, { type: 'image/jpeg' })),
+        'image/jpeg',
+        QUALITY
+      )
+    }
+    img.src = URL.createObjectURL(file)
+  })
+
 export default function SignedDocumentUpload({ orderId, orderNumber, existingUrl, onSaved }) {
   const [url,       setUrl]       = useState(existingUrl || null)
   const [uploading, setUploading] = useState(false)
@@ -31,8 +63,11 @@ export default function SignedDocumentUpload({ orderId, orderNumber, existingUrl
     setProgress(0)
 
     try {
+      // Comprime antes de enviar — reduz de ~5MB para ~300KB
+      const compressed = await compressImage(file)
+
       const fd = new FormData()
-      fd.append('file',          file)
+      fd.append('file',          compressed)
       fd.append('upload_preset', UPLOAD_PRESET)
       // Nome simples = número da OS, sem barras
       fd.append('public_id',     String(orderNumber || orderId).replace(/[^a-zA-Z0-9_-]/g, '-'))

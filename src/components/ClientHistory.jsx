@@ -210,34 +210,34 @@ function OrderActions({ order, clientEmail }) {
   }
 
   return (
-    <div style={{ display:'flex', gap:8, marginTop:10, paddingTop:10, borderTop:'1px solid rgba(0,0,0,0.06)' }}>
-      <button onClick={handleDownload} disabled={dlLoading}
-        style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:6, padding:'8px 0', background:'#0C0C0E', color:'#fff', border:'none', borderRadius:8, fontSize:11, fontWeight:600, cursor:dlLoading?'default':'pointer', opacity:dlLoading?0.6:1, fontFamily:'Instrument Sans,sans-serif', transition:'opacity .15s' }}>
-        {dlLoading ? <><Loader2 size={11} style={{ animation:'spin 1s linear infinite' }}/> Baixando...</> : <><Download size={11}/> Baixar PDF</>}
-      </button>
-      <button onClick={handleResend} disabled={mailLoading||!canEmail}
-        title={!canEmail?'Cliente sem e-mail':'Reenviar por e-mail'}
-        style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:6, padding:'8px 0', background:canEmail?'#EEF4FF':'#F9FAFB', color:canEmail?'#1D4ED8':'#9CA3AF', border:`1px solid ${canEmail?'#BFDBFE':'#E5E7EB'}`, borderRadius:8, fontSize:11, fontWeight:600, cursor:(mailLoading||!canEmail)?'default':'pointer', opacity:mailLoading?0.6:1, fontFamily:'Instrument Sans,sans-serif', transition:'opacity .15s' }}>
-        {mailLoading ? <><Loader2 size={11} style={{ animation:'spin 1s linear infinite' }}/> Enviando...</> : <><Mail size={11}/> {canEmail?'Reenviar e-mail':'Sem e-mail'}</>}
-      </button>
-    </div>
+    <>
+      <div style={{ display:'flex', gap:8, marginTop:10, paddingTop:10, borderTop:'1px solid rgba(0,0,0,0.06)' }}>
+        <button onClick={handleDownload} disabled={dlLoading}
+          style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:6, padding:'8px 0', background:'#0C0C0E', color:'#fff', border:'none', borderRadius:8, fontSize:11, fontWeight:600, cursor:dlLoading?'default':'pointer', opacity:dlLoading?0.6:1, fontFamily:'Instrument Sans,sans-serif', transition:'opacity .15s' }}>
+          {dlLoading ? <><Loader2 size={11} style={{ animation:'spin 1s linear infinite' }}/> Baixando...</> : <><Download size={11}/> Baixar PDF</>}
+        </button>
+        <button onClick={handleResend} disabled={mailLoading||!canEmail}
+          title={!canEmail?'Cliente sem e-mail':'Reenviar por e-mail'}
+          style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:6, padding:'8px 0', background:canEmail?'#EEF4FF':'#F9FAFB', color:canEmail?'#1D4ED8':'#9CA3AF', border:`1px solid ${canEmail?'#BFDBFE':'#E5E7EB'}`, borderRadius:8, fontSize:11, fontWeight:600, cursor:(mailLoading||!canEmail)?'default':'pointer', opacity:mailLoading?0.6:1, fontFamily:'Instrument Sans,sans-serif', transition:'opacity .15s' }}>
+          {mailLoading ? <><Loader2 size={11} style={{ animation:'spin 1s linear infinite' }}/> Enviando...</> : <><Mail size={11}/> {canEmail?'Reenviar e-mail':'Sem e-mail'}</>}
+        </button>
+      </div>
 
-    {/* ── Documento assinado ── */}
-    <div style={{ marginTop:10, paddingTop:10, borderTop:'1px solid rgba(0,0,0,0.06)' }}>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
-        <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+      {/* ── Documento assinado ── */}
+      <div style={{ marginTop:10, paddingTop:10, borderTop:'1px solid rgba(0,0,0,0.06)' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:5, marginBottom:6 }}>
           <FileImage size={12} style={{ color:'#6E6E73' }}/>
           <span style={{ fontSize:11, fontWeight:600, color:'#6E6E73' }}>Documento Assinado</span>
         </div>
+        <SignedDocumentUpload
+          orderId={order.id}
+          orderNumber={order.order_number}
+          existingUrl={docUrl}
+          onSaved={setDocUrl}
+          compact={true}
+        />
       </div>
-      <SignedDocumentUpload
-        orderId={order.id}
-        orderNumber={order.order_number}
-        existingUrl={docUrl}
-        onSaved={setDocUrl}
-        compact={true}
-      />
-    </div>
+    </>
   )
 }
 

@@ -155,7 +155,9 @@ export default function SignedDocumentUpload({ orderId, orderNumber, existingUrl
       const fd = new FormData()
       fd.append('file',          compressed)
       fd.append('upload_preset', UPLOAD_PRESET)
-      fd.append('public_id',     String(orderNumber || orderId).replace(/[^a-zA-Z0-9_-]/g, '-'))
+      const safeId    = String(orderNumber || orderId).replace(/[^a-zA-Z0-9_-]/g, '-')
+      const uploadedId = `${safeId}_${Date.now()}`
+      fd.append('public_id', uploadedId)
 
       const cloudUrl = await new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest()
@@ -174,7 +176,7 @@ export default function SignedDocumentUpload({ orderId, orderNumber, existingUrl
 
       await api.patch(`/orders/${orderId}/document`, {
         url:       cloudUrl,
-        public_id: String(orderNumber || orderId).replace(/[^a-zA-Z0-9_-]/g, '-'),
+        public_id: uploadedId,
       })
 
       setUrl(cloudUrl)

@@ -4,13 +4,14 @@ import {
   X, Smartphone, Wrench, TrendingUp, Calendar, CreditCard, Shield,
   Download, Loader2, Mail, MapPin, Phone, Copy, CheckCircle2,
   ChevronDown, ChevronUp, User, Hash, Home, Pencil, Save,
-  AlertTriangle, AlertCircle, Plus, FileText,
+  AlertTriangle, AlertCircle, Plus, FileText, FileImage,
 } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { clientService, orderService } from '../services/api'
 import { useUpdateClient, useLookupCEP } from '../hooks/useData'
 import { formatPhone, formatCEP } from '../utils/formatters'
 import toast from 'react-hot-toast'
+import SignedDocumentUpload from './SignedDocumentUpload'
 
 /* ── helpers ──────────────────────────────────────────────────── */
 const brl     = v => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v||0)
@@ -182,6 +183,7 @@ function EditForm({ client, onClose, onSaved }) {
 
 /* ── OrderActions ─────────────────────────────────────────────── */
 function OrderActions({ order, clientEmail }) {
+  const [docUrl, setDocUrl] = useState(order.signed_document_url || null)
   const [dlLoading,   setDlLoading]   = useState(false)
   const [mailLoading, setMailLoading] = useState(false)
   const canEmail = !!clientEmail
@@ -218,6 +220,23 @@ function OrderActions({ order, clientEmail }) {
         style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:6, padding:'8px 0', background:canEmail?'#EEF4FF':'#F9FAFB', color:canEmail?'#1D4ED8':'#9CA3AF', border:`1px solid ${canEmail?'#BFDBFE':'#E5E7EB'}`, borderRadius:8, fontSize:11, fontWeight:600, cursor:(mailLoading||!canEmail)?'default':'pointer', opacity:mailLoading?0.6:1, fontFamily:'Instrument Sans,sans-serif', transition:'opacity .15s' }}>
         {mailLoading ? <><Loader2 size={11} style={{ animation:'spin 1s linear infinite' }}/> Enviando...</> : <><Mail size={11}/> {canEmail?'Reenviar e-mail':'Sem e-mail'}</>}
       </button>
+    </div>
+
+    {/* ── Documento assinado ── */}
+    <div style={{ marginTop:10, paddingTop:10, borderTop:'1px solid rgba(0,0,0,0.06)' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+          <FileImage size={12} style={{ color:'#6E6E73' }}/>
+          <span style={{ fontSize:11, fontWeight:600, color:'#6E6E73' }}>Documento Assinado</span>
+        </div>
+      </div>
+      <SignedDocumentUpload
+        orderId={order.id}
+        orderNumber={order.order_number}
+        existingUrl={docUrl}
+        onSaved={setDocUrl}
+        compact={true}
+      />
     </div>
   )
 }

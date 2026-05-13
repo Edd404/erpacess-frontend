@@ -66,13 +66,12 @@ export default function SignedDocumentUpload({
       .trim().replace(/\s+/g, '_')                      // espaços → underscore
       .toLowerCase()
 
-    const folder    = `istore/documentos/${safeClient}`
-    const publicId  = `OS-${orderNumber || orderId}_${Date.now()}`
+    // Caminho completo no public_id — não usar folder separado para evitar conflito
+    const fullPublicId = `istore/documentos/${safeClient}/OS-${orderNumber || orderId}_${Date.now()}`
 
-    formData.append('file',         file)
+    formData.append('file',          file)
     formData.append('upload_preset', UPLOAD_PRESET)
-    formData.append('folder',        folder)
-    formData.append('public_id',     publicId)
+    formData.append('public_id',     fullPublicId)
 
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest()

@@ -66,11 +66,12 @@ export default function SignedDocumentUpload({
       .trim().replace(/\s+/g, '_')                      // espaços → underscore
       .toLowerCase()
 
-    // folder define a pasta, public_id é simples sem barras (obrigatório em unsigned)
+    // Unsigned preset: só folder — public_id é gerado automaticamente pelo Cloudinary
+    // O context tag identifica a ordem para rastreamento
     formData.append('file',          file)
     formData.append('upload_preset', UPLOAD_PRESET)
     formData.append('folder',        `istore/documentos/${safeClient}`)
-    formData.append('public_id',     `OS-${(orderNumber || orderId).replace(/[^a-zA-Z0-9-_]/g, '-')}`)
+    formData.append('context',       `ordem=${orderNumber || orderId}`)
 
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest()

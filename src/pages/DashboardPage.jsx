@@ -160,7 +160,7 @@ function HeroCard({ label, value, sub, icon: Icon, color, colorSoft, trend, dela
   return (
     <div style={{
       background:C.surface, borderRadius:20, boxShadow:C.shadow,
-      padding:'24px 24px 20px',
+      padding:'16px 14px 14px',
       animation:'dashIn .3s ease forwards', animationDelay:`${delay}ms`, opacity:0,
     }}>
       <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:16 }}>
@@ -173,14 +173,14 @@ function HeroCard({ label, value, sub, icon: Icon, color, colorSoft, trend, dela
             background: up ? C.greenSoft : C.redSoft,
             color: up ? C.green : C.red,
             borderRadius:20, padding:'4px 10px',
-            fontSize:12, fontWeight:700,
+            fontSize:11, fontWeight:700,
           }}>
             {up ? <TrendingUp size={11}/> : <TrendingDown size={11}/>}
             {trend === 0 ? '0%' : `${up?'+':''}${trend}%`}
           </div>
         )}
       </div>
-      <div style={{ fontSize:30, fontWeight:700, letterSpacing:'-1px', lineHeight:1, color:C.text }}>{value}</div>
+      <div style={{ fontSize:'clamp(18px, 5vw, 30px)', fontWeight:700, letterSpacing:'-1px', lineHeight:1, color:C.text }}>{value}</div>
       <div style={{ fontSize:13, color:C.t2, marginTop:5, fontWeight:500 }}>{label}</div>
       {sub && <div style={{ fontSize:11, color:C.t3, marginTop:3 }}>{sub}</div>}
       {hasTrend && <div style={{ fontSize:10, color:C.t3, marginTop:6 }}>vs período anterior</div>}
@@ -454,7 +454,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Hero cards */}
-      <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4,1fr)', gap: isMobile ? 10 : 14 }}>
+      <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4,1fr)', gap: isMobile ? 8 : 14 }}>
         <HeroCard icon={TrendingUp}    color={C.green}  colorSoft={C.greenSoft}  label="Receita total"   value={brl(s.total_revenue)}  sub={periodLabel}      trend={trends.revenue}        delay={0} />
         <HeroCard icon={Zap}           color={C.accent} colorSoft={C.accentSoft} label="Ticket médio"    value={brl(s.avg_sale_price)}  sub="por atendimento"  trend={trends.avg_sale_price} delay={60} />
         <HeroCard icon={ClipboardList} color={C.amber}  colorSoft={C.amberSoft}  label="Total de ordens" value={total}                  sub={periodLabel}      trend={trends.total_orders}   delay={120} />

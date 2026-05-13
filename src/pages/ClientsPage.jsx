@@ -279,7 +279,7 @@ export default function ClientsPage() {
       <div style={{ display:'flex', flexDirection:'column', gap:16, fontFamily:'Instrument Sans,sans-serif' }}>
 
         {/* ── Métricas ── */}
-        <div style={{ display:'flex', gap:12 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10 }}>
           <MetricCard
             icon={Users} label="Total de clientes" value={metrics.total}
             sub="na base de dados"
@@ -298,8 +298,8 @@ export default function ClientsPage() {
         </div>
 
         {/* ── Busca + ações ── */}
-        <div style={{ display:'flex', gap:12, alignItems:'center' }}>
-          <div style={{ position:'relative', flex:1, maxWidth:340 }}>
+        <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
+          <div style={{ position:'relative', flex:1, minWidth:0 }}>
             <Search size={13} style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:T.t3 }}/>
             <input
               value={search} onChange={e=>setSearch(e.target.value)}
@@ -334,7 +334,7 @@ export default function ClientsPage() {
               background:'#1A7A4A', color:'#fff', border:'none', borderRadius:9,
               fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'Instrument Sans,sans-serif',
               boxShadow:'0 2px 8px rgba(26,122,74,0.28)', transition:'background .15s, box-shadow .15s',
-              whiteSpace:'nowrap',
+              whiteSpace:'nowrap', flexShrink:0,
             }}
             onMouseEnter={e => { e.currentTarget.style.background='#15693E'; e.currentTarget.style.boxShadow='0 4px 14px rgba(26,122,74,0.38)' }}
             onMouseLeave={e => { e.currentTarget.style.background='#1A7A4A'; e.currentTarget.style.boxShadow='0 2px 8px rgba(26,122,74,0.28)' }}

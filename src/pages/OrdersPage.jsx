@@ -138,86 +138,196 @@ function Segments({ value, onChange, options }) {
 }
 
 // ─── Model Select (nativo estilizado) ─────────────────────────
-function ModelSelect({ value, onChange }) {
-  const hasValue = !!value
+// ─── Bottom Sheet genérico ───────────────────────────────────
+function BottomSheet({ title, options, selected, onSelect, onClose }) {
   return (
-    <div style={{ position: 'relative', flex: 1, minWidth: 160, maxWidth: 260 }}>
-      <Smartphone size={13} style={{
-        position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
-        color: hasValue ? C.accent : C.t3, pointerEvents: 'none', zIndex: 1,
-      }} />
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(0,0,0,0.45)',
+        backdropFilter: 'blur(6px)',
+        WebkitBackdropFilter: 'blur(6px)',
+        zIndex: 9999,
+        display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+        animation: 'bsFadeIn .2s ease',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
         style={{
-          width: '100%', padding: '10px 36px 10px 32px',
-          border: `1.5px solid ${hasValue ? C.accent : C.border}`,
-          borderRadius: 12, fontSize: 13,
-          color: hasValue ? C.text : C.t3,
-          background: C.surface, outline: 'none',
+          background: C.surface,
+          borderRadius: '20px 20px 0 0',
+          width: '100%', maxWidth: 540,
+          padding: '0 0 calc(env(safe-area-inset-bottom, 0px) + 16px)',
+          boxShadow: '0 -8px 40px rgba(0,0,0,0.18)',
+          animation: 'bsSlideUp .25s cubic-bezier(.32,1,.46,1)',
           fontFamily: 'Instrument Sans, sans-serif',
-          boxShadow: C.shadow, cursor: 'pointer',
-          appearance: 'none', WebkitAppearance: 'none',
-          transition: 'border-color .15s', boxSizing: 'border-box',
+          maxHeight: '80vh', display: 'flex', flexDirection: 'column',
         }}
       >
-        <option value="">Todos os modelos</option>
-        {IPHONE_MODELS.map((m) => (
-          <option key={m} value={m}>{m}</option>
-        ))}
-      </select>
-      {hasValue ? (
-        <button onClick={() => onChange('')} style={{
-          position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-          background: 'rgba(0,0,0,0.06)', border: 'none', borderRadius: '50%',
-          width: 18, height: 18, cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: C.t2, padding: 0, zIndex: 1,
-        }}>
-          <X size={10} />
-        </button>
-      ) : (
-        <ChevronDown size={13} style={{
-          position: 'absolute', right: 11, top: '50%', transform: 'translateY(-50%)',
-          color: C.t3, pointerEvents: 'none',
-        }} />
-      )}
+        {/* Handle + título */}
+        <div style={{ padding: '12px 20px 0', flexShrink: 0 }}>
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(0,0,0,0.12)', margin: '0 auto 16px' }} />
+          <div style={{ fontSize: 13, fontWeight: 600, color: C.t2, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+            {title}
+          </div>
+        </div>
+
+        {/* Lista scrollável */}
+        <div style={{ overflowY: 'auto', padding: '0 12px 8px' }}>
+          {options.map((o, i) => {
+            const isSelected = selected === o.value
+            return (
+              <button
+                key={o.value}
+                onClick={() => { onSelect(o.value); onClose() }}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '14px 16px',
+                  background: isSelected ? C.accentSoft : 'transparent',
+                  border: 'none',
+                  borderRadius: 12,
+                  cursor: 'pointer',
+                  fontFamily: 'Instrument Sans, sans-serif',
+                  marginBottom: 2,
+                  transition: 'background .12s',
+                }}
+                onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = C.bg }}
+                onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  {o.icon && <span style={{ fontSize: 20 }}>{o.icon}</span>}
+                  <span style={{
+                    fontSize: 16, fontWeight: isSelected ? 600 : 400,
+                    color: isSelected ? C.accent : C.text,
+                  }}>{o.label}</span>
+                </div>
+                {/* Checkmark */}
+                <div style={{
+                  width: 22, height: 22, borderRadius: '50%',
+                  border: `2px solid ${isSelected ? C.accent : 'rgba(0,0,0,0.18)'}`,
+                  background: isSelected ? C.accent : 'transparent',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0, transition: 'all .15s',
+                }}>
+                  {isSelected && (
+                    <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                      <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      </div>
     </div>
   )
 }
 
-// ─── Condition Select ─────────────────────────────────────────
-function ConditionSelect({ value, onChange }) {
-  const color = value === 'lacrado' ? C.accent : value === 'seminovo' ? C.violet : C.t3
-  const bg    = value === 'lacrado' ? C.accentSoft : value === 'seminovo' ? C.violetSoft : C.surface
+// ─── Model Select (bottom sheet) ─────────────────────────────
+function ModelSelect({ value, onChange }) {
+  const [open, setOpen] = useState(false)
+  const hasValue = !!value
 
   return (
-    <div style={{ position: 'relative', flex: 1, minWidth: 160, maxWidth: 220 }}>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
+    <>
+      <button
+        onClick={() => setOpen(true)}
         style={{
-          width: '100%', padding: '10px 36px 10px 14px',
-          border: `1.5px solid ${value ? color : C.border}`,
-          borderRadius: 12, fontSize: 13,
-          color: value ? color : C.t3,
-          background: bg, outline: 'none',
+          flex: 1, minWidth: 160, maxWidth: 260,
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '10px 14px',
+          background: hasValue ? C.accentSoft : C.surface,
+          border: `1.5px solid ${hasValue ? C.accent : C.border}`,
+          borderRadius: 12, cursor: 'pointer',
+          boxShadow: C.shadow, transition: 'all .15s',
           fontFamily: 'Instrument Sans, sans-serif',
-          boxShadow: C.shadow, cursor: 'pointer',
-          appearance: 'none', WebkitAppearance: 'none',
-          fontWeight: value ? 600 : 400,
-          transition: 'all .15s', boxSizing: 'border-box',
         }}
       >
-        <option value="">Qualquer condição</option>
-        <option value="lacrado">📦  Lacrado</option>
-        <option value="seminovo">✨  Seminovo</option>
-      </select>
-      <ChevronDown size={13} style={{
-        position: 'absolute', right: 11, top: '50%', transform: 'translateY(-50%)',
-        color, pointerEvents: 'none',
-      }} />
-    </div>
+        <Smartphone size={13} style={{ color: hasValue ? C.accent : C.t3, flexShrink: 0 }} />
+        <span style={{
+          flex: 1, textAlign: 'left', fontSize: 13,
+          color: hasValue ? C.text : C.t3,
+          fontWeight: hasValue ? 600 : 400,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {value || 'Todos os modelos'}
+        </span>
+        {hasValue
+          ? <span onClick={e => { e.stopPropagation(); onChange('') }} style={{ color: C.t3, display: 'flex', padding: 2, borderRadius: 4, cursor: 'pointer' }}><X size={12} /></span>
+          : <ChevronDown size={13} style={{ color: C.t3, flexShrink: 0 }} />
+        }
+      </button>
+
+      {open && (
+        <BottomSheet
+          title="Modelo"
+          selected={value}
+          onSelect={onChange}
+          onClose={() => setOpen(false)}
+          options={[
+            { value: '', label: 'Todos os modelos' },
+            ...IPHONE_MODELS.map(m => ({ value: m, label: m })),
+          ]}
+        />
+      )}
+    </>
+  )
+}
+
+// ─── Condition Select (bottom sheet) ─────────────────────────
+function ConditionSelect({ value, onChange }) {
+  const [open, setOpen] = useState(false)
+
+  const label = value === 'lacrado' ? '📦  Lacrado'
+              : value === 'seminovo' ? '✨  Seminovo'
+              : 'Qualquer condição'
+
+  const color = value === 'lacrado' ? C.accent : value === 'seminovo' ? C.violet : C.t3
+  const bg    = value === 'lacrado' ? C.accentSoft : value === 'seminovo' ? C.violetSoft : C.surface
+  const border = value ? color : C.border
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        style={{
+          flex: 1, minWidth: 160, maxWidth: 220,
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '10px 14px',
+          background: bg, border: `1.5px solid ${border}`,
+          borderRadius: 12, cursor: 'pointer',
+          boxShadow: C.shadow, transition: 'all .15s',
+          fontFamily: 'Instrument Sans, sans-serif',
+        }}
+      >
+        <span style={{
+          flex: 1, textAlign: 'left', fontSize: 13,
+          color: value ? color : C.t3,
+          fontWeight: value ? 600 : 400,
+        }}>
+          {label}
+        </span>
+        <ChevronDown size={13} style={{ color, flexShrink: 0 }} />
+      </button>
+
+      {open && (
+        <BottomSheet
+          title="Condição"
+          selected={value}
+          onSelect={onChange}
+          onClose={() => setOpen(false)}
+          options={[
+            { value: '',         label: 'Qualquer condição' },
+            { value: 'lacrado',  label: 'Lacrado',  icon: '📦' },
+            { value: 'seminovo', label: 'Seminovo', icon: '✨' },
+          ]}
+        />
+      )}
+    </>
   )
 }
 
@@ -710,9 +820,10 @@ export default function OrdersPage() {
 
       <style>{`
         @keyframes fadeUp  { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes bsFadeIn  { from { opacity:0; } to { opacity:1; } }
+        @keyframes bsSlideUp { from { transform:translateY(100%); } to { transform:translateY(0); } }
         @keyframes spin    { to { transform:rotate(360deg); } }
         @keyframes modalIn { from { opacity:0; transform:scale(.97) translateY(8px); } to { opacity:1; transform:scale(1) translateY(0); } }
-        select option { color: #1D1D1F; background: #fff; }
       `}</style>
     </>
   )

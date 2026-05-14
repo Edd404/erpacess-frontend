@@ -157,6 +157,7 @@ export default function SignedDocumentUpload({ orderId, orderNumber, existingUrl
       fd.append('upload_preset', UPLOAD_PRESET)
       const safeId    = String(orderNumber || orderId).replace(/[^a-zA-Z0-9_-]/g, '-')
       const uploadedId = `${safeId}_${Date.now()}`
+      fd.append('folder',    'istore/documentos')
       fd.append('public_id', uploadedId)
 
       const cloudUrl = await new Promise((resolve, reject) => {
@@ -174,14 +175,25 @@ export default function SignedDocumentUpload({ orderId, orderNumber, existingUrl
         xhr.send(fd)
       })
 
-      await api.patch(`/orders/${orderId}/document`, {
-        url:       cloudUrl,
-        public_id: uploadedId,
-      })
-
-      setUrl(cloudUrl)
-      onSaved?.(cloudUrl)
-      toast.success('Documento anexado!')
+      // Salva URL no backend — se falhar, avisa o usuário em vez de silenciar
+      try {
+        await api.patch(`/orders/${orderId}/document`, {
+          url:       cloudUrl,
+          public_id: uploadedId,
+        })
+        setUrl(cloudUrl)
+        onSaved?.(cloudUrl)
+        toast.success('Documento anexado!')
+      } catch (backendErr) {
+        console.error('[saveDocument] Erro ao salvar no backend:', backendErr)
+        toast.error(
+          'Foto enviada ao Cloudinary, mas não foi salva no sistema. ' +
+          'Verifique se a migration 004 foi executada no Supabase.',
+          { duration: 6000 }
+        )
+        // Ainda mostra a foto localmente para não confundir
+        setUrl(cloudUrl)
+      }
     } catch (err) {
       console.error('[Upload]', err)
       toast.error('Erro ao enviar. Tente novamente.')

@@ -240,9 +240,14 @@ function OrderActions({ order, clientEmail, clientName, docUrl, setDocUrl }) {
 }
 
 /* ── OrderCard ────────────────────────────────────────────────── */
-function OrderCard({ order, clientEmail, clientName, isFirst, isLast }) {
+function OrderCard({ order, clientEmail, clientName, isFirst, isLast, onDocSaved }) {
   const [expanded,  setExpanded]  = useState(isFirst)
   const [docUrl,    setDocUrl]    = useState(order.signed_document_url || null)
+
+  const handleDocSaved = (url) => {
+    setDocUrl(url)
+    onDocSaved?.()   // invalida cache no pai
+  }
   const wStatus = warrantyStatus(order)
   const payments = (() => {
     try { return Array.isArray(order.payment_methods) ? order.payment_methods : JSON.parse(order.payment_methods||'[]') }
@@ -323,7 +328,7 @@ function OrderCard({ order, clientEmail, clientName, isFirst, isLast }) {
                 {order.notes}
               </div>
             )}
-            <OrderActions order={order} clientEmail={clientEmail} clientName={order.client_name || clientName} docUrl={docUrl} setDocUrl={setDocUrl}/>
+            <OrderActions order={order} clientEmail={clientEmail} clientName={order.client_name || clientName} docUrl={docUrl} setDocUrl={handleDocSaved}/>
           </div>
         )}
       </div>
@@ -557,7 +562,7 @@ export default function ClientHistory({ clientId, onClose }) {
                   Histórico de atendimentos ({orders.length})
                 </div>
                 {orders.map((o,idx)=>(
-                  <OrderCard key={o.id} order={o} clientEmail={client.email} clientName={client.name} isFirst={idx===0} isLast={idx===orders.length-1}/>
+                  <OrderCard key={o.id} order={o} clientEmail={client.email} clientName={client.name} isFirst={idx===0} isLast={idx===orders.length-1} onDocSaved={() => refetch()}/>
                 ))}
               </>
             )}

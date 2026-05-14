@@ -182,8 +182,7 @@ function EditForm({ client, onClose, onSaved }) {
 }
 
 /* ── OrderActions ─────────────────────────────────────────────── */
-function OrderActions({ order, clientEmail, clientName }) {
-  const [docUrl, setDocUrl] = useState(order.signed_document_url || null)
+function OrderActions({ order, clientEmail, clientName, docUrl, setDocUrl }) {
   const [dlLoading,   setDlLoading]   = useState(false)
   const [mailLoading, setMailLoading] = useState(false)
   const canEmail = !!clientEmail
@@ -242,7 +241,8 @@ function OrderActions({ order, clientEmail, clientName }) {
 
 /* ── OrderCard ────────────────────────────────────────────────── */
 function OrderCard({ order, clientEmail, clientName, isFirst, isLast }) {
-  const [expanded, setExpanded] = useState(isFirst)
+  const [expanded,  setExpanded]  = useState(isFirst)
+  const [docUrl,    setDocUrl]    = useState(order.signed_document_url || null)
   const wStatus = warrantyStatus(order)
   const payments = (() => {
     try { return Array.isArray(order.payment_methods) ? order.payment_methods : JSON.parse(order.payment_methods||'[]') }
@@ -323,7 +323,7 @@ function OrderCard({ order, clientEmail, clientName, isFirst, isLast }) {
                 {order.notes}
               </div>
             )}
-            <OrderActions order={order} clientEmail={clientEmail} clientName={order.client_name || clientName}/>
+            <OrderActions order={order} clientEmail={clientEmail} clientName={order.client_name || clientName} docUrl={docUrl} setDocUrl={setDocUrl}/>
           </div>
         )}
       </div>

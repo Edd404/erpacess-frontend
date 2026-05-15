@@ -5,10 +5,11 @@ import { useIsMobile } from '../hooks/useIsMobile'
 import { displayCurrency, getInitials, getAvatarColor } from '../utils/formatters'
 import {
   Search, Download, X, Shield, Loader2, ChevronRight,
-  Smartphone, Wrench, Mail, Copy, User,
+  Smartphone, Wrench, Mail, Copy, User, Pencil,
   TrendingUp, ClipboardList, Zap, CheckCheck, ChevronLeft,
   ChevronDown,
 } from 'lucide-react'
+import EditOrderModal from '../components/EditOrderModal'
 
 // ─── Tokens ───────────────────────────────────────────────────
 const C = {
@@ -507,6 +508,7 @@ function CopyBtn({ value }) {
 function OrderDetail({ order, onClose }) {
   const navigate    = useNavigate()
   const downloadPDF = useDownloadPDF()
+  const [editOpen, setEditOpen] = useState(false)
   const payments    = parsePayments(order.payment_methods)
   const exp = new Date(order.created_at)
   exp.setMonth(exp.getMonth() + (order.warranty_months || 0))
@@ -527,6 +529,15 @@ function OrderDetail({ order, onClose }) {
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <TypePill type={order.type} />
+          <button onClick={() => setEditOpen(true)} style={{
+            background: 'rgba(0,0,0,0.06)', border: 'none', borderRadius: 8,
+            height: 28, padding: '0 11px',
+            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
+            color: C.t2, fontFamily: 'Instrument Sans, sans-serif',
+            fontSize: 12, fontWeight: 600,
+          }}>
+            <Pencil size={11} /> Editar
+          </button>
           <button onClick={onClose} style={{
             background: 'rgba(0,0,0,0.06)', border: 'none', width: 28, height: 28,
             borderRadius: '50%', cursor: 'pointer', display: 'flex',
@@ -637,6 +648,10 @@ function OrderDetail({ order, onClose }) {
           )}
         </div>
       </div>
+
+      {editOpen && (
+        <EditOrderModal order={order} onClose={() => setEditOpen(false)} />
+      )}
     </>
   )
 }

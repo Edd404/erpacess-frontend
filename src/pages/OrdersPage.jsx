@@ -7,7 +7,7 @@ import {
   Search, Download, X, Shield, Loader2, ChevronRight,
   Smartphone, Wrench, Mail, Copy, User, Pencil,
   TrendingUp, ClipboardList, Zap, CheckCheck, ChevronLeft,
-  ChevronDown,
+  ChevronDown, Phone,
 } from 'lucide-react'
 import EditOrderModal from '../components/EditOrderModal'
 
@@ -508,146 +508,221 @@ function CopyBtn({ value }) {
 function OrderDetail({ order, onClose }) {
   const navigate    = useNavigate()
   const downloadPDF = useDownloadPDF()
-  const [editOpen, setEditOpen] = useState(false)
-  const payments    = parsePayments(order.payment_methods)
-  const exp = new Date(order.created_at)
+  const [editOpen,  setEditOpen]  = useState(false)
+  const [copiedIMEI, setCopiedIMEI] = useState(false)
+
+  const payments = parsePayments(order.payment_methods)
+  const exp      = new Date(order.created_at)
   exp.setMonth(exp.getMonth() + (order.warranty_months || 0))
   const daysLeft = Math.round((exp - Date.now()) / 86400000)
 
+  const COLORS   = ['#0A66FF','#12A150','#D97706','#D93025','#7C3AED','#0891B2']
+  const avatarBg = COLORS[(order.client_name||'').charCodeAt(0) % COLORS.length]
+  const initials = (order.client_name||'?').split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase()
+  const isManut  = order.type === 'manutencao'
+
+  const copyIMEI = () => {
+    if (!order.imei) return
+    navigator.clipboard.writeText(order.imei).then(() => { setCopiedIMEI(true); setTimeout(()=>setCopiedIMEI(false),2000) })
+  }
+
+  // KPIs do cabeçalho
+  const kpis = [
+    { label: 'Valor',     value: brl(order.price) },
+    { label: 'Garantia',  value: order.warranty_months ? `${order.warranty_months} ${order.warranty_months===1?'mês':'meses'}` : 'Sem garantia' },
+    { label: 'Pagamento', value: payments.map(p => PAY[p]||p).join(' + ') || '—' },
+    { label: 'Data',      value: new Date(order.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'}) },
+  ]
+
+  // Campos de detalhe
+  const details = [
+    { label:'Modelo',     value: order.iphone_model },
+    order.condition_sale ? { label:'Condição', value: order.condition_sale==='lacrado' ? '📦 Lacrado' : '✨ Seminovo' } : null,
+    order.capacity       ? { label:'Capacidade',value: order.capacity } : null,
+    order.color          ? { label:'Cor',       value: order.color    } : null,
+    order.imei           ? { label:'IMEI',      value: order.imei, mono: true, copyAction: copyIMEI, copied: copiedIMEI } : null,
+    order.notes          ? { label:'Observações',value: order.notes, wrap: true } : null,
+  ].filter(Boolean)
+
   return (
     <>
-      <div style={{
-        padding: '16px 20px 14px', borderBottom: `1px solid ${C.border}`,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        position: 'sticky', top: 0, background: C.surface, zIndex: 1,
-      }}>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: 15, fontWeight: 700 }}>Detalhes do Atendimento</div>
-          <div style={{ fontSize: 11, color: C.t2, marginTop: 2, fontFamily: 'JetBrains Mono, monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {order.order_number}
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0, marginLeft: 10 }}>
-          <TypePill type={order.type} />
-          <button onClick={() => setEditOpen(true)} style={{
-            background: 'rgba(0,0,0,0.06)', border: 'none', borderRadius: 8,
-            height: 28, padding: '0 10px', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 5,
-            color: C.t2, fontFamily: 'Instrument Sans, sans-serif', fontSize: 12, fontWeight: 600,
-          }}>
-            <Pencil size={11} /> Editar
-          </button>
-          <button onClick={onClose} style={{
-            background: 'rgba(0,0,0,0.06)', border: 'none', width: 28, height: 28,
-            borderRadius: '50%', cursor: 'pointer', display: 'flex',
-            alignItems: 'center', justifyContent: 'center', color: C.t2,
-          }}>
-            <X size={14} />
-          </button>
-        </div>
-      </div>
+      {/* ── HERO dark ────────────────────────────────────────── */}
+      <div style={{ background:'#0C0C0E', padding:'22px 22px 20px', flexShrink:0, position:'relative' }}>
 
-      <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div style={{
-          background: 'rgba(0,0,0,0.03)', borderRadius: 12, padding: '12px 14px',
-          display: 'flex', flexDirection: 'column', gap: 10,
+        {/* Fechar */}
+        <button onClick={onClose} style={{
+          position:'absolute', top:14, right:14,
+          background:'rgba(255,255,255,0.08)', border:'none', borderRadius:8,
+          width:32, height:32, display:'flex', alignItems:'center', justifyContent:'center',
+          cursor:'pointer', color:'rgba(255,255,255,0.5)', zIndex:2,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Avatar name={order.client_name} size={42} />
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.3, wordBreak: 'break-word' }}>
-                {order.client_name}
-              </div>
-              {order.client_phone && <div style={{ fontSize: 12, color: C.t2, marginTop: 2 }}>{order.client_phone}</div>}
-            </div>
+          <X size={15}/>
+        </button>
+
+        {/* Ações */}
+        <div style={{ position:'absolute', top:14, right:54, display:'flex', gap:6, zIndex:2 }}>
+          <button onClick={() => setEditOpen(true)} style={{
+            background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.15)',
+            borderRadius:8, padding:'6px 10px', cursor:'pointer',
+            color:'rgba(255,255,255,0.8)', display:'flex', alignItems:'center', gap:4,
+            fontSize:11, fontWeight:500, fontFamily:'Instrument Sans,sans-serif', whiteSpace:'nowrap',
+          }}
+            onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.18)'}
+            onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,0.1)'}>
+            <Pencil size={11}/> Editar
+          </button>
+        </div>
+
+        {/* Avatar + nome + OS */}
+        <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:20, paddingTop:40 }}>
+          <div style={{
+            width:54, height:54, borderRadius:'50%', background:avatarBg, flexShrink:0,
+            display:'flex', alignItems:'center', justifyContent:'center',
+            color:'#fff', fontSize:19, fontWeight:700, letterSpacing:'-0.5px',
+            boxShadow:'0 0 0 3px rgba(255,255,255,0.12)',
+          }}>
+            {initials}
           </div>
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            {order.client_phone && <CopyBtn value={order.client_phone} />}
-            <button onClick={() => { onClose(); navigate(`/clients/${order.client_id}`) }} style={{
-              background: C.accentSoft, border: 'none', borderRadius: 8, padding: '5px 12px',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
-              color: C.accent, fontFamily: 'Instrument Sans, sans-serif', fontSize: 11, fontWeight: 600,
-            }}>
-              <User size={11} /> Ver perfil
-            </button>
+          <div style={{ minWidth:0 }}>
+            <div style={{ fontSize:19, fontWeight:700, color:'#fff', letterSpacing:'-0.4px', lineHeight:1.2 }}>
+              {order.client_name}
+            </div>
+            <div style={{ fontSize:11, color:'rgba(255,255,255,0.38)', marginTop:5, display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+              <span style={{ display:'flex', alignItems:'center', gap:3 }}>
+                {isManut ? <Wrench size={10}/> : <Smartphone size={10}/>}
+                {isManut ? 'Manutenção' : 'Venda'}
+              </span>
+              <span style={{ fontFamily:'JetBrains Mono,monospace', fontSize:10 }}>{order.order_number}</span>
+            </div>
           </div>
         </div>
 
-        {order.warranty_months > 0 && (
-          <div style={{
-            background: daysLeft <= 0 ? C.redSoft : daysLeft <= 30 ? C.amberSoft : '#1D1D1F',
-            borderRadius: 12, padding: '16px 20px',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                <Shield size={12} style={{ color: daysLeft > 30 ? 'rgba(255,255,255,0.4)' : daysLeft <= 0 ? C.red : C.amber }} />
-                <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: daysLeft > 30 ? 'rgba(255,255,255,0.4)' : daysLeft <= 0 ? C.red : C.amber }}>Garantia</span>
-              </div>
-              <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.5px', color: daysLeft > 30 ? '#fff' : C.text }}>
-                {order.warranty_months} {order.warranty_months === 1 ? 'mês' : 'meses'}
-              </div>
-              <div style={{ fontSize: 12, marginTop: 3, color: daysLeft > 30 ? 'rgba(255,255,255,0.45)' : daysLeft <= 0 ? C.red : C.amber }}>
-                {daysLeft <= 0 ? 'Garantia expirada' : `Válida até ${exp.toLocaleDateString('pt-BR')} · ${daysLeft} dias restantes`}
-              </div>
-            </div>
-            <Shield size={30} style={{ color: 'rgba(255,255,255,0.08)', flexShrink: 0 }} />
-          </div>
-        )}
-
-        <div>
-          {[
-            { label: 'Modelo',     value: order.iphone_model },
-            order.condition_sale ? { label: 'Condição', value: order.condition_sale === 'lacrado' ? '📦 Lacrado' : '✨ Seminovo' } : null,
-            { label: 'Capacidade', value: order.capacity || '—' },
-            { label: 'Cor',        value: order.color || '—' },
-            { label: 'IMEI',       value: order.imei || '—', mono: true, copy: order.imei },
-            { label: 'Valor',      value: brl(order.price) },
-            { label: 'Pagamento',  value: payments.map(p => PAY[p] || p).join(' + ') || '—' },
-            { label: 'Data',       value: new Date(order.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) },
-            order.notes ? { label: 'Obs.', value: order.notes } : null,
-          ].filter(Boolean).map((row, i, arr) => (
-            <div key={row.label} style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              padding: '11px 0', borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : 'none', gap: 12,
+        {/* KPIs */}
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:8 }}>
+          {kpis.map(k => (
+            <div key={k.label} style={{
+              background:'rgba(255,255,255,0.07)', borderRadius:10, padding:'10px 12px',
+              border:'1px solid rgba(255,255,255,0.07)',
             }}>
-              <span style={{ fontSize: 12, color: C.t2, flexShrink: 0 }}>{row.label}</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{
-                  fontSize: row.mono ? 12 : 13, fontWeight: 500, textAlign: 'right',
-                  fontFamily: row.mono ? 'JetBrains Mono, monospace' : 'Instrument Sans, sans-serif',
-                }}>{row.value}</span>
-                {row.copy && <CopyBtn value={row.copy} />}
-              </div>
+              <div style={{ fontSize:9, color:'rgba(255,255,255,0.32)', fontWeight:700,
+                textTransform:'uppercase', letterSpacing:'0.6px', marginBottom:5 }}>{k.label}</div>
+              <div style={{ fontSize:13, fontWeight:700, color:'#fff' }}>{k.value}</div>
             </div>
           ))}
         </div>
+      </div>
 
-        <div style={{ display: 'flex', gap: 10, paddingTop: 4 }}>
-          <button
-            onClick={() => downloadPDF.mutate(order.id)}
-            disabled={downloadPDF.isPending}
-            style={{
-              flex: 1, padding: '11px 0', background: C.text, color: '#fff',
-              border: 'none', borderRadius: 12, cursor: 'pointer', fontSize: 13, fontWeight: 600,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-              fontFamily: 'Instrument Sans, sans-serif', opacity: downloadPDF.isPending ? 0.6 : 1,
-            }}
-          >
-            {downloadPDF.isPending ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Download size={14} />}
-            Baixar Garantia
+      {/* ── SCROLL BODY ───────────────────────────────────────── */}
+      <div style={{ flex:1, overflowY:'auto' }}>
+
+        {/* Garantia banner */}
+        {order.warranty_months > 0 && (
+          <div style={{
+            margin:'16px 20px 0',
+            background: daysLeft<=0 ? '#FEF2F2' : daysLeft<=30 ? '#FFFBEB' : '#F0FDF4',
+            border: `1px solid ${daysLeft<=0 ? '#FCA5A5' : daysLeft<=30 ? '#FDE68A' : '#86EFAC'}`,
+            borderRadius:12, padding:'12px 16px',
+            display:'flex', alignItems:'center', justifyContent:'space-between',
+          }}>
+            <div>
+              <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.5px',
+                color: daysLeft<=0 ? '#B91C1C' : daysLeft<=30 ? '#B45309' : '#15803D', marginBottom:3 }}>
+                Garantia
+              </div>
+              <div style={{ fontSize:16, fontWeight:700,
+                color: daysLeft<=0 ? '#B91C1C' : daysLeft<=30 ? '#92400E' : '#166534' }}>
+                {order.warranty_months} {order.warranty_months===1?'mês':'meses'}
+              </div>
+              <div style={{ fontSize:11, marginTop:2,
+                color: daysLeft<=0 ? '#DC2626' : daysLeft<=30 ? '#B45309' : '#16A34A' }}>
+                {daysLeft<=0 ? `Vencida há ${Math.abs(daysLeft)} dias` : `Válida até ${exp.toLocaleDateString('pt-BR')} · ${daysLeft} dias restantes`}
+              </div>
+            </div>
+            <Shield size={28} style={{ color: daysLeft<=0 ? '#FCA5A5' : daysLeft<=30 ? '#FDE68A' : '#86EFAC', flexShrink:0 }}/>
+          </div>
+        )}
+
+        {/* Detalhes do aparelho */}
+        <section style={{ margin:'16px 20px 0' }}>
+          <div style={{ fontSize:10, fontWeight:700, color:'#9CA3AF', textTransform:'uppercase',
+            letterSpacing:'0.7px', marginBottom:8 }}>Detalhes</div>
+          <div style={{ background:'#fff', borderRadius:12, border:'1px solid rgba(0,0,0,0.07)',
+            overflow:'hidden', boxShadow:'0 1px 4px rgba(0,0,0,0.04)' }}>
+            {details.map((row, i) => (
+              <div key={row.label} style={{
+                display:'flex', justifyContent:'space-between', alignItems: row.wrap ? 'flex-start' : 'center',
+                padding:'12px 16px',
+                borderBottom: i < details.length-1 ? '1px solid rgba(0,0,0,0.05)' : 'none',
+                gap:12,
+              }}>
+                <span style={{ fontSize:12, color:'#6B7280', flexShrink:0 }}>{row.label}</span>
+                <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  <span style={{
+                    fontSize: row.mono ? 12 : 13, fontWeight:500, textAlign:'right',
+                    fontFamily: row.mono ? 'JetBrains Mono,monospace' : 'Instrument Sans,sans-serif',
+                    color:'#111827', lineHeight: row.wrap ? 1.5 : 1,
+                  }}>{row.value}</span>
+                  {row.copyAction && (
+                    <button onClick={row.copyAction} style={{
+                      background: row.copied ? '#F0FDF4' : 'rgba(0,0,0,0.05)',
+                      border:'none', borderRadius:6, padding:'3px 7px', cursor:'pointer',
+                      display:'flex', alignItems:'center', gap:3,
+                      color: row.copied ? '#15803D' : '#6B7280', fontSize:11, fontWeight:600,
+                      fontFamily:'Instrument Sans,sans-serif',
+                    }}>
+                      {row.copied ? <CheckCheck size={11}/> : <Copy size={11}/>}
+                      {row.copied ? 'Copiado' : 'Copiar'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Ver perfil do cliente */}
+        <section style={{ margin:'12px 20px 0' }}>
+          <button onClick={() => { onClose(); navigate(`/clients/${order.client_id}`) }} style={{
+            width:'100%', padding:'11px 16px', background:'#F3F4F6',
+            border:'1px solid #E5E7EB', borderRadius:12, cursor:'pointer',
+            display:'flex', alignItems:'center', justifyContent:'space-between',
+            fontFamily:'Instrument Sans,sans-serif',
+          }}>
+            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+              <div style={{ width:32, height:32, borderRadius:'50%', background:avatarBg,
+                display:'flex', alignItems:'center', justifyContent:'center',
+                color:'#fff', fontSize:11, fontWeight:700 }}>{initials}</div>
+              <div style={{ textAlign:'left' }}>
+                <div style={{ fontSize:13, fontWeight:600, color:'#111827' }}>{order.client_name}</div>
+                <div style={{ fontSize:11, color:'#6B7280', marginTop:1 }}>Ver histórico completo</div>
+              </div>
+            </div>
+            <ChevronRight size={14} style={{ color:'#9CA3AF' }}/>
+          </button>
+        </section>
+
+        {/* Ações PDF / e-mail */}
+        <section style={{ margin:'12px 20px 20px', display:'flex', gap:10 }}>
+          <button onClick={() => downloadPDF.mutate(order.id)} disabled={downloadPDF.isPending} style={{
+            flex:1, padding:'11px 0', background:'#111827', color:'#fff',
+            border:'none', borderRadius:12, cursor:'pointer', fontSize:13, fontWeight:600,
+            display:'flex', alignItems:'center', justifyContent:'center', gap:7,
+            fontFamily:'Instrument Sans,sans-serif', opacity: downloadPDF.isPending ? 0.6 : 1,
+          }}>
+            {downloadPDF.isPending ? <Loader2 size={14} style={{ animation:'spin 1s linear infinite' }}/> : <Download size={14}/>}
+            Baixar PDF
           </button>
           {order.client_email && (
             <button style={{
-              flex: 1, padding: '11px 0', background: C.accentSoft, color: C.accent,
-              border: 'none', borderRadius: 12, cursor: 'pointer', fontSize: 13, fontWeight: 600,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-              fontFamily: 'Instrument Sans, sans-serif',
+              flex:1, padding:'11px 0', background:C.accentSoft, color:C.accent,
+              border:'none', borderRadius:12, cursor:'pointer', fontSize:13, fontWeight:600,
+              display:'flex', alignItems:'center', justifyContent:'center', gap:7,
+              fontFamily:'Instrument Sans,sans-serif',
             }}>
-              <Mail size={14} /> Reenviar e-mail
+              <Mail size={14}/> Reenviar e-mail
             </button>
           )}
-        </div>
+        </section>
       </div>
 
       {editOpen && (
@@ -826,7 +901,8 @@ export default function OrdersPage() {
         }}>
           <div onClick={(e) => e.stopPropagation()} style={{
             background: C.surface, borderRadius: 20,
-            width: 560, maxWidth: '95vw', maxHeight: '90vh', overflow: 'auto',
+            width: 560, maxWidth: '95vw', maxHeight: '90vh',
+            display: 'flex', flexDirection: 'column', overflow: 'hidden',
             boxShadow: '0 32px 80px rgba(0,0,0,0.24)',
             animation: 'modalIn .2s ease',
           }}>

@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useTheme } from '../context/ThemeContext'
-import { X, Smartphone, Wrench, Download, Send, Shield, CreditCard, Calendar, User, Hash, Loader2, CheckCircle2, Clock, AlertCircle, XCircle, ChevronRight } from 'lucide-react'
+import { X, Smartphone, Wrench, Download, Send, Shield, CreditCard, Calendar, User, Hash, Loader2, CheckCircle2, Clock, AlertCircle, XCircle, ChevronRight, Pencil } from 'lucide-react'
 import { useOrder, useUpdateOrderStatus, useDownloadPDF } from '../hooks/useData'
 import { useMutation } from '@tanstack/react-query'
 import { orderService } from '../services/api'
 import toast from 'react-hot-toast'
+import EditOrderModal from './EditOrderModal'
 
 const brl = (v) => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v||0)
 const fmtDate = (d) => d ? new Date(d).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'
@@ -24,6 +25,7 @@ export default function OrderDetail({ orderId, onClose }) {
   const updateStatus = useUpdateOrderStatus()
   const downloadPDF  = useDownloadPDF()
   const [changingStatus, setChangingStatus] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
 
   const resendPDF = useMutation({
     mutationFn: () => orderService.resendPDF(orderId),
@@ -57,6 +59,7 @@ export default function OrderDetail({ orderId, onClose }) {
   const { structured, free } = parseNotes(order?.notes)
 
   return (
+    <>
     <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.55)', backdropFilter:'blur(6px)', zIndex:1500, display:'flex', alignItems:'center', justifyContent:'center', padding:16, fontFamily:'Instrument Sans,sans-serif' }}
       onClick={onClose}>
 
@@ -79,9 +82,21 @@ export default function OrderDetail({ orderId, onClose }) {
                 </div>
               </div>
             </div>
-            <button onClick={onClose} style={{ background:'rgba(255,255,255,0.1)', border:'none', borderRadius:8, width:32, height:32, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'rgba(255,255,255,0.6)' }}>
-              <X size={15}/>
-            </button>
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              {!isLoading && (
+                <button onClick={() => setEditOpen(true)}
+                  style={{ background:'rgba(255,255,255,0.1)', border:'none', borderRadius:8,
+                    height:32, padding:'0 12px', display:'flex', alignItems:'center',
+                    gap:6, cursor:'pointer', color:'rgba(255,255,255,0.75)',
+                    fontSize:12, fontWeight:500, fontFamily:'Instrument Sans,sans-serif' }}>
+                  <Pencil size={12}/>
+                  Editar
+                </button>
+              )}
+              <button onClick={onClose} style={{ background:'rgba(255,255,255,0.1)', border:'none', borderRadius:8, width:32, height:32, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'rgba(255,255,255,0.6)' }}>
+                <X size={15}/>
+              </button>
+            </div>
           </div>
 
           {/* Status flow */}
@@ -235,6 +250,11 @@ export default function OrderDetail({ orderId, onClose }) {
       </div>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
+
+    {editOpen && order && (
+      <EditOrderModal order={order} onClose={() => setEditOpen(false)}/>
+    )}
+  </>
   )
 }
 

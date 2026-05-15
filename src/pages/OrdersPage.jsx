@@ -423,7 +423,7 @@ function OrderCard({ order, onClick, onPDF, pdfLoading }) {
             </div>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '50%' }}>
           <WarrantyBadge createdAt={order.created_at} warrantyMonths={order.warranty_months} />
           {order.condition_sale && (
             <span style={{
@@ -551,16 +551,16 @@ function OrderDetail({ order, onClose }) {
       <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          background: 'rgba(0,0,0,0.03)', borderRadius: 12, padding: '12px 14px',
+          background: 'rgba(0,0,0,0.03)', borderRadius: 12, padding: '12px 14px', gap: 10,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
             <Avatar name={order.client_name} size={42} />
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 600 }}>{order.client_name}</div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{order.client_name}</div>
               {order.client_phone && <div style={{ fontSize: 12, color: C.t2, marginTop: 2 }}>{order.client_phone}</div>}
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 6 }}>
+          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
             {order.client_phone && <CopyBtn value={order.client_phone} />}
             <button onClick={() => { onClose(); navigate(`/clients/${order.client_id}`) }} style={{
               background: C.accentSoft, border: 'none', borderRadius: 8, padding: '5px 10px',
@@ -688,7 +688,7 @@ export default function OrdersPage() {
   const [model,     setModel]     = useState('')
   const [period,    setPeriod]    = useState('30')
   const [page,      setPage]      = useState(1)
-  const [selected,  setSelected]  = useState(null)
+  const [selectedId, setSelectedId] = useState(null)
 
   const isMobile = useIsMobile()
 
@@ -711,6 +711,7 @@ export default function OrdersPage() {
   const orders     = data?.data || []
   const meta       = data?.meta || {}
   const totalPages = Math.ceil((meta.total || 0) / limit)
+  const selectedOrder = selectedId ? (orders.find(o => o.id === selectedId) ?? null) : null
 
   const { data: stats } = useOrderStats(period)
   const s = stats?.summary || {}
@@ -804,10 +805,10 @@ export default function OrdersPage() {
             <div style={{ fontSize: 13, color: C.t3, marginTop: 4 }}>Tente ajustar os filtros</div>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(340px, 1fr))', gap: isMobile ? 10 : 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(min(340px, 100%), 1fr))', gap: isMobile ? 10 : 14, overflow: 'hidden' }}>
             {orders.map((o, i) => (
               <div key={o.id} style={{ animationDelay: `${i * 30}ms` }}>
-                <OrderCard order={o} onClick={setSelected} onPDF={(id) => downloadPDF.mutate(id)} pdfLoading={downloadPDF.isPending} />
+                <OrderCard order={o} onClick={() => setSelectedId(o.id)} onPDF={(id) => downloadPDF.mutate(id)} pdfLoading={downloadPDF.isPending} />
               </div>
             ))}
           </div>
@@ -816,8 +817,8 @@ export default function OrdersPage() {
         <Pagination page={page} totalPages={totalPages} onChange={setPage} />
       </div>
 
-      {selected && (
-        <div onClick={() => setSelected(null)} style={{
+      {selectedOrder && (
+        <div onClick={() => setSelectedId(null)} style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
           backdropFilter: 'blur(6px)', zIndex: 1000,
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
@@ -828,7 +829,7 @@ export default function OrdersPage() {
             boxShadow: '0 32px 80px rgba(0,0,0,0.24)',
             animation: 'modalIn .2s ease',
           }}>
-            <OrderDetail order={selected} onClose={() => setSelected(null)} />
+            <OrderDetail order={selectedOrder} onClose={() => setSelectedId(null)} />
           </div>
         </div>
       )}

@@ -411,8 +411,8 @@ function OrderCard({ order, onClick, onPDF, pdfLoading }) {
         animation: 'fadeUp .25s ease forwards', opacity: 0,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
           <Avatar name={order.client_name} size={38} />
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -423,7 +423,7 @@ function OrderCard({ order, onClick, onPDF, pdfLoading }) {
             </div>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '50%' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end', flexShrink: 0, maxWidth: '44%' }}>
           <WarrantyBadge createdAt={order.created_at} warrantyMonths={order.warranty_months} />
           {order.condition_sale && (
             <span style={{
@@ -438,14 +438,14 @@ function OrderCard({ order, onClick, onPDF, pdfLoading }) {
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.3px' }}>{order.iphone_model}</div>
-          <div style={{ fontSize: 11, color: C.t3, marginTop: 2 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{order.iphone_model}</div>
+          <div style={{ fontSize: 11, color: C.t3, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {[order.capacity, order.color].filter(Boolean).join(' · ') || '—'}
           </div>
         </div>
-        <div style={{ textAlign: 'right' }}>
+        <div style={{ textAlign: 'right', flexShrink: 0 }}>
           <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.5px' }}>{brl(order.price)}</div>
           {payments.length > 0 && (
             <div style={{ fontSize: 10, color: C.t3, marginTop: 2 }}>
@@ -521,20 +521,19 @@ function OrderDetail({ order, onClose }) {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         position: 'sticky', top: 0, background: C.surface, zIndex: 1,
       }}>
-        <div>
+        <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontSize: 15, fontWeight: 700 }}>Detalhes do Atendimento</div>
-          <div style={{ fontSize: 11, color: C.t2, marginTop: 2, fontFamily: 'JetBrains Mono, monospace' }}>
+          <div style={{ fontSize: 11, color: C.t2, marginTop: 2, fontFamily: 'JetBrains Mono, monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {order.order_number}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0, marginLeft: 10 }}>
           <TypePill type={order.type} />
           <button onClick={() => setEditOpen(true)} style={{
             background: 'rgba(0,0,0,0.06)', border: 'none', borderRadius: 8,
-            height: 28, padding: '0 11px',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
-            color: C.t2, fontFamily: 'Instrument Sans, sans-serif',
-            fontSize: 12, fontWeight: 600,
+            height: 28, padding: '0 10px', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 5,
+            color: C.t2, fontFamily: 'Instrument Sans, sans-serif', fontSize: 12, fontWeight: 600,
           }}>
             <Pencil size={11} /> Editar
           </button>
@@ -553,10 +552,13 @@ function OrderDetail({ order, onClose }) {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           background: 'rgba(0,0,0,0.03)', borderRadius: 12, padding: '12px 14px', gap: 10,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
             <Avatar name={order.client_name} size={42} />
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{order.client_name}</div>
+              <div style={{ fontSize: 14, fontWeight: 600,
+                display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                overflow: 'hidden', lineHeight: 1.3,
+              }}>{order.client_name}</div>
               {order.client_phone && <div style={{ fontSize: 12, color: C.t2, marginTop: 2 }}>{order.client_phone}</div>}
             </div>
           </div>
@@ -688,7 +690,7 @@ export default function OrdersPage() {
   const [model,     setModel]     = useState('')
   const [period,    setPeriod]    = useState('30')
   const [page,      setPage]      = useState(1)
-  const [selectedId, setSelectedId] = useState(null)
+  const [selectedId,  setSelectedId]  = useState(null)
 
   const isMobile = useIsMobile()
 
@@ -805,7 +807,7 @@ export default function OrdersPage() {
             <div style={{ fontSize: 13, color: C.t3, marginTop: 4 }}>Tente ajustar os filtros</div>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(min(340px, 100%), 1fr))', gap: isMobile ? 10 : 14, overflow: 'hidden' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(340px, 1fr))', gap: isMobile ? 10 : 14 }}>
             {orders.map((o, i) => (
               <div key={o.id} style={{ animationDelay: `${i * 30}ms` }}>
                 <OrderCard order={o} onClick={() => setSelectedId(o.id)} onPDF={(id) => downloadPDF.mutate(id)} pdfLoading={downloadPDF.isPending} />

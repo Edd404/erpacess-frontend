@@ -514,7 +514,7 @@ export default function EditOrderModal({ order, onClose }) {
             <div style={{ background:T.surface, borderRadius:12, padding:'18px 16px',
               display:'flex', flexDirection:'column', gap:16 }}>
 
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(140px, 1fr))', gap:14 }}>
                 <FieldRow label="Valor (R$)" err={errors.price}>
                   <div style={{ border:`1px solid ${errors.price ? '#D93025' : T.ink5}`,
                     borderRadius:10, background:T.surface, display:'flex', alignItems:'center' }}>

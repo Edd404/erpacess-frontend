@@ -64,6 +64,7 @@ export const orderService = {
   stats:        (period) => api.get('/orders/stats', { params: { period } }),
   advancedStats:(period) => api.get('/orders/stats/advanced', { params: { period } }),
   create:       (d)  => api.post('/orders', d),
+  update:       (id, d) => api.put(`/orders/${id}`, d),
   updateStatus: (id, status) => api.patch(`/orders/${id}/status`, { status }),
   downloadPDF:  (id) => api.get(`/orders/${id}/warranty-pdf`, { responseType: 'blob' }),
   resendPDF:    (id) => api.patch(`/orders/${id}/resend-pdf`),

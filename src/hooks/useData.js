@@ -99,6 +99,21 @@ export const useUpdateOrderStatus = () => {
   });
 };
 
+export const useUpdateOrder = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }) => orderService.update(id, data),
+    onSuccess: (_, { id }) => {
+      qc.invalidateQueries({ queryKey: ['orders'] });
+      qc.invalidateQueries({ queryKey: ['orders', id] });
+      qc.invalidateQueries({ queryKey: ['orders-stats'] });
+      qc.invalidateQueries({ queryKey: ['client-history'] });
+      toast.success('Atendimento atualizado com sucesso!');
+    },
+    onError: (err) => toast.error(err.response?.data?.error || 'Erro ao atualizar atendimento.'),
+  });
+};
+
 export const useDownloadPDF = () =>
   useMutation({
     mutationFn: async (id) => {

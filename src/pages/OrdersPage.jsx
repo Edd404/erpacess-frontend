@@ -549,23 +549,22 @@ function OrderDetail({ order, onClose }) {
 
       <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          background: 'rgba(0,0,0,0.03)', borderRadius: 12, padding: '12px 14px', gap: 10,
+          background: 'rgba(0,0,0,0.03)', borderRadius: 12, padding: '12px 14px',
+          display: 'flex', flexDirection: 'column', gap: 10,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Avatar name={order.client_name} size={42} />
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 600,
-                display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-                overflow: 'hidden', lineHeight: 1.3,
-              }}>{order.client_name}</div>
+              <div style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.3, wordBreak: 'break-word' }}>
+                {order.client_name}
+              </div>
               {order.client_phone && <div style={{ fontSize: 12, color: C.t2, marginTop: 2 }}>{order.client_phone}</div>}
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             {order.client_phone && <CopyBtn value={order.client_phone} />}
             <button onClick={() => { onClose(); navigate(`/clients/${order.client_id}`) }} style={{
-              background: C.accentSoft, border: 'none', borderRadius: 8, padding: '5px 10px',
+              background: C.accentSoft, border: 'none', borderRadius: 8, padding: '5px 12px',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
               color: C.accent, fontFamily: 'Instrument Sans, sans-serif', fontSize: 11, fontWeight: 600,
             }}>

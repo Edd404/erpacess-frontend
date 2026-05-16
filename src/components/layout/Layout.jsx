@@ -4,19 +4,24 @@ import { useTheme } from '../../context/ThemeContext'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import {
   LayoutDashboard, Users, ClipboardList, Plus, LogOut,
+  ShieldCheck,
   Smartphone, ArrowLeft,
 } from 'lucide-react'
 
 const navItems = [
-  { path:'/',           icon:LayoutDashboard, label:'Dashboard' },
-  { path:'/clients',    icon:Users,           label:'Clientes'  },
-  { path:'/orders',     icon:ClipboardList,   label:'Ordens'    },
-  { path:'/orders/new', icon:Plus,            label:'Novo', cta:true },
+  { path:'/',            icon:LayoutDashboard, label:'Dashboard' },
+  { path:'/clients',     icon:Users,           label:'Clientes'  },
+  { path:'/orders',      icon:ClipboardList,   label:'Ordens'    },
+  { path:'/imei-check',  icon:ShieldCheck,     label:'IMEI'      },
+  { path:'/orders/new',  icon:Plus,            label:'Novo', cta:true },
 ]
 
 const pageTitles = {
-  '/':           { title:'Dashboard',        sub:'Visão geral do negócio' },
-  '/clients':    { title:'Clientes',         sub:'Gerenciamento de clientes' },
+  '/':             { title:'Dashboard',        sub:'Visão geral do negócio'   },
+  '/clients':      { title:'Clientes',         sub:'Gerenciamento de clientes' },
+  '/orders':       { title:'Atendimentos',     sub:'Vendas e manutenções'      },
+  '/orders/new':   { title:'Novo Atendimento', sub:'Registrar venda ou serviço'},
+  '/imei-check':   { title:'Consulta IMEI',    sub:'Verificação de aparelhos'  },
   '/orders':     { title:'Atendimentos',     sub:'Vendas e manutenções' },
   '/orders/new': { title:'Novo Atendimento', sub:'Registrar venda ou serviço' },
 }

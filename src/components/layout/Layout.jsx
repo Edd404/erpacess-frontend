@@ -41,8 +41,16 @@ function MobileLayout({ user, logout, location, navigate, info, T }) {
           ? <button onClick={()=>navigate('/orders')} style={{ background:'rgba(255,255,255,0.08)', border:'none', borderRadius:'50%', width:32, height:32, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', cursor:'pointer', flexShrink:0 }}>
               <ArrowLeft size={16}/>
             </button>
-          : <div style={{ width:30, height:30, background:T.blue, borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-              <Smartphone size={15} style={{ color:'#fff' }}/>
+          : <div style={{ display:'flex', alignItems:'center', gap:9, flexShrink:0 }}>
+              <div style={{ width:28, height:28, background:'linear-gradient(135deg,#0A66FF 0%,#0047CC 100%)', borderRadius:7, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 2px 6px rgba(10,102,255,0.40)' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="5" y="2" width="14" height="20" rx="2.5"/>
+                  <circle cx="12" cy="17.5" r="0.8" fill="#fff" stroke="none"/>
+                </svg>
+              </div>
+              <span style={{ fontSize:14, fontWeight:700, color:'#fff', letterSpacing:'-0.2px' }}>
+                Acess<span style={{ color:'rgba(255,255,255,0.40)', fontWeight:400 }}>phones</span>
+              </span>
             </div>
         }
         <div style={{ flex:1, fontSize:15, fontWeight:700, color:'#fff', letterSpacing:'-0.2px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
@@ -91,12 +99,18 @@ function DesktopLayout({ user, logout, location, navigate, info, T }) {
       <aside style={{ width:215, background:T.sidebar, display:'flex', flexDirection:'column', flexShrink:0, borderRight:'1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ padding:'20px 18px 14px', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
           <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-            <div style={{ width:30, height:30, background:T.blue, borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-              <Smartphone size={16} style={{ color:'#fff' }}/>
+            {/* Logo mark Acessphones */}
+            <div style={{ width:32, height:32, borderRadius:9, background:'linear-gradient(135deg,#0A66FF 0%,#0047CC 100%)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:'0 2px 8px rgba(10,102,255,0.40)' }}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="5" y="2" width="14" height="20" rx="2.5"/>
+                <circle cx="12" cy="17.5" r="0.8" fill="#fff" stroke="none"/>
+              </svg>
             </div>
             <div>
-              <div style={{ fontSize:14, fontWeight:700, color:'#fff', letterSpacing:'-0.2px' }}>iStore</div>
-              <div style={{ fontSize:10, color:'rgba(255,255,255,0.35)', marginTop:1 }}>Gestão Premium</div>
+              <div style={{ fontSize:14, fontWeight:700, color:'#fff', letterSpacing:'-0.3px', lineHeight:1.1 }}>
+                Acess<span style={{ color:'rgba(255,255,255,0.42)', fontWeight:400 }}>phones</span>
+              </div>
+              <div style={{ fontSize:9, color:'rgba(255,255,255,0.28)', marginTop:2, letterSpacing:'0.12em', textTransform:'uppercase' }}>Sistema de Gestão</div>
             </div>
           </div>
         </div>

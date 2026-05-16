@@ -10,7 +10,6 @@ import ClientsPage from './pages/ClientsPage'
 import OrdersPage from './pages/OrdersPage'
 import NewOrderPage from './pages/NewOrderPage'
 import ClientHistoryPage from './pages/ClientHistoryPage'
-import IMEICheckPage from './pages/IMEICheckPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -73,7 +72,6 @@ function AppInner() {
           <Route path="orders"    element={<OrdersPage/>}/>
           <Route path="orders/new"    element={<NewOrderPage/>}/>
           <Route path="clients/:id"   element={<ClientHistoryPage/>}/>
-          <Route path="imei-check"    element={<IMEICheckPage/>}/>
         </Route>
         <Route path="*" element={<Navigate to="/" replace/>}/>
       </Routes>

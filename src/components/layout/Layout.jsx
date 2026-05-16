@@ -4,24 +4,19 @@ import { useTheme } from '../../context/ThemeContext'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import {
   LayoutDashboard, Users, ClipboardList, Plus, LogOut,
-  ShieldCheck,
   Smartphone, ArrowLeft,
 } from 'lucide-react'
 
 const navItems = [
-  { path:'/',            icon:LayoutDashboard, label:'Dashboard' },
-  { path:'/clients',     icon:Users,           label:'Clientes'  },
-  { path:'/orders',      icon:ClipboardList,   label:'Ordens'    },
-  { path:'/imei-check',  icon:ShieldCheck,     label:'IMEI'      },
-  { path:'/orders/new',  icon:Plus,            label:'Novo', cta:true },
+  { path:'/',           icon:LayoutDashboard, label:'Dashboard' },
+  { path:'/clients',    icon:Users,           label:'Clientes'  },
+  { path:'/orders',     icon:ClipboardList,   label:'Ordens'    },
+  { path:'/orders/new', icon:Plus,            label:'Novo', cta:true },
 ]
 
 const pageTitles = {
-  '/':             { title:'Dashboard',        sub:'Visão geral do negócio'   },
-  '/clients':      { title:'Clientes',         sub:'Gerenciamento de clientes' },
-  '/orders':       { title:'Atendimentos',     sub:'Vendas e manutenções'      },
-  '/orders/new':   { title:'Novo Atendimento', sub:'Registrar venda ou serviço'},
-  '/imei-check':   { title:'Consulta IMEI',    sub:'Verificação de aparelhos'  },
+  '/':           { title:'Dashboard',        sub:'Visão geral do negócio' },
+  '/clients':    { title:'Clientes',         sub:'Gerenciamento de clientes' },
   '/orders':     { title:'Atendimentos',     sub:'Vendas e manutenções' },
   '/orders/new': { title:'Novo Atendimento', sub:'Registrar venda ou serviço' },
 }
@@ -104,7 +99,6 @@ function DesktopLayout({ user, logout, location, navigate, info, T }) {
       <aside style={{ width:215, background:T.sidebar, display:'flex', flexDirection:'column', flexShrink:0, borderRight:'1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ padding:'20px 18px 14px', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
           <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-            {/* Logo mark Acessphones */}
             <div style={{ width:32, height:32, borderRadius:9, background:'linear-gradient(135deg,#0A66FF 0%,#0047CC 100%)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:'0 2px 8px rgba(10,102,255,0.40)' }}>
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="5" y="2" width="14" height="20" rx="2.5"/>

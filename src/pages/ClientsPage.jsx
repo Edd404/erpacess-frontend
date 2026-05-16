@@ -409,7 +409,7 @@ export default function ClientsPage() {
                         <td style={{ padding:'13px 14px' }}>
                           <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
                             <span style={{ fontSize:12, display:'flex', alignItems:'center', gap:5, color:T.t2 }}>
-                              <Phone size={10}/>{c.phone}
+                              <Phone size={10}/>{formatPhone(c.phone)}
                             </span>
                             {c.email && (
                               <span style={{ fontSize:12, display:'flex', alignItems:'center', gap:5, color:T.t2 }}>

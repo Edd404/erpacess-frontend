@@ -279,7 +279,7 @@ export default function ClientsPage() {
       <div style={{ display:'flex', flexDirection:'column', gap:16, fontFamily:'Instrument Sans,sans-serif' }}>
 
         {/* ── Métricas ── */}
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(140px, 1fr))', gap:10 }}>
           <MetricCard
             icon={Users} label="Total de clientes" value={metrics.total}
             sub="na base de dados"
@@ -298,49 +298,46 @@ export default function ClientsPage() {
         </div>
 
         {/* ── Busca + ações ── */}
-        <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
-          <div style={{ position:'relative', flex:1, minWidth:0 }}>
-            <Search size={13} style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:T.t3 }}/>
+        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+          {/* Busca — linha inteira */}
+          <div style={{ position:'relative' }}>
+            <Search size={14} style={{ position:'absolute', left:12, top:'50%', transform:'translateY(-50%)', color:T.t3, pointerEvents:'none' }}/>
             <input
               value={search} onChange={e=>setSearch(e.target.value)}
-              placeholder="Buscar por nome, CPF, telefone..."
-              style={{ width:'100%', padding:'9px 12px 9px 32px', border:`1px solid ${T.borderS}`, borderRadius:9, fontSize:13, color:T.text, background:T.surface, fontFamily:'Instrument Sans,sans-serif', outline:'none', boxSizing:'border-box' }}
+              placeholder="Buscar por nome, CPF ou telefone..."
+              style={{ width:'100%', padding:'11px 14px 11px 36px', border:`1px solid ${T.borderS}`, borderRadius:10, fontSize:14, color:T.text, background:T.surface, fontFamily:'Instrument Sans,sans-serif', outline:'none', boxSizing:'border-box' }}
             />
           </div>
 
-          {/* Exportar CSV */}
-          <button
-            onClick={() => exportCSV(clients)}
-            disabled={clients.length === 0}
-            title="Exportar lista em CSV"
-            style={{
-              display:'flex', alignItems:'center', gap:6, padding:'9px 14px',
-              background:T.surface, color:T.t2, border:`1px solid ${T.borderS}`,
-              borderRadius:9, fontSize:13, fontWeight:500, cursor: clients.length ? 'pointer' : 'default',
-              fontFamily:'Instrument Sans,sans-serif', opacity: clients.length ? 1 : 0.4,
-              transition:'background .15s',
-            }}
-            onMouseEnter={e => { if (clients.length) e.currentTarget.style.background = T.bg }}
-            onMouseLeave={e => { e.currentTarget.style.background = T.surface }}
-          >
-            <Download size={13}/> Exportar
-          </button>
+          {/* Ações — linha separada */}
+          <div style={{ display:'flex', gap:8 }}>
+            {/* Exportar CSV */}
+            <button
+              onClick={() => exportCSV(clients)}
+              disabled={clients.length === 0}
+              style={{
+                flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:6, padding:'9px 14px',
+                background:T.surface, color:T.t2, border:`1px solid ${T.borderS}`,
+                borderRadius:9, fontSize:13, fontWeight:500, cursor: clients.length ? 'pointer' : 'default',
+                fontFamily:'Instrument Sans,sans-serif', opacity: clients.length ? 1 : 0.4,
+              }}
+            >
+              <Download size={13}/> Exportar
+            </button>
 
-          {/* Novo Cliente */}
-          <button
-            onClick={()=>setShowNew(true)}
-            style={{
-              display:'flex', alignItems:'center', gap:7, padding:'9px 18px',
-              background:'#1A7A4A', color:'#fff', border:'none', borderRadius:9,
-              fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'Instrument Sans,sans-serif',
-              boxShadow:'0 2px 8px rgba(26,122,74,0.28)', transition:'background .15s, box-shadow .15s',
-              whiteSpace:'nowrap', flexShrink:0,
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background='#15693E'; e.currentTarget.style.boxShadow='0 4px 14px rgba(26,122,74,0.38)' }}
-            onMouseLeave={e => { e.currentTarget.style.background='#1A7A4A'; e.currentTarget.style.boxShadow='0 2px 8px rgba(26,122,74,0.28)' }}
-          >
-            <Plus size={14}/> Novo Cliente
-          </button>
+            {/* Novo Cliente */}
+            <button
+              onClick={()=>setShowNew(true)}
+              style={{
+                flex:2, display:'flex', alignItems:'center', justifyContent:'center', gap:7, padding:'9px 18px',
+                background:'#1A7A4A', color:'#fff', border:'none', borderRadius:9,
+                fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'Instrument Sans,sans-serif',
+                boxShadow:'0 2px 8px rgba(26,122,74,0.28)',
+              }}
+            >
+              <Plus size={14}/> Novo Cliente
+            </button>
+          </div>
         </div>
 
         {/* ── Tabela ── */}

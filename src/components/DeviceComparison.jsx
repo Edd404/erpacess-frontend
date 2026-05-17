@@ -10,7 +10,6 @@ import {
 } from 'recharts'
 import {
   Smartphone, Loader2, ChevronDown, ChevronUp, Trophy,
-  Package, Sparkles,
 } from 'lucide-react'
 import api from '../services/api'
 import { useIsMobile } from '../hooks/useIsMobile'
@@ -32,24 +31,8 @@ const C = {
   violetSoft: 'rgba(175,82,222,0.10)',
   teal:       '#32ADE6',
   red:        '#FF3B30',
-  lacrado:    '#0A66FF',
-  lacradoBg:  'rgba(10,102,255,0.10)',
-  seminovo:   '#FF9F0A',
-  semiovoBg:  'rgba(255,159,10,0.10)',
   shadow:     '0 2px 12px rgba(0,0,0,0.06), 0 0 0 0.5px rgba(0,0,0,0.07)',
 }
-
-const SHORTCUTS = [
-  { l:'7d',  n:7   },
-  { l:'15d', n:15  },
-  { l:'30d', n:30  },
-  { l:'60d', n:60  },
-  { l:'90d', n:90  },
-  { l:'6m',  n:180 },
-  { l:'1a',  n:365 },
-]
-
-const pct = (a, b) => b > 0 ? Math.round((a / b) * 100) : 0
 
 const PALETTE = [C.accent, C.violet, C.teal, C.amber, C.green]
 
@@ -131,14 +114,7 @@ export default function DeviceComparison() {
   const [error,       setError]       = useState(null)
   const [expanded,    setExpanded]    = useState(null)
   const [chartMetric, setChartMetric] = useState('total')
-  const [activeShort, setActiveShort] = useState(30)
   const isMobile = useIsMobile()
-
-  const applyShortcut = (n) => {
-    setActiveShort(n)
-    setStartDate(daysAgo(n))
-    setEndDate(today())
-  }
 
   const fetchData = useCallback(async () => {
     if (!startDate || !endDate) return
@@ -186,11 +162,6 @@ export default function DeviceComparison() {
     catch { return 0 }
   }, [startDate, endDate])
 
-  const totalLacrado  = useMemo(() => models.reduce((s, m) => s + (parseInt(m.lacrados)  || 0), 0), [models])
-  const totalSeminovo = useMemo(() => models.reduce((s, m) => s + (parseInt(m.seminovos) || 0), 0), [models])
-  const recLacrado    = useMemo(() => models.reduce((s, m) => s + (parseFloat(m.receita_lacrado)  || 0), 0), [models])
-  const recSeminovo   = useMemo(() => models.reduce((s, m) => s + (parseFloat(m.receita_seminovo) || 0), 0), [models])
-
   const toggleExpand = (i) => setExpanded((prev) => (prev === i ? null : i))
 
   const inputStyle = {
@@ -226,25 +197,6 @@ export default function DeviceComparison() {
           </div>
         </div>
 
-        {/* Atalhos de período */}
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
-          {SHORTCUTS.map((s) => {
-            const active = activeShort === s.n
-            return (
-              <button key={s.n} onClick={() => applyShortcut(s.n)} style={{
-                padding: '5px 12px', borderRadius: 8,
-                border: `1.5px solid ${active ? C.accent : C.border}`,
-                background: active ? C.accentSoft : 'transparent',
-                color: active ? C.accent : C.t2,
-                fontSize: 12, fontWeight: active ? 700 : 400,
-                cursor: 'pointer', fontFamily: 'Instrument Sans, sans-serif', transition: 'all .15s',
-              }}>
-                {s.l}
-              </button>
-            )
-          })}
-        </div>
-
         {/* Tipo — linha separada no mobile */}
         <div style={{ marginBottom: 14 }}>
           <Segments
@@ -263,14 +215,14 @@ export default function DeviceComparison() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <label style={{ fontSize: 11, fontWeight: 600, color: C.t2, textTransform: 'uppercase', letterSpacing: '0.04em' }}>De</label>
             <input type="date" value={startDate} max={endDate}
-              onChange={(e) => { setStartDate(e.target.value); setActiveShort(null) }}
+              onChange={(e) => setStartDate(e.target.value)}
               style={inputStyle}
             />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <label style={{ fontSize: 11, fontWeight: 600, color: C.t2, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Até</label>
             <input type="date" value={endDate} max={today()}
-              onChange={(e) => { setEndDate(e.target.value); setActiveShort(null) }}
+              onChange={(e) => setEndDate(e.target.value)}
               style={inputStyle}
             />
           </div>
@@ -305,54 +257,6 @@ export default function DeviceComparison() {
           ))}
         </div>
       )}
-
-      {/* ── Painel Lacrado vs Seminovo global ── */}
-      {!loading && !error && (totalLacrado > 0 || totalSeminovo > 0) && (() => {
-        const total = totalLacrado + totalSeminovo
-        const pctL  = pct(totalLacrado, total)
-        const pctS  = 100 - pctL
-        return (
-          <div style={{ background: C.surface, borderRadius: 16, boxShadow: C.shadow, padding: isMobile ? '14px 14px' : '16px 20px' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: C.t3, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
-              Condição do período
-            </div>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
-              {totalLacrado > 0 && (
-                <div style={{ background: C.lacradoBg, borderRadius: 10, padding: '10px 14px', flex: 1, minWidth: 110 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:5, marginBottom:4 }}>
-                    <Package size={12} style={{ color: C.lacrado }}/>
-                    <span style={{ fontSize:11, fontWeight:700, color: C.lacrado, textTransform:'uppercase', letterSpacing:'0.04em' }}>Lacrado</span>
-                  </div>
-                  <div style={{ fontSize:20, fontWeight:700, color:C.text, letterSpacing:'-0.4px' }}>{totalLacrado}</div>
-                  <div style={{ fontSize:11, color:C.t2, marginTop:2 }}>{new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(recLacrado)}</div>
-                </div>
-              )}
-              {totalSeminovo > 0 && (
-                <div style={{ background: C.semiovoBg, borderRadius: 10, padding: '10px 14px', flex: 1, minWidth: 110 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:5, marginBottom:4 }}>
-                    <Sparkles size={12} style={{ color: C.seminovo }}/>
-                    <span style={{ fontSize:11, fontWeight:700, color: C.seminovo, textTransform:'uppercase', letterSpacing:'0.04em' }}>Seminovo</span>
-                  </div>
-                  <div style={{ fontSize:20, fontWeight:700, color:C.text, letterSpacing:'-0.4px' }}>{totalSeminovo}</div>
-                  <div style={{ fontSize:11, color:C.t2, marginTop:2 }}>{new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(recSeminovo)}</div>
-                </div>
-              )}
-            </div>
-            {totalLacrado > 0 && totalSeminovo > 0 && (
-              <div>
-                <div style={{ height:7, borderRadius:999, overflow:'hidden', display:'flex', background:C.bg }}>
-                  <div style={{ width:`${pctL}%`, background:C.lacrado, transition:'width .5s' }}/>
-                  <div style={{ width:`${pctS}%`, background:C.seminovo, transition:'width .5s' }}/>
-                </div>
-                <div style={{ display:'flex', justifyContent:'space-between', marginTop:5 }}>
-                  <span style={{ fontSize:10, color:C.lacrado, fontWeight:600 }}>📦 {pctL}% Lacrado</span>
-                  <span style={{ fontSize:10, color:C.seminovo, fontWeight:600 }}>✨ {pctS}% Seminovo</span>
-                </div>
-              </div>
-            )}
-          </div>
-        )
-      })()}
 
       {/* ── Gráfico top 5 ── */}
       {!loading && !error && chartData.length > 0 && (
@@ -420,11 +324,6 @@ export default function DeviceComparison() {
           const barPct   = Math.round((parseInt(m.total) / maxTotal) * 100)
           const isOpen   = expanded === i
           const rowKey   = m.iphone_model ? String(m.iphone_model) : String(i)
-          const lac      = parseInt(m.lacrados)  || 0
-          const sem      = parseInt(m.seminovos) || 0
-          const total    = parseInt(m.total)     || 0
-          const lacPct   = pct(lac, total)
-          const semPct   = pct(sem, total)
 
           return (
             <div key={rowKey}>
@@ -448,18 +347,9 @@ export default function DeviceComparison() {
                   <div style={{ fontSize: isMobile ? 12 : 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 6 }}>
                     {String(m.iphone_model || '—')}
                   </div>
-                  {/* Barra com segmentos lacrado/seminovo */}
-                  <div style={{ height: 5, background: 'rgba(0,0,0,0.05)', borderRadius: 10, overflow: 'hidden', display: 'flex' }}>
-                    {lac > 0 && <div style={{ width: `${barPct * (lac / total)}%`, background: C.lacrado, transition: 'width .7s' }} />}
-                    {sem > 0 && <div style={{ width: `${barPct * (sem / total)}%`, background: C.seminovo, transition: 'width .7s' }} />}
-                    {(lac + sem < total) && <div style={{ width: `${barPct * ((total - lac - sem) / total)}%`, background: color, opacity: 0.4, transition: 'width .7s' }} />}
+                  <div style={{ height: 5, background: 'rgba(0,0,0,0.05)', borderRadius: 10, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${barPct}%`, background: color, borderRadius: 10, transition: 'width .7s cubic-bezier(.4,0,.2,1)' }} />
                   </div>
-                  {(lac > 0 || sem > 0) && (
-                    <div style={{ display: 'flex', gap: 8, marginTop: 5 }}>
-                      {lac > 0 && <span style={{ fontSize: 10, color: C.lacrado, fontWeight: 600 }}>📦 {lac} ({lacPct}%)</span>}
-                      {sem > 0 && <span style={{ fontSize: 10, color: C.seminovo, fontWeight: 600 }}>✨ {sem} ({semPct}%)</span>}
-                    </div>
-                  )}
                 </div>
 
                 {/* métricas */}
@@ -476,77 +366,27 @@ export default function DeviceComparison() {
               {/* Detalhe expandido */}
               {isOpen && (
                 <div style={{
-                  padding: isMobile ? '14px 14px 16px 48px' : '14px 20px 16px 58px',
-                  background: '#FAFAFA',
+                  padding: isMobile ? '12px 14px 14px 48px' : '12px 20px 14px 58px',
+                  background: C.accentSoft,
                   borderBottom: `1px solid ${C.border}`,
-                  display: 'flex', flexDirection: 'column', gap: 14,
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3,1fr)',
+                  gap: isMobile ? 10 : 12,
                 }}>
-                  {/* Lacrado vs Seminovo por modelo */}
-                  {(lac > 0 || sem > 0) && (
-                    <div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: C.t3, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
-                        Condição de venda
-                      </div>
-                      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: lac > 0 && sem > 0 ? 10 : 0 }}>
-                        {lac > 0 && (
-                          <div style={{ background: C.lacradoBg, borderRadius: 10, padding: '10px 14px', flex: 1, minWidth: 110 }}>
-                            <div style={{ display:'flex', alignItems:'center', gap:5, marginBottom:4 }}>
-                              <Package size={12} style={{ color:C.lacrado }}/>
-                              <span style={{ fontSize:11, fontWeight:700, color:C.lacrado, textTransform:'uppercase', letterSpacing:'0.04em' }}>Lacrado</span>
-                            </div>
-                            <div style={{ fontSize:18, fontWeight:700, color:C.text, letterSpacing:'-0.4px' }}>{lac}</div>
-                            <div style={{ fontSize:11, color:C.t2, marginTop:2 }}>{new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(parseFloat(m.receita_lacrado)||0)}</div>
-                            <div style={{ fontSize:10, color:C.t3, marginTop:1 }}>{lacPct}% das vendas</div>
-                          </div>
-                        )}
-                        {sem > 0 && (
-                          <div style={{ background: C.semiovoBg, borderRadius: 10, padding: '10px 14px', flex: 1, minWidth: 110 }}>
-                            <div style={{ display:'flex', alignItems:'center', gap:5, marginBottom:4 }}>
-                              <Sparkles size={12} style={{ color:C.seminovo }}/>
-                              <span style={{ fontSize:11, fontWeight:700, color:C.seminovo, textTransform:'uppercase', letterSpacing:'0.04em' }}>Seminovo</span>
-                            </div>
-                            <div style={{ fontSize:18, fontWeight:700, color:C.text, letterSpacing:'-0.4px' }}>{sem}</div>
-                            <div style={{ fontSize:11, color:C.t2, marginTop:2 }}>{new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(parseFloat(m.receita_seminovo)||0)}</div>
-                            <div style={{ fontSize:10, color:C.t3, marginTop:1 }}>{semPct}% das vendas</div>
-                          </div>
-                        )}
-                      </div>
-                      {lac > 0 && sem > 0 && (
-                        <div>
-                          <div style={{ height:6, borderRadius:999, overflow:'hidden', display:'flex', background:C.bg }}>
-                            <div style={{ width:`${lacPct}%`, background:C.lacrado, transition:'width .5s' }}/>
-                            <div style={{ width:`${semPct}%`, background:C.seminovo, transition:'width .5s' }}/>
-                          </div>
-                          <div style={{ display:'flex', justifyContent:'space-between', marginTop:4 }}>
-                            <span style={{ fontSize:10, color:C.lacrado, fontWeight:600 }}>📦 {lacPct}% Lacrado</span>
-                            <span style={{ fontSize:10, color:C.seminovo, fontWeight:600 }}>✨ {semPct}% Seminovo</span>
-                          </div>
-                        </div>
-                      )}
+                  {[
+                    { label: 'Vendas',          value: num(m.vendas),            sub: brl(m.receita_vendas)           },
+                    { label: 'Manutenções',     value: num(m.manutencoes),       sub: brl(m.receita_manutencoes)      },
+                    { label: 'Ticket Médio',    value: brl(m.ticket_medio),      sub: `Venda: ${brl(m.ticket_venda)}` },
+                    { label: 'Ticket Manut.',   value: brl(m.ticket_manutencao), sub: 'por manutenção'                },
+                    { label: 'Primeiro atend.', value: m.primeiro_atendimento ? new Date(m.primeiro_atendimento).toLocaleDateString('pt-BR') : '—', sub: 'primeira data' },
+                    { label: 'Último atend.',   value: m.ultimo_atendimento     ? new Date(m.ultimo_atendimento).toLocaleDateString('pt-BR')     : '—', sub: 'última data'  },
+                  ].map((d) => (
+                    <div key={d.label}>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: C.t3, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 3 }}>{d.label}</div>
+                      <div style={{ fontSize: isMobile ? 13 : 14, fontWeight: 700, color: C.text }}>{d.value}</div>
+                      <div style={{ fontSize: 10, color: C.t3, marginTop: 1 }}>{d.sub}</div>
                     </div>
-                  )}
-
-                  {/* Grid de stats */}
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3,1fr)',
-                    gap: isMobile ? 10 : 12,
-                  }}>
-                    {[
-                      { label: 'Vendas',          value: num(m.vendas),            sub: new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(parseFloat(m.receita_vendas)||0)           },
-                      { label: 'Manutenções',     value: num(m.manutencoes),       sub: new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(parseFloat(m.receita_manutencoes)||0)      },
-                      { label: 'Ticket Médio',    value: new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(parseFloat(m.ticket_medio)||0),      sub: `Venda: ${new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(parseFloat(m.ticket_venda)||0)}` },
-                      { label: 'Ticket Manut.',   value: new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(parseFloat(m.ticket_manutencao)||0), sub: 'por manutenção'                },
-                      { label: 'Primeiro atend.', value: m.primeiro_atendimento ? new Date(m.primeiro_atendimento).toLocaleDateString('pt-BR') : '—', sub: 'primeira data' },
-                      { label: 'Último atend.',   value: m.ultimo_atendimento     ? new Date(m.ultimo_atendimento).toLocaleDateString('pt-BR')     : '—', sub: 'última data'  },
-                    ].map((d) => (
-                      <div key={d.label}>
-                        <div style={{ fontSize: 10, fontWeight: 600, color: C.t3, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 3 }}>{d.label}</div>
-                        <div style={{ fontSize: isMobile ? 13 : 14, fontWeight: 700, color: C.text }}>{d.value}</div>
-                        <div style={{ fontSize: 10, color: C.t3, marginTop: 1 }}>{d.sub}</div>
-                      </div>
-                    ))}
-                  </div>
+                  ))}
                 </div>
               )}
             </div>

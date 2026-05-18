@@ -4,6 +4,7 @@ import { useTheme } from '../../context/ThemeContext'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import {
   LayoutDashboard, Users, ClipboardList, Plus, LogOut,
+  ShieldCheck,
   Smartphone, ArrowLeft,
 } from 'lucide-react'
 
@@ -13,6 +14,8 @@ const navItems = [
   { path:'/orders',     icon:ClipboardList,   label:'Ordens'    },
   { path:'/orders/new', icon:Plus,            label:'Novo', cta:true },
 ]
+
+const adminItem = { path:'/admin', icon:ShieldCheck, label:'Admin' }
 
 const pageTitles = {
   '/':           { title:'Dashboard',        sub:'Visão geral do negócio' },
@@ -125,6 +128,15 @@ function DesktopLayout({ user, logout, location, navigate, info, T }) {
               </button>
             )
           })}
+          {user?.role === 'admin' && (() => {
+            const active = location.pathname === adminItem.path
+            return (
+              <button onClick={()=>navigate(adminItem.path)}
+                style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'9px 12px', borderRadius:8, cursor:'pointer', border:'none', background:active?'rgba(255,255,255,0.08)':'transparent', color:active?'#fff':'rgba(255,255,255,0.45)', fontSize:13, fontWeight:active?600:400, marginBottom:1, transition:'all .15s', textAlign:'left', fontFamily:'Instrument Sans,sans-serif', boxShadow:active?'inset 0 0 0 1px rgba(255,255,255,0.06)':'none', marginTop:4, borderTop:'1px solid rgba(255,255,255,0.06)', paddingTop:13 }}>
+                <ShieldCheck size={16}/>{adminItem.label}
+              </button>
+            )
+          })()}
         </nav>
 
         <div style={{ padding:'12px 14px', borderTop:'1px solid rgba(255,255,255,0.06)' }}>

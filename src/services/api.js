@@ -82,7 +82,7 @@ export const adminService = {
   resetPassword: (id, pw) => api.patch(`/admin/users/${id}/reset-password`, { password: pw }),
   // Modelos
   listModels:    ()       => api.get('/admin/models'),
-  activeModels:  ()       => api.get('/admin/models/active'),
+  activeModels:  ()       => api.get('/models/active'),
   createModel:   (d)      => api.post('/admin/models', d),
   updateModel:   (id, d)  => api.patch(`/admin/models/${id}`, d),
 };

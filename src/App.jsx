@@ -37,6 +37,14 @@ function PublicRoute({ children }) {
   return children
 }
 
+// Redireciona se o role não tem permissão
+function RoleRoute({ roles, children, redirectTo = '/orders' }) {
+  const { user } = useAuth()
+  if (!user) return null
+  if (!roles.includes(user.role)) return <Navigate to={redirectTo} replace/>
+  return children
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -68,12 +76,20 @@ function AppInner() {
       <Routes>
         <Route path="/login" element={<PublicRoute><LoginPage/></PublicRoute>}/>
         <Route path="/" element={<ProtectedRoute><Layout/></ProtectedRoute>}>
-          <Route index                element={<DashboardPage/>}/>
+          <Route index element={
+            <RoleRoute roles={['admin','gerente']} redirectTo="/orders">
+              <DashboardPage/>
+            </RoleRoute>
+          }/>
           <Route path="clients"       element={<ClientsPage/>}/>
           <Route path="orders"        element={<OrdersPage/>}/>
           <Route path="orders/new"    element={<NewOrderPage/>}/>
           <Route path="clients/:id"   element={<ClientHistoryPage/>}/>
-          <Route path="admin"         element={<AdminPage/>}/>
+          <Route path="admin"         element={
+            <RoleRoute roles={['admin']} redirectTo="/orders">
+              <AdminPage/>
+            </RoleRoute>
+          }/>
         </Route>
         <Route path="*" element={<Navigate to="/" replace/>}/>
       </Routes>

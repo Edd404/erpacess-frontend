@@ -10,6 +10,7 @@ import ClientsPage from './pages/ClientsPage'
 import OrdersPage from './pages/OrdersPage'
 import NewOrderPage from './pages/NewOrderPage'
 import ClientHistoryPage from './pages/ClientHistoryPage'
+import AdminPage from './pages/AdminPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -67,11 +68,12 @@ function AppInner() {
       <Routes>
         <Route path="/login" element={<PublicRoute><LoginPage/></PublicRoute>}/>
         <Route path="/" element={<ProtectedRoute><Layout/></ProtectedRoute>}>
-          <Route index            element={<DashboardPage/>}/>
-          <Route path="clients"   element={<ClientsPage/>}/>
-          <Route path="orders"    element={<OrdersPage/>}/>
+          <Route index                element={<DashboardPage/>}/>
+          <Route path="clients"       element={<ClientsPage/>}/>
+          <Route path="orders"        element={<OrdersPage/>}/>
           <Route path="orders/new"    element={<NewOrderPage/>}/>
           <Route path="clients/:id"   element={<ClientHistoryPage/>}/>
+          <Route path="admin"         element={<AdminPage/>}/>
         </Route>
         <Route path="*" element={<Navigate to="/" replace/>}/>
       </Routes>

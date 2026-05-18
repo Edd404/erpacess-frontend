@@ -74,4 +74,17 @@ export const orderService = {
   runBackup:    ()   => api.post('/backup/run'),
 };
 
+export const adminService = {
+  // Usuários
+  listUsers:     ()       => api.get('/admin/users'),
+  createUser:    (d)      => api.post('/admin/users', d),
+  updateUser:    (id, d)  => api.patch(`/admin/users/${id}`, d),
+  resetPassword: (id, pw) => api.patch(`/admin/users/${id}/reset-password`, { password: pw }),
+  // Modelos
+  listModels:    ()       => api.get('/admin/models'),
+  activeModels:  ()       => api.get('/admin/models/active'),
+  createModel:   (d)      => api.post('/admin/models', d),
+  updateModel:   (id, d)  => api.patch(`/admin/models/${id}`, d),
+};
+
 export default api;

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { clientService, orderService } from '../services/api';
+import { clientService, orderService, adminService } from '../services/api';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
@@ -111,6 +111,57 @@ export const useUpdateOrder = () => {
       toast.success('Atendimento atualizado com sucesso!');
     },
     onError: (err) => toast.error(err.response?.data?.error || 'Erro ao atualizar atendimento.'),
+  });
+};
+
+// ── Admin hooks ───────────────────────────────────────────────
+export const useAdminUsers = () =>
+  useQuery({ queryKey: ['admin-users'], queryFn: () => adminService.listUsers().then(r => r.data.data) });
+
+export const useAdminModels = () =>
+  useQuery({ queryKey: ['admin-models'], queryFn: () => adminService.listModels().then(r => r.data.data) });
+
+export const useCreateUser = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (d) => adminService.createUser(d),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-users'] }); toast.success('Usuário criado!'); },
+    onError: (err) => toast.error(err.response?.data?.error || 'Erro ao criar usuário.'),
+  });
+};
+
+export const useUpdateUser = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }) => adminService.updateUser(id, data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-users'] }); toast.success('Usuário atualizado!'); },
+    onError: (err) => toast.error(err.response?.data?.error || 'Erro ao atualizar usuário.'),
+  });
+};
+
+export const useResetPassword = () => {
+  return useMutation({
+    mutationFn: ({ id, password }) => adminService.resetPassword(id, password),
+    onSuccess: () => toast.success('Senha redefinida!'),
+    onError: (err) => toast.error(err.response?.data?.error || 'Erro ao redefinir senha.'),
+  });
+};
+
+export const useCreateModel = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (d) => adminService.createModel(d),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-models'] }); toast.success('Modelo adicionado!'); },
+    onError: (err) => toast.error(err.response?.data?.error || 'Erro ao criar modelo.'),
+  });
+};
+
+export const useUpdateModel = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }) => adminService.updateModel(id, data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-models'] }); toast.success('Modelo atualizado!'); },
+    onError: (err) => toast.error(err.response?.data?.error || 'Erro ao atualizar modelo.'),
   });
 };
 

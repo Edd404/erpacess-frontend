@@ -351,7 +351,7 @@ function ModelSearch({ value, onSelect, err, models }) {
 }
 
 // ── Step 2 — Manutenção ───────────────────────────────────────────────────────
-function StepServico({ form, set, errors }) {
+function StepServico({ form, set, errors, models }) {
   const [q, setQ] = useState('')
   const [openCat, setOpenCat] = useState(null)
   const selected = form.service_types || []
@@ -370,7 +370,7 @@ function StepServico({ form, set, errors }) {
       {/* Aparelho */}
       <div>
         <Label required>Modelo do aparelho</Label>
-        <ModelSearch value={form.iphone_model} onSelect={v => set('iphone_model', v)} err={errors.iphone_model} models={iphoneModels}/>
+        <ModelSearch value={form.iphone_model} onSelect={v => set('iphone_model', v)} err={errors.iphone_model} models={models || []}/>
         <ErrMsg msg={errors.iphone_model}/>
       </div>
 
@@ -543,12 +543,12 @@ function StepServico({ form, set, errors }) {
 }
 
 // ── Step 2 — Venda ────────────────────────────────────────────────────────────
-function StepProduto({ form, set, errors }) {
+function StepProduto({ form, set, errors, models }) {
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:22 }}>
       <div>
         <Label required>Modelo do iPhone</Label>
-        <ModelSearch value={form.iphone_model} onSelect={v => set('iphone_model', v)} err={errors.iphone_model} models={iphoneModels}/>
+        <ModelSearch value={form.iphone_model} onSelect={v => set('iphone_model', v)} err={errors.iphone_model} models={models || []}/>
         <ErrMsg msg={errors.iphone_model}/>
       </div>
 
@@ -1137,8 +1137,8 @@ export default function NewOrderPage() {
         )}
 
         {step === 2 && (isManut
-          ? <StepServico form={form} set={set} errors={errors}/>
-          : <StepProduto form={form} set={set} errors={errors}/>
+          ? <StepServico form={form} set={set} errors={errors} models={iphoneModels}/>
+          : <StepProduto form={form} set={set} errors={errors} models={iphoneModels}/>
         )}
 
         {step === 3 && <StepPagamento form={form} set={set} errors={errors} isManut={isManut} models={iphoneModels}/>}

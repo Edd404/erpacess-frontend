@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTheme } from '../context/ThemeContext'
-import { useAuthStore } from '../store/authStore'
+import { useAuth } from '../context/AuthContext'
 import {
   Users, Smartphone, Plus, Pencil, Check, X, Eye, EyeOff,
   ShieldCheck, ShieldOff, Key, ChevronDown, Loader2,
@@ -376,7 +376,7 @@ function ModelModal({ model, onClose, T }) {
 // ── Página principal ──────────────────────────────────────────
 export default function AdminPage() {
   const { T }    = useTheme()
-  const { user } = useAuthStore()
+  const { user } = useAuth()
   const [tab,    setTab]    = useState('users')  // 'users' | 'models'
   const [userModal,  setUserModal]  = useState(null)  // null | {} | user obj
   const [modelModal, setModelModal] = useState(null)

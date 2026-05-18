@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 
 const navItems = [
-  { path:'/',           icon:LayoutDashboard, label:'Dashboard' },
+  { path:'/',           icon:LayoutDashboard, label:'Dashboard', roles:['admin','gerente'] },
   { path:'/clients',    icon:Users,           label:'Clientes'  },
   { path:'/orders',     icon:ClipboardList,   label:'Ordens'    },
   { path:'/orders/new', icon:Plus,            label:'Novo', cta:true },
@@ -69,7 +69,7 @@ function MobileLayout({ user, logout, location, navigate, info, T }) {
       </main>
 
       <nav style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:100, background:T.sidebar, borderTop:'1px solid rgba(255,255,255,0.06)', display:'flex', alignItems:'center', paddingBottom:'env(safe-area-inset-bottom)', height:'calc(60px + env(safe-area-inset-bottom))' }}>
-        {navItems.map(item => {
+        {navItems.filter(item => !item.roles || item.roles.includes(user?.role)).map(item => {
           const active = location.pathname === item.path
           if (item.cta) return (
             <button key={item.path} onClick={()=>navigate(item.path)}
@@ -119,7 +119,7 @@ function DesktopLayout({ user, logout, location, navigate, info, T }) {
 
         <nav style={{ padding:'12px 10px', flex:1 }}>
           <div style={{ fontSize:10, fontWeight:600, color:'rgba(255,255,255,0.22)', letterSpacing:'0.8px', textTransform:'uppercase', padding:'0 10px', marginBottom:8 }}>Menu</div>
-          {navItems.map(item => {
+          {navItems.filter(item => !item.roles || item.roles.includes(user?.role)).map(item => {
             const active = location.pathname === item.path
             return (
               <button key={item.path} onClick={()=>navigate(item.path)}

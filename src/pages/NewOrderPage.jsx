@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useCreateOrder } from '../hooks/useData'
-import { clientService } from '../services/api'
+import { clientService, adminService } from '../services/api'
 import { formatCurrencyInput } from '../utils/formatters'
 import { validateIMEI } from '../utils/validators'
 import {
@@ -42,7 +42,20 @@ const T = {
 }
 
 // ── Data ──────────────────────────────────────────────────────────────────────
-const IPHONE_MODELS = [
+// Converte modelos da API [{name, series, year, capacities}] para o formato {s, m, caps}
+function groupModels(apiModels) {
+  const map = {}
+  ;[...apiModels].sort((a, b) => b.year - a.year || a.name.localeCompare(b.name)).forEach(m => {
+    const key = `iPhone ${m.series}`
+    if (!map[key]) map[key] = { s: key, m: [], caps: {} }
+    map[key].m.push(m.name)
+    map[key].caps[m.name] = m.capacities || []
+  })
+  return Object.values(map)
+}
+
+// Fallback estático (enquanto a API carrega)
+const IPHONE_MODELS_STATIC = [
   { s:'iPhone 16', m:['iPhone 16','iPhone 16 Plus','iPhone 16 Pro','iPhone 16 Pro Max'] },
   { s:'iPhone 15', m:['iPhone 15','iPhone 15 Plus','iPhone 15 Pro','iPhone 15 Pro Max'] },
   { s:'iPhone 14', m:['iPhone 14','iPhone 14 Plus','iPhone 14 Pro','iPhone 14 Pro Max'] },
@@ -294,11 +307,11 @@ function IMEIField({ value, onChange, err }) {
 }
 
 // ── Model search ──────────────────────────────────────────────────────────────
-function ModelSearch({ value, onSelect, err }) {
+function ModelSearch({ value, onSelect, err, models }) {
   const [q, setQ] = useState(value || '')
   const [open, setOpen] = useState(false)
 
-  const filtered = IPHONE_MODELS
+  const filtered = models
     .map(g => ({ ...g, m: g.m.filter(m => m.toLowerCase().includes(q.toLowerCase())) }))
     .filter(g => g.m.length > 0)
 
@@ -357,7 +370,7 @@ function StepServico({ form, set, errors }) {
       {/* Aparelho */}
       <div>
         <Label required>Modelo do aparelho</Label>
-        <ModelSearch value={form.iphone_model} onSelect={v => set('iphone_model', v)} err={errors.iphone_model}/>
+        <ModelSearch value={form.iphone_model} onSelect={v => set('iphone_model', v)} err={errors.iphone_model} models={iphoneModels}/>
         <ErrMsg msg={errors.iphone_model}/>
       </div>
 
@@ -535,7 +548,7 @@ function StepProduto({ form, set, errors }) {
     <div style={{ display:'flex', flexDirection:'column', gap:22 }}>
       <div>
         <Label required>Modelo do iPhone</Label>
-        <ModelSearch value={form.iphone_model} onSelect={v => set('iphone_model', v)} err={errors.iphone_model}/>
+        <ModelSearch value={form.iphone_model} onSelect={v => set('iphone_model', v)} err={errors.iphone_model} models={iphoneModels}/>
         <ErrMsg msg={errors.iphone_model}/>
       </div>
 
@@ -602,7 +615,7 @@ function StepProduto({ form, set, errors }) {
 }
 
 // ── Step 3 — Pagamento ────────────────────────────────────────────────────────
-function StepPagamento({ form, set, errors, isManut }) {
+function StepPagamento({ form, set, errors, isManut, models }) {
   const [pd, setPdState] = useState({
     pix:             { value:'' },
     dinheiro:        { value:'' },
@@ -641,7 +654,7 @@ function StepPagamento({ form, set, errors, isManut }) {
   const balanced  = Math.abs(remainder) < 0.01
   const over      = remainder < -0.01
 
-  const tradeFilteredModels = IPHONE_MODELS
+  const tradeFilteredModels = (models || [])
     .map(g => ({ ...g, m: g.m.filter(m => m.toLowerCase().includes(tradeModelSearch.toLowerCase())) }))
     .filter(g => g.m.length > 0)
 
@@ -951,6 +964,17 @@ export default function NewOrderPage() {
   const [searchParams] = useSearchParams()
   const createOrder = useCreateOrder()
 
+  // Modelos da API — fallback para a lista estática enquanto carrega
+  const [iphoneModels, setIphoneModels] = useState(IPHONE_MODELS_STATIC)
+  useEffect(() => {
+    adminService.activeModels()
+      .then(r => {
+        const grouped = groupModels(r.data?.data || [])
+        if (grouped.length > 0) setIphoneModels(grouped)
+      })
+      .catch(() => {}) // silencia — fallback já está ativo
+  }, [])
+
   const [step, setStep] = useState(1)
   const [errors, setErrors] = useState({})
   const [form, setForm] = useState({
@@ -1117,7 +1141,7 @@ export default function NewOrderPage() {
           : <StepProduto form={form} set={set} errors={errors}/>
         )}
 
-        {step === 3 && <StepPagamento form={form} set={set} errors={errors} isManut={isManut}/>}
+        {step === 3 && <StepPagamento form={form} set={set} errors={errors} isManut={isManut} models={iphoneModels}/>}
 
         {/* Navigation */}
         <div style={{ display:'flex', gap:10, marginTop:28, paddingTop:20, borderTop:`1px solid ${T.ink6}` }}>

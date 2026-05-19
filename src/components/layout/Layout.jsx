@@ -91,6 +91,20 @@ function MobileLayout({ user, logout, location, navigate, info, T }) {
             </button>
           )
         })}
+        {user?.role === 'admin' && (() => {
+          const active = location.pathname === adminItem.path
+          return (
+            <button onClick={()=>navigate(adminItem.path)}
+              style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:4, border:'none', background:'none', cursor:'pointer', height:60, padding:'8px 4px' }}>
+              <div style={{ width:36, height:28, borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', background:active?'rgba(255,255,255,0.1)':'transparent' }}>
+                <ShieldCheck size={18} style={{ color:active?'#fff':'rgba(255,255,255,0.45)' }}/>
+              </div>
+              <span style={{ fontSize:10, fontWeight:active?600:400, color:active?'#fff':'rgba(255,255,255,0.45)', fontFamily:'Instrument Sans,sans-serif' }}>
+                Admin
+              </span>
+            </button>
+          )
+        })()}
       </nav>
     </div>
   )

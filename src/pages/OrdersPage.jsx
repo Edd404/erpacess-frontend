@@ -10,6 +10,8 @@ import {
   ChevronDown, Phone,
 } from 'lucide-react'
 import EditOrderModal from '../components/EditOrderModal'
+import { orderService } from '../services/api'
+import toast from 'react-hot-toast'
 
 // ─── Tokens ───────────────────────────────────────────────────
 const C = {
@@ -508,8 +510,22 @@ function CopyBtn({ value }) {
 function OrderDetail({ order, onClose }) {
   const navigate    = useNavigate()
   const downloadPDF = useDownloadPDF()
-  const [editOpen,  setEditOpen]  = useState(false)
+  const [editOpen,   setEditOpen]   = useState(false)
   const [copiedIMEI, setCopiedIMEI] = useState(false)
+  const [resending,  setResending]  = useState(false)
+
+  const handleResend = async () => {
+    if (resending) return
+    setResending(true)
+    try {
+      await orderService.resendPDF(order.id)
+      toast.success('Comprovante reenviado!')
+    } catch {
+      toast.error('Erro ao reenviar e-mail.')
+    } finally {
+      setResending(false)
+    }
+  }
 
   const payments = parsePayments(order.payment_methods)
   const exp      = new Date(order.created_at)
@@ -733,13 +749,16 @@ function OrderDetail({ order, onClose }) {
             Baixar PDF
           </button>
           {order.client_email && (
-            <button style={{
+            <button onClick={handleResend} disabled={resending} style={{
               flex:1, padding:'11px 0', background:C.accentSoft, color:C.accent,
-              border:'none', borderRadius:12, cursor:'pointer', fontSize:13, fontWeight:600,
+              border:'none', borderRadius:12, cursor: resending ? 'not-allowed' : 'pointer',
+              fontSize:13, fontWeight:600,
               display:'flex', alignItems:'center', justifyContent:'center', gap:7,
-              fontFamily:'Instrument Sans,sans-serif',
+              fontFamily:'Instrument Sans,sans-serif', opacity: resending ? 0.7 : 1,
             }}>
-              <Mail size={14}/> Reenviar e-mail
+              {resending
+                ? <><Loader2 size={14} style={{ animation:'spin 1s linear infinite' }}/> Enviando...</>
+                : <><Mail size={14}/> Reenviar e-mail</>}
             </button>
           )}
         </section>

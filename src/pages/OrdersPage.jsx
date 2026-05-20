@@ -535,13 +535,25 @@ function OrderDetail({ order, onClose }) {
   ]
 
   // Campos de detalhe
+  const origemLine = (order?.notes || '').split('\n').find(l => l.startsWith('Origem:'))
+  const leadSource = origemLine ? origemLine.replace('Origem:', '').trim() : null
+  const freeNotes  = order.notes
+    ? order.notes.split('\n').filter(l => !l.startsWith('Origem:') && !l.startsWith('Serviços:') && !l.startsWith('Problema:') && l.trim()).join('\n')
+    : null
+
   const details = [
     { label:'Modelo',     value: order.iphone_model },
     order.condition_sale ? { label:'Condição', value: order.condition_sale==='lacrado' ? '📦 Lacrado' : '✨ Seminovo' } : null,
     order.capacity       ? { label:'Capacidade',value: order.capacity } : null,
     order.color          ? { label:'Cor',       value: order.color    } : null,
     order.imei           ? { label:'IMEI',      value: order.imei, mono: true, copyAction: copyIMEI, copied: copiedIMEI } : null,
-    order.notes          ? { label:'Observações',value: order.notes, wrap: true } : null,
+    leadSource ? { label:'Origem', value: leadSource, badge: true,
+      badgeColor:  leadSource === 'Já é cliente' ? '#D97706' : '#7C3AED',
+      badgeBg:     leadSource === 'Já é cliente' ? 'rgba(245,158,11,0.08)' : 'rgba(139,92,246,0.08)',
+      badgeBorder: leadSource === 'Já é cliente' ? 'rgba(245,158,11,0.20)' : 'rgba(139,92,246,0.20)',
+      emoji:       leadSource === 'Já é cliente' ? '⭐' : '📲',
+    } : null,
+    freeNotes ? { label:'Observações', value: freeNotes, wrap: true } : null,
   ].filter(Boolean)
 
   return (
@@ -657,11 +669,19 @@ function OrderDetail({ order, onClose }) {
               }}>
                 <span style={{ fontSize:12, color:'#6B7280', flexShrink:0 }}>{row.label}</span>
                 <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                  <span style={{
-                    fontSize: row.mono ? 12 : 13, fontWeight:500, textAlign:'right',
-                    fontFamily: row.mono ? 'JetBrains Mono,monospace' : 'Instrument Sans,sans-serif',
-                    color:'#111827', lineHeight: row.wrap ? 1.5 : 1,
-                  }}>{row.value}</span>
+                  {row.badge ? (
+                    <span style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'4px 10px',
+                      borderRadius:7, background: row.badgeBg, border:`1px solid ${row.badgeBorder}`,
+                      fontSize:12, fontWeight:700, color: row.badgeColor }}>
+                      {row.emoji} {row.value}
+                    </span>
+                  ) : (
+                    <span style={{
+                      fontSize: row.mono ? 12 : 13, fontWeight:500, textAlign:'right',
+                      fontFamily: row.mono ? 'JetBrains Mono,monospace' : 'Instrument Sans,sans-serif',
+                      color:'#111827', lineHeight: row.wrap ? 1.5 : 1,
+                    }}>{row.value}</span>
+                  )}
                   {row.copyAction && (
                     <button onClick={row.copyAction} style={{
                       background: row.copied ? '#F0FDF4' : 'rgba(0,0,0,0.05)',

@@ -392,6 +392,101 @@ function ConditionPanel({ totalLacrado, totalSeminovo, revLacrado, revSeminovo, 
 // ═══════════════════════════════════════════════════════════════
 // DASHBOARD PRINCIPAL
 // ═══════════════════════════════════════════════════════════════
+// ── LeadSourcePanel ──────────────────────────────────────────
+function LeadSourcePanel({ byLeadSource, isMobile }) {
+  const [open, setOpen] = useState(true)
+
+  const SOURCES = {
+    'Instagram/Indicação': { emoji:'📲', color:'#7C3AED', soft:'rgba(139,92,246,0.08)', border:'rgba(139,92,246,0.18)' },
+    'Já é cliente':        { emoji:'⭐', color:'#D97706', soft:'rgba(245,158,11,0.08)',  border:'rgba(245,158,11,0.18)'  },
+    'Não informado':       { emoji:'❓', color:'#6B7280', soft:'rgba(107,114,128,0.06)', border:'rgba(107,114,128,0.14)' },
+  }
+
+  const total = byLeadSource.reduce((s, r) => s + (parseInt(r.total) || 0), 0)
+  if (total === 0) return null
+
+  return (
+    <div style={{ background:C.surface, borderRadius:20, boxShadow:C.shadow,
+      overflow:'hidden', animation:'dashIn .3s ease forwards', animationDelay:'320ms', opacity:0 }}>
+
+      {/* Header */}
+      <button onClick={() => setOpen(o => !o)}
+        style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between',
+          padding: isMobile ? '16px 16px' : '18px 24px', background:'none', border:'none', cursor:'pointer',
+          fontFamily:'Instrument Sans,sans-serif' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+          <div style={{ width:34, height:34, borderRadius:9, background:'rgba(124,58,237,0.10)',
+            display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+            <span style={{ fontSize:16 }}>📲</span>
+          </div>
+          <div style={{ textAlign:'left' }}>
+            <div style={{ fontSize:14, fontWeight:700, color:C.text }}>Origem dos Clientes</div>
+            <div style={{ fontSize:11, color:C.t2, marginTop:2 }}>
+              {total} venda{total !== 1 ? 's' : ''} com origem registrada
+            </div>
+          </div>
+        </div>
+        <span style={{ fontSize:13, color:C.t3 }}>{open ? '▲' : '▼'}</span>
+      </button>
+
+      {open && (
+        <div style={{ padding: isMobile ? '0 16px 16px' : '0 24px 20px',
+          display:'flex', flexDirection:'column', gap:10, borderTop:`1px solid ${C.border}`, paddingTop:16 }}>
+
+          {byLeadSource.filter(r => r.origem !== 'Não informado').map(row => {
+            const meta    = SOURCES[row.origem] || SOURCES['Não informado']
+            const count   = parseInt(row.total) || 0
+            const receita = parseFloat(row.receita) || 0
+            const pctVal  = total > 0 ? Math.round((count / total) * 100) : 0
+
+            return (
+              <div key={row.origem} style={{ background:meta.soft, border:`1px solid ${meta.border}`,
+                borderRadius:12, padding:'14px 16px' }}>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <span style={{ fontSize:18 }}>{meta.emoji}</span>
+                    <span style={{ fontSize:14, fontWeight:700, color:meta.color }}>{row.origem}</span>
+                  </div>
+                  <div style={{ textAlign:'right' }}>
+                    <div style={{ fontSize:17, fontWeight:700, color:C.text, letterSpacing:'-0.4px' }}>{count}</div>
+                    <div style={{ fontSize:10, color:C.t3 }}>venda{count !== 1 ? 's' : ''}</div>
+                  </div>
+                </div>
+
+                {/* Barra */}
+                <div style={{ height:6, background:'rgba(0,0,0,0.07)', borderRadius:999, overflow:'hidden', marginBottom:8 }}>
+                  <div style={{ height:'100%', width:`${pctVal}%`, background:meta.color,
+                    borderRadius:999, transition:'width .6s cubic-bezier(.4,0,.2,1)' }}/>
+                </div>
+
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                  <span style={{ fontSize:11, color:meta.color, fontWeight:600 }}>{pctVal}% das vendas</span>
+                  <span style={{ fontSize:12, fontWeight:600, color:C.text }}>
+                    {new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(receita)}
+                  </span>
+                </div>
+              </div>
+            )
+          })}
+
+          {/* Não informado (compacto) */}
+          {byLeadSource.find(r => r.origem === 'Não informado') && (() => {
+            const row   = byLeadSource.find(r => r.origem === 'Não informado')
+            const count = parseInt(row.total) || 0
+            return (
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
+                padding:'9px 14px', background:C.bg, borderRadius:9, border:`1px solid ${C.border}` }}>
+                <span style={{ fontSize:12, color:C.t3 }}>❓ Não informado</span>
+                <span style={{ fontSize:12, fontWeight:600, color:C.t2 }}>{count} venda{count !== 1 ? 's' : ''}</span>
+              </div>
+            )
+          })()}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function DashboardPage() {
   const [period, setPeriod] = useState('30')
   const isMobile = useIsMobile()
@@ -408,6 +503,7 @@ export default function DashboardPage() {
   const trends   = data?.trends           || {}
   const timeline = data?.revenue_timeline || []
   const byType   = data?.by_type          || []
+  const byLeadSource = data?.by_lead_source || []
 
   const total         = parseInt(s.total_orders)     || 0
   const totalSales    = parseInt(s.total_sales)       || 0
@@ -557,6 +653,8 @@ export default function DashboardPage() {
         avgLacrado={avgLacrado}       avgSeminovo={avgSeminovo}
         totalSales={totalSales}       isMobile={isMobile}
       />
+
+      <LeadSourcePanel byLeadSource={byLeadSource} isMobile={isMobile} />
 
       <ErrorBoundary>
         <DeviceComparison />

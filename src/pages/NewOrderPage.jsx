@@ -610,6 +610,49 @@ function StepProduto({ form, set, errors, models }) {
         </div>
         <ErrMsg msg={errors.condition_sale}/>
       </div>
+
+      {/* Origem do cliente — obrigatório em venda */}
+      <div>
+        <Label required>Como o cliente chegou até nós?</Label>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+          {[
+            { v:'Instagram/Indicação', emoji:'📲', desc:'Veio pelo Instagram ou foi indicado' },
+            { v:'Já é cliente',        emoji:'⭐', desc:'Cliente que já comprou antes' },
+          ].map(opt => {
+            const on = form.lead_source === opt.v
+            return (
+              <button key={opt.v} onClick={() => set('lead_source', opt.v)}
+                style={{
+                  padding:'16px 14px', borderRadius:12, cursor:'pointer', textAlign:'left',
+                  border:`1.5px solid ${errors.lead_source ? T.red : on ? T.blue : T.ink5}`,
+                  background: on ? T.blueL : T.white,
+                  transition:'all .15s', display:'flex', flexDirection:'column', gap:8,
+                  fontFamily:'Instrument Sans,sans-serif',
+                  boxShadow: on ? '0 2px 8px rgba(10,102,255,0.12)' : 'none',
+                }}>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <div style={{
+                    width:32, height:32, borderRadius:8, fontSize:16,
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    background: on ? 'rgba(10,102,255,0.12)' : T.ink6,
+                  }}>{opt.emoji}</div>
+                  {on && (
+                    <div style={{ marginLeft:'auto', width:18, height:18, borderRadius:'50%',
+                      background:T.blue, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                      <Check size={10} style={{ color:'#fff' }}/>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <div style={{ fontSize:13, fontWeight:700, color: on ? T.blue : T.ink, marginBottom:3 }}>{opt.v}</div>
+                  <div style={{ fontSize:11, color: on ? T.blue : T.ink4, opacity: on ? 0.7 : 1 }}>{opt.desc}</div>
+                </div>
+              </button>
+            )
+          })}
+        </div>
+        <ErrMsg msg={errors.lead_source}/>
+      </div>
     </div>
   )
 }
@@ -979,7 +1022,7 @@ export default function NewOrderPage() {
   const [errors, setErrors] = useState({})
   const [form, setForm] = useState({
     client_id: searchParams.get('client_id') || '', type:'venda', iphone_model:'', capacity:'', color:'',
-    imei:'', price:'', warranty_months:'', notes:'', condition_sale:'',
+    imei:'', price:'', warranty_months:'', notes:'', condition_sale:'', lead_source:'',
     payment_methods:[], service_types:[], problem_description:'', device_condition:'',
   })
 
@@ -998,6 +1041,7 @@ export default function NewOrderPage() {
     if (step === 2) {
       if (!form.iphone_model) e.iphone_model = 'Selecione o modelo'
       if (!isManut && !form.condition_sale) e.condition_sale = 'Selecione a condição do aparelho'
+      if (!isManut && !form.lead_source) e.lead_source = 'Selecione a origem do cliente'
       if (form.imei && !validateIMEI(form.imei)) e.imei = 'IMEI inválido'
       if (isManut) {
         if (!form.service_types?.length) e.service_types = 'Selecione ao menos um serviço'
@@ -1023,6 +1067,7 @@ export default function NewOrderPage() {
       const cond = { otimo:'Ótimo', bom:'Bom', regular:'Regular', danificado:'Danificado' }
       noteParts.push(`Condição: ${cond[form.device_condition] || form.device_condition}`)
     }
+    if (!isManut && form.lead_source) noteParts.push(`Origem: ${form.lead_source}`)
     if (form.notes) noteParts.push(form.notes)
 
     await createOrder.mutateAsync({

@@ -323,11 +323,31 @@ function OrderCard({ order, clientEmail, clientName, isFirst, isLast, onDocSaved
                 </div>
               )}
             </div>
-            {order.notes && (
-              <div style={{ fontSize:12, color:'#6B7280', lineHeight:1.6, background:'#F5F5F7', borderRadius:8, padding:'9px 12px', border:'1px solid #EBEBED', marginBottom:10 }}>
-                {order.notes}
-              </div>
-            )}
+            {order.notes && (() => {
+              const lines = order.notes.split('\n')
+              const origemLine = lines.find(l => l.startsWith('Origem:'))
+              const origem = origemLine ? origemLine.replace('Origem:', '').trim() : null
+              const freeNotes = lines.filter(l => !l.startsWith('Origem:') && !l.startsWith('Serviços:') && !l.startsWith('Problema:') && l.trim()).join('\n')
+              return (
+                <>
+                  {origem && (
+                    <div style={{ display:'inline-flex', alignItems:'center', gap:5, borderRadius:7, padding:'5px 10px', marginBottom:8,
+                      background: origem === 'Já é cliente' ? 'rgba(245,158,11,0.08)' : 'rgba(139,92,246,0.08)',
+                      border: `1px solid ${origem === 'Já é cliente' ? 'rgba(245,158,11,0.20)' : 'rgba(139,92,246,0.20)'}` }}>
+                      <span style={{ fontSize:12 }}>{origem === 'Já é cliente' ? '⭐' : '📲'}</span>
+                      <span style={{ fontSize:11, fontWeight:700, color: origem === 'Já é cliente' ? '#D97706' : '#7C3AED' }}>
+                        {origem}
+                      </span>
+                    </div>
+                  )}
+                  {freeNotes && (
+                    <div style={{ fontSize:12, color:'#6B7280', lineHeight:1.6, background:'#F5F5F7', borderRadius:8, padding:'9px 12px', border:'1px solid #EBEBED', marginBottom:10 }}>
+                      {freeNotes}
+                    </div>
+                  )}
+                </>
+              )
+            })()}
             <OrderActions order={order} clientEmail={clientEmail} clientName={order.client_name || clientName} docUrl={docUrl} setDocUrl={handleDocSaved}/>
           </div>
         )}

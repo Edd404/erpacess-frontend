@@ -11,7 +11,6 @@ import {
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const T = {
-  // Neutrals
   ink:      '#0A0A0B',
   ink2:     '#3A3A3C',
   ink3:     '#6B6B70',
@@ -19,7 +18,6 @@ const T = {
   ink5:     '#D1D1D6',
   ink6:     '#F2F2F7',
   white:    '#FFFFFF',
-  // Accent
   blue:     '#0A66FF',
   blueL:    '#EEF4FF',
   green:    '#12A150',
@@ -28,21 +26,17 @@ const T = {
   amberL:   '#FFF8E7',
   red:      '#D93025',
   redL:     '#FFF0EE',
-  // Maintenance accent — warm graphite, NOT purple
   slate:    '#1C2B3A',
   slateL:   '#F0F4F8',
   slateMid: '#4A6080',
-  // Surfaces
   surface:  '#FFFFFF',
   bg:       '#F5F5F7',
-  // Shadows
   shadowSm: '0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04)',
   shadowMd: '0 4px 16px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04)',
   shadowLg: '0 12px 40px rgba(0,0,0,0.12)',
 }
 
 // ── Data ──────────────────────────────────────────────────────────────────────
-// Converte modelos da API [{name, series, year, capacities}] para o formato {s, m, caps}
 function groupModels(apiModels) {
   const map = {}
   ;[...apiModels].sort((a, b) => b.year - a.year || a.name.localeCompare(b.name)).forEach(m => {
@@ -54,7 +48,6 @@ function groupModels(apiModels) {
   return Object.values(map)
 }
 
-// Fallback estático (enquanto a API carrega)
 const IPHONE_MODELS_STATIC = [
   { s:'iPhone 16', m:['iPhone 16','iPhone 16 Plus','iPhone 16 Pro','iPhone 16 Pro Max'] },
   { s:'iPhone 15', m:['iPhone 15','iPhone 15 Plus','iPhone 15 Pro','iPhone 15 Pro Max'] },
@@ -117,8 +110,114 @@ const TextInput = ({ value, onChange, placeholder, err, style={}, ...rest }) => 
     {...rest}/>
 )
 
+// ── CapacityPicker — seletor customizado sem <select> nativo ──────────────────
+function CapacityPicker({ value, onChange, options, placeholder = 'Selecionar...' }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef()
 
-// ── Client Search (API-powered, debounce 350ms) ───────────────────────────────
+  useEffect(() => {
+    const close = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', close)
+    document.addEventListener('touchstart', close)
+    return () => {
+      document.removeEventListener('mousedown', close)
+      document.removeEventListener('touchstart', close)
+    }
+  }, [])
+
+  return (
+    <div ref={ref} style={{ position:'relative' }}>
+      {/* Trigger */}
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between',
+          padding:'11px 14px', border:`1px solid ${T.ink5}`, borderRadius:10,
+          background:T.white, cursor:'pointer', fontFamily:'Instrument Sans,sans-serif',
+          fontSize:14, color: value ? T.ink : T.ink4, transition:'border-color .15s',
+          boxShadow: open ? `0 0 0 3px rgba(10,10,11,0.06)` : 'none',
+          borderColor: open ? T.ink : T.ink5,
+        }}>
+        <span>{value || placeholder}</span>
+        <ChevronDown size={14} style={{
+          color:T.ink4, flexShrink:0,
+          transform: open ? 'rotate(180deg)' : 'none',
+          transition:'transform .2s',
+        }}/>
+      </button>
+
+      {/* Dropdown */}
+      {open && (
+        <div style={{
+          position:'absolute', top:'calc(100% + 4px)', left:0, right:0,
+          background:T.white, border:`1px solid ${T.ink5}`, borderRadius:12,
+          boxShadow:T.shadowLg, zIndex:600, overflow:'hidden',
+        }}>
+          {/* "Selecionar..." row */}
+          <div
+            onMouseDown={() => { onChange(''); setOpen(false) }}
+            onTouchEnd={e => { e.preventDefault(); onChange(''); setOpen(false) }}
+            style={{
+              display:'flex', alignItems:'center', justifyContent:'space-between',
+              padding:'14px 16px', cursor:'pointer',
+              background: !value ? T.ink6 : T.white,
+              borderBottom:`1px solid ${T.ink6}`,
+              fontSize:14, color:T.ink4, fontFamily:'Instrument Sans,sans-serif',
+            }}>
+            <span>{placeholder}</span>
+            <div style={{
+              width:22, height:22, borderRadius:'50%',
+              border:`2px solid ${!value ? T.blue : T.ink5}`,
+              background: !value ? T.blue : 'transparent',
+              display:'flex', alignItems:'center', justifyContent:'center',
+              flexShrink:0, transition:'all .15s',
+            }}>
+              {!value && <div style={{ width:8, height:8, borderRadius:'50%', background:T.white }}/>}
+            </div>
+          </div>
+
+          {options.map((opt, i) => {
+            const sel = value === opt
+            return (
+              <div
+                key={opt}
+                onMouseDown={() => { onChange(opt); setOpen(false) }}
+                onTouchEnd={e => { e.preventDefault(); onChange(opt); setOpen(false) }}
+                style={{
+                  display:'flex', alignItems:'center', justifyContent:'space-between',
+                  padding:'14px 16px', cursor:'pointer',
+                  background: sel ? T.ink6 : T.white,
+                  borderBottom: i < options.length - 1 ? `1px solid ${T.ink6}` : 'none',
+                  fontSize:15, fontWeight: sel ? 600 : 400,
+                  color: sel ? T.ink : T.ink2,
+                  fontFamily:'Instrument Sans,sans-serif',
+                  transition:'background .1s',
+                }}
+                onMouseEnter={e => { if (!sel) e.currentTarget.style.background = T.bg }}
+                onMouseLeave={e => { if (!sel) e.currentTarget.style.background = T.white }}>
+                <span>{opt}</span>
+                <div style={{
+                  width:22, height:22, borderRadius:'50%',
+                  border:`2px solid ${sel ? T.blue : T.ink5}`,
+                  background: sel ? T.blue : 'transparent',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  flexShrink:0, transition:'all .15s',
+                }}>
+                  {sel && <div style={{ width:8, height:8, borderRadius:'50%', background:T.white }}/>}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Client Search ─────────────────────────────────────────────────────────────
 function ClientSearch({ selectedId, onSelect, err }) {
   const [q, setQ]             = useState('')
   const [open, setOpen]       = useState(false)
@@ -252,18 +351,15 @@ function ClientSearch({ selectedId, onSelect, err }) {
   )
 }
 
-// ── IMEI Field (digitação simples + feedback em tempo real) ──────────────────
+// ── IMEI Field ────────────────────────────────────────────────────────────────
 function IMEIField({ value, onChange, err }) {
   const len     = value.length
   const isValid = len === 15 && validateIMEI(value)
   const isWrong = len === 15 && !isValid
-
-  // cor da borda: erro de submit > dígito errado > válido > neutro
   const borderColor = err || isWrong ? T.red : isValid ? '#12A150' : T.ink5
   const shadow      = err || isWrong ? `0 0 0 3px ${T.red}18`
                     : isValid        ? '0 0 0 3px rgba(18,161,80,0.12)'
                     : 'none'
-
   return (
     <div>
       <div style={{ border:`1px solid ${borderColor}`, borderRadius:10, background:T.white,
@@ -277,8 +373,6 @@ function IMEIField({ value, onChange, err }) {
           style={{ flex:1, padding:'11px 14px', border:'none', outline:'none', fontSize:13, color:T.ink,
             background:'transparent', fontFamily:'JetBrains Mono,monospace', letterSpacing:'0.5px' }}
         />
-
-        {/* contador + ícone de status */}
         <div style={{ display:'flex', alignItems:'center', gap:6, paddingRight:12 }}>
           {len > 0 && (
             <span style={{ fontSize:11, color: len === 15 ? (isValid ? '#12A150' : T.red) : T.ink4,
@@ -290,8 +384,6 @@ function IMEIField({ value, onChange, err }) {
           {isWrong && <AlertCircle  size={15} style={{ color:T.red,     flexShrink:0 }}/>}
         </div>
       </div>
-
-      {/* mensagem inline — só aparece ao atingir 15 dígitos */}
       {isWrong && !err && (
         <p style={{ fontSize:11, color:T.red, marginTop:4, marginLeft:2, fontFamily:'Instrument Sans,sans-serif' }}>
           IMEI inválido — verifique os dígitos
@@ -366,8 +458,6 @@ function StepServico({ form, set, errors, models }) {
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:22 }}>
-
-      {/* Aparelho */}
       <div>
         <Label required>Modelo do aparelho</Label>
         <ModelSearch value={form.iphone_model} onSelect={v => set('iphone_model', v)} err={errors.iphone_model} models={models || []}/>
@@ -386,7 +476,6 @@ function StepServico({ form, set, errors, models }) {
         </div>
       </div>
 
-      {/* Serviços selecionados (chips) */}
       {selected.length > 0 && (
         <div>
           <Label>Serviços selecionados</Label>
@@ -407,11 +496,8 @@ function StepServico({ form, set, errors, models }) {
         </div>
       )}
 
-      {/* Seletor de serviços */}
       <div>
         <Label required>Tipo de serviço</Label>
-
-        {/* Search */}
         <div style={{ position:'relative', marginBottom:10 }}>
           <Search size={13} style={{ position:'absolute', left:13, top:'50%', transform:'translateY(-50%)', color:T.ink4, pointerEvents:'none' }}/>
           <Field err={errors.service_types}>
@@ -420,7 +506,6 @@ function StepServico({ form, set, errors, models }) {
         </div>
         <ErrMsg msg={errors.service_types}/>
 
-        {/* Categories */}
         <div style={{ border:`1px solid ${T.ink5}`, borderRadius:12, overflow:'hidden', marginTop:6 }}>
           {groups.map((g, gi) => {
             const isOpen = q || openCat === g.cat
@@ -428,7 +513,6 @@ function StepServico({ form, set, errors, models }) {
             const isLast = gi === groups.length - 1
             return (
               <div key={g.cat}>
-                {/* Category header */}
                 <button
                   onClick={() => !q && setOpenCat(isOpen ? null : g.cat)}
                   style={{
@@ -439,7 +523,6 @@ function StepServico({ form, set, errors, models }) {
                     cursor: q ? 'default' : 'pointer', fontFamily:'Instrument Sans,sans-serif',
                   }}>
                   <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                    {/* Color dot */}
                     <div style={{ width:8, height:8, borderRadius:'50%', background:g.dot, flexShrink:0 }}/>
                     <span style={{ fontSize:13, fontWeight:600, color:T.ink2 }}>{g.cat}</span>
                     {selCount > 0 && (
@@ -454,7 +537,6 @@ function StepServico({ form, set, errors, models }) {
                   )}
                 </button>
 
-                {/* Service items */}
                 {isOpen && (
                   <div style={{ borderTop:`1px solid ${T.ink6}` }}>
                     {g.items.map((item, ii) => {
@@ -472,7 +554,6 @@ function StepServico({ form, set, errors, models }) {
                           }}
                           onMouseEnter={e => !on && (e.currentTarget.style.background = T.bg)}
                           onMouseLeave={e => !on && (e.currentTarget.style.background = T.white)}>
-                          {/* Checkbox */}
                           <div style={{
                             width:17, height:17, borderRadius:5, flexShrink:0,
                             border: on ? 'none' : `1.5px solid ${T.ink5}`,
@@ -495,7 +576,6 @@ function StepServico({ form, set, errors, models }) {
         </div>
       </div>
 
-      {/* Descrição */}
       <div>
         <Label required>Problema relatado pelo cliente</Label>
         <div style={{ border:`1px solid ${errors.problem_description ? T.red : T.ink5}`, borderRadius:10, background:T.white, boxShadow: errors.problem_description ? `0 0 0 3px ${T.red}18` : 'none' }}>
@@ -510,7 +590,6 @@ function StepServico({ form, set, errors, models }) {
         <ErrMsg msg={errors.problem_description}/>
       </div>
 
-      {/* Condição */}
       <div>
         <Label>Condição do aparelho</Label>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8 }}>
@@ -555,16 +634,12 @@ function StepProduto({ form, set, errors, models }) {
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
         <div>
           <Label>Capacidade</Label>
-          <Field>
-            <div style={{ position:'relative', display:'flex', alignItems:'center' }}>
-              <select value={form.capacity} onChange={e => set('capacity', e.target.value)}
-                style={{ width:'100%', padding:'11px 36px 11px 14px', border:'none', outline:'none', fontSize:14, color: form.capacity ? T.ink : T.ink4, background:'transparent', fontFamily:'Instrument Sans,sans-serif', appearance:'none', cursor:'pointer' }}>
-                <option value="">Selecionar...</option>
-                {['64GB','128GB','256GB','512GB','1TB'].map(c => <option key={c}>{c}</option>)}
-              </select>
-              <ChevronDown size={14} style={{ position:'absolute', right:12, color:T.ink4, pointerEvents:'none' }}/>
-            </div>
-          </Field>
+          {/* CapacityPicker customizado — sem <select> nativo */}
+          <CapacityPicker
+            value={form.capacity}
+            onChange={v => set('capacity', v)}
+            options={['64GB','128GB','256GB','512GB','1TB']}
+          />
         </div>
         <div>
           <Label>Cor</Label>
@@ -611,7 +686,6 @@ function StepProduto({ form, set, errors, models }) {
         <ErrMsg msg={errors.condition_sale}/>
       </div>
 
-      {/* Origem do cliente — obrigatório em venda */}
       <div>
         <Label required>Como o cliente chegou até nós?</Label>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
@@ -756,10 +830,9 @@ function StepPagamento({ form, set, errors, isManut, models }) {
         <ErrMsg msg={errors.payment_methods}/>
       </div>
 
-      {/* ── iPhone Entrada (apenas venda) ───────────────────────── */}
+      {/* ── iPhone Entrada ───────────────────────────────────────── */}
       {form.payment_methods.includes('iphone_entrada') && (
         <div style={{ border:`1.5px solid ${T.ink}`, borderRadius:12, overflow:'hidden' }}>
-          {/* Header */}
           <div style={{ background:T.ink, padding:'12px 16px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
               <Smartphone size={14} style={{ color:'rgba(255,255,255,0.6)' }}/>
@@ -772,9 +845,7 @@ function StepPagamento({ form, set, errors, isManut, models }) {
             )}
           </div>
 
-          {/* Fields */}
           <div style={{ padding:16, display:'flex', flexDirection:'column', gap:12, background:T.ink6 }}>
-
             {/* Modelo trade-in */}
             <div style={{ position:'relative' }}>
               <Label required>Modelo do iPhone de entrada</Label>
@@ -811,16 +882,12 @@ function StepPagamento({ form, set, errors, isManut, models }) {
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
               <div>
                 <Label>Memória</Label>
-                <div style={{ border:`1px solid ${T.ink5}`, borderRadius:10, background:T.white }}>
-                  <div style={{ position:'relative', display:'flex', alignItems:'center' }}>
-                    <select value={pd.iphone_entrada.capacity} onChange={e => setPd('iphone_entrada','capacity',e.target.value)}
-                      style={{ width:'100%', padding:'11px 32px 11px 14px', border:'none', outline:'none', fontSize:13, color: pd.iphone_entrada.capacity ? T.ink : T.ink4, background:'transparent', fontFamily:'Instrument Sans,sans-serif', appearance:'none', cursor:'pointer' }}>
-                      <option value="">Selecionar...</option>
-                      {['16GB','32GB','64GB','128GB','256GB','512GB','1TB'].map(c => <option key={c}>{c}</option>)}
-                    </select>
-                    <ChevronDown size={13} style={{ position:'absolute', right:11, color:T.ink4, pointerEvents:'none' }}/>
-                  </div>
-                </div>
+                {/* CapacityPicker customizado — sem <select> nativo */}
+                <CapacityPicker
+                  value={pd.iphone_entrada.capacity}
+                  onChange={v => setPd('iphone_entrada','capacity',v)}
+                  options={['16GB','32GB','64GB','128GB','256GB','512GB','1TB']}
+                />
               </div>
               <div>
                 <Label>Cor</Label>
@@ -849,7 +916,6 @@ function StepPagamento({ form, set, errors, isManut, models }) {
               </div>
             </div>
 
-            {/* Restante após entrada */}
             {tradeVal > 0 && total > 0 && (
               <div style={{ background:T.amberL, border:`1px solid #FDE68A`, borderRadius:8, padding:'9px 13px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                 <span style={{ fontSize:12, color:T.amber, fontWeight:500 }}>Restante a pagar</span>
@@ -860,7 +926,7 @@ function StepPagamento({ form, set, errors, isManut, models }) {
         </div>
       )}
 
-      {/* Detalhes por método — apenas cash methods */}
+      {/* Detalhes por método */}
       {cashMethods.length > 0 && (
         <div style={{ border:`1px solid ${T.ink5}`, borderRadius:12, overflow:'hidden' }}>
           {cashMethods.map((m, idx) => {
@@ -870,6 +936,7 @@ function StepPagamento({ form, set, errors, isManut, models }) {
             const isLast = idx === cashMethods.length - 1
             return (
               <div key={m} style={{ borderBottom: isLast ? 'none' : `1px solid ${T.ink6}` }}>
+                {/* Header do método */}
                 <div style={{ padding:'12px 16px 4px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                   <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                     <opt.icon size={13} style={{ color:T.ink3 }}/>
@@ -887,7 +954,8 @@ function StepPagamento({ form, set, errors, isManut, models }) {
                   )}
                 </div>
 
-                <div style={{ padding:'6px 16px 12px', display:'grid', gridTemplateColumns: m === 'cartao_credito' ? '1fr auto' : '1fr', gap:10, alignItems:'end' }}>
+                {/* Campo valor — sempre largura total */}
+                <div style={{ padding: m === 'cartao_credito' ? '6px 16px 10px' : '6px 16px 12px' }}>
                   <div style={{ border:`1px solid ${T.ink5}`, borderRadius:8, background: isAuto ? T.greenL : T.white, display:'flex', alignItems:'center' }}>
                     <span style={{ paddingLeft:12, fontSize:13, color:T.ink4, flexShrink:0 }}>R$</span>
                     <input
@@ -901,28 +969,36 @@ function StepPagamento({ form, set, errors, isManut, models }) {
                         background:'transparent', fontFamily:'Instrument Sans,sans-serif',
                       }}/>
                   </div>
+                </div>
 
-                  {m === 'cartao_credito' && (
-                    <div style={{ display:'flex', gap:4, flexWrap:'wrap', maxWidth:220 }}>
+                {/* Parcelas — abaixo do campo valor, largura total, apenas no crédito */}
+                {m === 'cartao_credito' && (
+                  <div style={{ padding:'0 16px 14px' }}>
+                    <div style={{ fontSize:11, fontWeight:600, color:T.ink3, letterSpacing:'0.4px', textTransform:'uppercase', marginBottom:8 }}>
+                      Parcelas
+                    </div>
+                    <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
                       {PARCELAS.map(n => {
                         const on = pd.cartao_credito.parcelas === String(n)
                         return (
                           <button key={n} onClick={() => setPd('cartao_credito','parcelas',String(n))}
                             style={{
-                              width:34, height:28, borderRadius:6,
-                              border:`1px solid ${on ? T.ink : T.ink5}`,
+                              minWidth:40, height:34, paddingLeft:10, paddingRight:10,
+                              borderRadius:8,
+                              border:`1.5px solid ${on ? T.ink : T.ink5}`,
                               background: on ? T.ink : T.white,
                               color: on ? T.white : T.ink3,
-                              fontSize:12, fontWeight: on ? 600 : 400, cursor:'pointer',
-                              fontFamily:'Instrument Sans,sans-serif', transition:'all .12s',
+                              fontSize:13, fontWeight: on ? 700 : 400,
+                              cursor:'pointer', fontFamily:'Instrument Sans,sans-serif',
+                              transition:'all .12s',
                             }}>
                             {n}x
                           </button>
                         )
                       })}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             )
           })}
@@ -1007,7 +1083,6 @@ export default function NewOrderPage() {
   const [searchParams] = useSearchParams()
   const createOrder = useCreateOrder()
 
-  // Modelos da API — fallback para a lista estática enquanto carrega
   const [iphoneModels, setIphoneModels] = useState(IPHONE_MODELS_STATIC)
   useEffect(() => {
     adminService.activeModels()
@@ -1015,7 +1090,7 @@ export default function NewOrderPage() {
         const grouped = groupModels(r.data?.data || [])
         if (grouped.length > 0) setIphoneModels(grouped)
       })
-      .catch(() => {}) // silencia — fallback já está ativo
+      .catch(() => {})
   }, [])
 
   const [step, setStep] = useState(1)
@@ -1088,7 +1163,7 @@ export default function NewOrderPage() {
   return (
     <div style={{ maxWidth:640, margin:'0 auto', fontFamily:'Instrument Sans,sans-serif', display:'flex', flexDirection:'column', gap:12 }}>
 
-      {/* ── Stepper ─────────────────────────────────────────────── */}
+      {/* Stepper */}
       <div style={{ background:T.white, borderRadius:12, boxShadow:T.shadowSm, padding:'14px 22px' }}>
         <div style={{ display:'flex', alignItems:'center' }}>
           {stepLabels.map((s, i) => (
@@ -1113,7 +1188,6 @@ export default function NewOrderPage() {
           ))}
         </div>
 
-        {/* Context strip */}
         {isManut && step > 1 && (
           <div style={{ marginTop:12, paddingTop:12, borderTop:`1px solid ${T.ink6}`, display:'flex', alignItems:'center', gap:8 }}>
             <Wrench size={12} style={{ color:T.ink4 }}/>
@@ -1125,7 +1199,7 @@ export default function NewOrderPage() {
         )}
       </div>
 
-      {/* ── Form card ───────────────────────────────────────────── */}
+      {/* Form card */}
       <div style={{ background:T.white, borderRadius:12, boxShadow:T.shadowSm, padding:28 }}>
 
         {step === 1 && (

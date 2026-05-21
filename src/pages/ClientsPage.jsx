@@ -369,7 +369,6 @@ export default function ClientsPage() {
               <div style={{ fontSize:12, marginTop:4 }}>Cadastre o primeiro cliente clicando em "Novo Cliente"</div>
             </div>
           ) : isMobile ? (
-            /* ── MOBILE: lista de cards ── */
             <div>
               {clients.map((c, i) => {
                 const inactive = isInactive(c)
@@ -441,7 +440,6 @@ export default function ClientsPage() {
               })}
             </div>
           ) : (
-            /* ── DESKTOP: tabela ── */
             <div style={{ overflowX:'auto' }}>
               <table style={{ width:'100%', borderCollapse:'collapse' }}>
                 <thead>

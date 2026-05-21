@@ -101,7 +101,15 @@ export default function DeviceComparison() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  const models = useMemo(() => (data?.models && Array.isArray(data.models) ? data.models : []), [data])
+  // Reordena pelo campo da métrica ativa — API sempre retorna por receita
+  const models = useMemo(() => {
+    if (!data?.models || !Array.isArray(data.models)) return []
+    return [...data.models].sort((a, b) => {
+      if (metric === 'receita_total')
+        return (parseFloat(b.receita_total) || 0) - (parseFloat(a.receita_total) || 0)
+      return (parseInt(b.total) || 0) - (parseInt(a.total) || 0)
+    })
+  }, [data, metric])
   const totals  = useMemo(() => (data?.totals && typeof data.totals === 'object' ? data.totals : {}), [data])
 
   // Máximo da métrica selecionada — define 100% da barra

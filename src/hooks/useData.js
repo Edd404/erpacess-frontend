@@ -72,14 +72,6 @@ export const useCreateOrder = () => {
       qc.invalidateQueries({ queryKey: ['orders-stats'] });
       qc.invalidateQueries({ queryKey: ['orders-advanced-stats'] });
       toast.success(`Atendimento ${res.data.data.order_number} registrado! ${res.data.email_sent ? 'E-mail enviado ✉️' : ''}`);
-      if (res.data.pdf_base64) {
-        const bytes = atob(res.data.pdf_base64);
-        const blob = new Blob([Uint8Array.from(bytes, c => c.charCodeAt(0))], { type: 'application/pdf' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = `Garantia_${res.data.data.order_number}.pdf`; a.click();
-        URL.revokeObjectURL(url);
-      }
       navigate('/orders');
     },
     onError: (err) => toast.error(err.response?.data?.error || 'Erro ao registrar atendimento.'),

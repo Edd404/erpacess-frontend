@@ -170,7 +170,7 @@ function FilterDropdown({ trigger, options, selected, onSelect, maxHeight = 320 
           border: `1px solid ${C.border}`,
           borderRadius: 14,
           boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 0 0 0.5px rgba(0,0,0,0.06)',
-          zIndex: 600,
+          zIndex: 9999,
           overflow: 'hidden',
           maxHeight,
           display: 'flex', flexDirection: 'column',
@@ -277,7 +277,7 @@ function ModelSelect({ value, onChange }) {
           border: `1px solid ${C.border}`,
           borderRadius: 14,
           boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 0 0 0.5px rgba(0,0,0,0.06)',
-          zIndex: 600,
+          zIndex: 9999,
           overflow: 'hidden',
           display: 'flex', flexDirection: 'column',
           maxHeight: 360,
@@ -927,6 +927,7 @@ export default function OrdersPage() {
         {/* Linha 2 — Modelo + Condição (dois selects lado a lado) */}
         <div style={{
           display: 'flex', gap: 10,
+          position: 'relative', zIndex: 100,
           animation: 'fadeUp .3s ease forwards', animationDelay: '240ms', opacity: 0,
         }}>
           <ModelSelect     value={model}     onChange={handleModel} />

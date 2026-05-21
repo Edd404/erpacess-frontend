@@ -10,7 +10,7 @@ import {
   ChevronDown, Phone,
 } from 'lucide-react'
 import EditOrderModal from '../components/EditOrderModal'
-import { orderService } from '../services/api'
+import { orderService, adminService } from '../services/api'
 import toast from 'react-hot-toast'
 
 // ─── Tokens ───────────────────────────────────────────────────
@@ -41,16 +41,10 @@ const PAY = {
   iphone_entrada: 'iPhone entrada',
 }
 
-const IPHONE_MODELS = [
-  'iPhone 8', 'iPhone 8 Plus',
-  'iPhone X', 'iPhone XR', 'iPhone XS', 'iPhone XS Max',
-  'iPhone 11', 'iPhone 11 Pro', 'iPhone 11 Pro Max',
-  'iPhone 12', 'iPhone 12 Mini', 'iPhone 12 Pro', 'iPhone 12 Pro Max',
-  'iPhone 13', 'iPhone 13 Mini', 'iPhone 13 Pro', 'iPhone 13 Pro Max',
-  'iPhone 14', 'iPhone 14 Plus', 'iPhone 14 Pro', 'iPhone 14 Pro Max',
-  'iPhone 15', 'iPhone 15 Plus', 'iPhone 15 Pro', 'iPhone 15 Pro Max',
-  'iPhone 16', 'iPhone 16 Plus', 'iPhone 16 Pro', 'iPhone 16 Pro Max',
-  'iPhone 16e',
+// Lista preenchida via API — fallback estático mínimo
+const IPHONE_MODELS_FALLBACK = [
+  'iPhone 13', 'iPhone 14', 'iPhone 15', 'iPhone 16',
+  'iPhone 15 Pro', 'iPhone 16 Pro', 'iPhone 15 Pro Max', 'iPhone 16 Pro Max',
 ]
 
 const brl = (v) =>
@@ -224,12 +218,25 @@ function FilterDropdown({ trigger, options, selected, onSelect, maxHeight = 320 
 function ModelSelect({ value, onChange }) {
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
+  const [models, setModels] = useState(IPHONE_MODELS_FALLBACK)
   const ref = useRef()
   useClickOutside(ref, () => setOpen(false))
 
+  // Busca modelos ativos da API (mesma fonte do NewOrderPage)
+  useEffect(() => {
+    adminService.activeModels()
+      .then(r => {
+        const list = (r.data?.data || [])
+          .sort((a, b) => b.year - a.year || a.name.localeCompare(b.name))
+          .map(m => m.name)
+        if (list.length > 0) setModels(list)
+      })
+      .catch(() => {})
+  }, [])
+
   const filtered = q
-    ? IPHONE_MODELS.filter(m => m.toLowerCase().includes(q.toLowerCase()))
-    : IPHONE_MODELS
+    ? models.filter(m => m.toLowerCase().includes(q.toLowerCase()))
+    : models
 
   const hasValue = !!value
 

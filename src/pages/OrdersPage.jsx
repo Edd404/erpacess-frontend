@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useOrders, useDownloadPDF, useOrderStats } from '../hooks/useData'
 import { useIsMobile } from '../hooks/useIsMobile'
@@ -140,111 +140,110 @@ function Segments({ value, onChange, options }) {
   )
 }
 
-// ─── Model Select (nativo estilizado) ─────────────────────────
-// ─── Bottom Sheet genérico ───────────────────────────────────
-function BottomSheet({ title, options, selected, onSelect, onClose }) {
+// ─── Hook: fechar ao clicar fora ──────────────────────────────
+function useClickOutside(ref, onClose) {
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose() }
+    document.addEventListener('mousedown', handler)
+    document.addEventListener('touchstart', handler)
+    return () => { document.removeEventListener('mousedown', handler); document.removeEventListener('touchstart', handler) }
+  }, [ref, onClose])
+}
+
+// ─── Dropdown genérico (sem backdrop, sem bottom sheet) ───────
+function FilterDropdown({ trigger, options, selected, onSelect, maxHeight = 320 }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef()
+  useClickOutside(ref, () => setOpen(false))
+
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed', inset: 0,
-        background: 'rgba(0,0,0,0.45)',
-        backdropFilter: 'blur(6px)',
-        WebkitBackdropFilter: 'blur(6px)',
-        zIndex: 9999,
-        display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-        animation: 'bsFadeIn .2s ease',
-      }}
-    >
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{
+    <div ref={ref} style={{ position: 'relative' }}>
+      {/* Trigger */}
+      <div onClick={() => setOpen(o => !o)}>{trigger(open)}</div>
+
+      {/* Lista */}
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 6px)', left: 0,
+          minWidth: '100%', width: 'max-content', maxWidth: 320,
           background: C.surface,
-          borderRadius: '20px 20px 0 0',
-          width: '100%', maxWidth: 540,
-          padding: '0 0 calc(env(safe-area-inset-bottom, 0px) + 16px)',
-          boxShadow: '0 -8px 40px rgba(0,0,0,0.18)',
-          animation: 'bsSlideUp .25s cubic-bezier(.32,1,.46,1)',
-          fontFamily: 'Instrument Sans, sans-serif',
-          maxHeight: '80vh', display: 'flex', flexDirection: 'column',
-        }}
-      >
-        {/* Handle + título */}
-        <div style={{ padding: '12px 20px 0', flexShrink: 0 }}>
-          <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(0,0,0,0.12)', margin: '0 auto 16px' }} />
-          <div style={{ fontSize: 13, fontWeight: 600, color: C.t2, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
-            {title}
+          border: `1px solid ${C.border}`,
+          borderRadius: 14,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 0 0 0.5px rgba(0,0,0,0.06)',
+          zIndex: 600,
+          overflow: 'hidden',
+          maxHeight,
+          display: 'flex', flexDirection: 'column',
+        }}>
+          <div style={{ overflowY: 'auto', flex: 1 }}>
+            {options.map((o, i) => {
+              const sel = selected === o.value
+              return (
+                <div
+                  key={o.value}
+                  onMouseDown={() => { onSelect(o.value); setOpen(false) }}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '11px 14px',
+                    background: sel ? C.accentSoft : C.surface,
+                    borderBottom: i < options.length - 1 ? `1px solid ${C.border}` : 'none',
+                    cursor: 'pointer', transition: 'background .1s',
+                    fontFamily: 'Instrument Sans, sans-serif',
+                  }}
+                  onMouseEnter={e => { if (!sel) e.currentTarget.style.background = C.bg }}
+                  onMouseLeave={e => { if (!sel) e.currentTarget.style.background = sel ? C.accentSoft : C.surface }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    {o.icon && <span style={{ fontSize: 16, lineHeight: 1 }}>{o.icon}</span>}
+                    <span style={{
+                      fontSize: 14, fontWeight: sel ? 600 : 400,
+                      color: sel ? C.accent : C.text,
+                    }}>{o.label}</span>
+                  </div>
+                  {/* Radio */}
+                  <div style={{
+                    width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
+                    border: `2px solid ${sel ? C.accent : 'rgba(0,0,0,0.18)'}`,
+                    background: sel ? C.accent : 'transparent',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'all .15s',
+                  }}>
+                    {sel && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
-
-        {/* Lista scrollável */}
-        <div style={{ overflowY: 'auto', padding: '0 12px 8px' }}>
-          {options.map((o, i) => {
-            const isSelected = selected === o.value
-            return (
-              <button
-                key={o.value}
-                onClick={() => { onSelect(o.value); onClose() }}
-                style={{
-                  width: '100%', display: 'flex', alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '14px 16px',
-                  background: isSelected ? C.accentSoft : 'transparent',
-                  border: 'none',
-                  borderRadius: 12,
-                  cursor: 'pointer',
-                  fontFamily: 'Instrument Sans, sans-serif',
-                  marginBottom: 2,
-                  transition: 'background .12s',
-                }}
-                onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = C.bg }}
-                onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent' }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  {o.icon && <span style={{ fontSize: 20 }}>{o.icon}</span>}
-                  <span style={{
-                    fontSize: 16, fontWeight: isSelected ? 600 : 400,
-                    color: isSelected ? C.accent : C.text,
-                  }}>{o.label}</span>
-                </div>
-                {/* Checkmark */}
-                <div style={{
-                  width: 22, height: 22, borderRadius: '50%',
-                  border: `2px solid ${isSelected ? C.accent : 'rgba(0,0,0,0.18)'}`,
-                  background: isSelected ? C.accent : 'transparent',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexShrink: 0, transition: 'all .15s',
-                }}>
-                  {isSelected && (
-                    <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                      <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  )}
-                </div>
-              </button>
-            )
-          })}
-        </div>
-      </div>
+      )}
     </div>
   )
 }
 
-// ─── Model Select (bottom sheet) ─────────────────────────────
+// ─── Model Select ─────────────────────────────────────────────
 function ModelSelect({ value, onChange }) {
+  const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
+  const ref = useRef()
+  useClickOutside(ref, () => setOpen(false))
+
+  const filtered = q
+    ? IPHONE_MODELS.filter(m => m.toLowerCase().includes(q.toLowerCase()))
+    : IPHONE_MODELS
+
   const hasValue = !!value
 
   return (
-    <>
+    <div ref={ref} style={{ position: 'relative', flex: 1, minWidth: 160, maxWidth: 260 }}>
+      {/* Trigger */}
       <button
-        onClick={() => setOpen(true)}
+        onClick={() => setOpen(o => !o)}
         style={{
-          flex: 1, minWidth: 160, maxWidth: 260,
+          width: '100%',
           display: 'flex', alignItems: 'center', gap: 8,
           padding: '10px 14px',
           background: hasValue ? C.accentSoft : C.surface,
-          border: `1.5px solid ${hasValue ? C.accent : C.border}`,
+          border: `1.5px solid ${hasValue ? C.accent : open ? C.text : C.border}`,
           borderRadius: 12, cursor: 'pointer',
           boxShadow: C.shadow, transition: 'all .15s',
           fontFamily: 'Instrument Sans, sans-serif',
@@ -260,77 +259,127 @@ function ModelSelect({ value, onChange }) {
           {value || 'Todos os modelos'}
         </span>
         {hasValue
-          ? <span onClick={e => { e.stopPropagation(); onChange('') }} style={{ color: C.t3, display: 'flex', padding: 2, borderRadius: 4, cursor: 'pointer' }}><X size={12} /></span>
-          : <ChevronDown size={13} style={{ color: C.t3, flexShrink: 0 }} />
+          ? <span
+              onMouseDown={e => { e.stopPropagation(); onChange(''); setQ('') }}
+              style={{ color: C.t3, display: 'flex', padding: 2, borderRadius: 4, cursor: 'pointer' }}>
+              <X size={12} />
+            </span>
+          : <ChevronDown size={13} style={{ color: C.t3, flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
         }
       </button>
 
+      {/* Dropdown com busca */}
       {open && (
-        <BottomSheet
-          title="Modelo"
-          selected={value}
-          onSelect={onChange}
-          onClose={() => setOpen(false)}
-          options={[
-            { value: '', label: 'Todos os modelos' },
-            ...IPHONE_MODELS.map(m => ({ value: m, label: m })),
-          ]}
-        />
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 6px)', left: 0,
+          width: 260,
+          background: C.surface,
+          border: `1px solid ${C.border}`,
+          borderRadius: 14,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 0 0 0.5px rgba(0,0,0,0.06)',
+          zIndex: 600,
+          overflow: 'hidden',
+          display: 'flex', flexDirection: 'column',
+          maxHeight: 360,
+        }}>
+          {/* Busca */}
+          <div style={{ padding: '10px 10px 6px', flexShrink: 0, borderBottom: `1px solid ${C.border}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.bg, borderRadius: 9, padding: '7px 10px' }}>
+              <Search size={12} style={{ color: C.t3, flexShrink: 0 }} />
+              <input
+                autoFocus
+                value={q}
+                onChange={e => setQ(e.target.value)}
+                placeholder="Buscar modelo..."
+                style={{
+                  flex: 1, border: 'none', outline: 'none', background: 'transparent',
+                  fontSize: 13, color: C.text, fontFamily: 'Instrument Sans, sans-serif',
+                }}
+              />
+              {q && <button onMouseDown={() => setQ('')} style={{ border: 'none', background: 'none', cursor: 'pointer', color: C.t3, padding: 0, display: 'flex' }}><X size={11} /></button>}
+            </div>
+          </div>
+
+          {/* Lista */}
+          <div style={{ overflowY: 'auto', flex: 1 }}>
+            {/* "Todos" */}
+            {[{ value: '', label: 'Todos os modelos' }, ...filtered.map(m => ({ value: m, label: m }))].map((o, i, arr) => {
+              const sel = value === o.value
+              return (
+                <div
+                  key={o.value || '__all'}
+                  onMouseDown={() => { onChange(o.value); setQ(''); setOpen(false) }}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '10px 14px',
+                    background: sel ? C.accentSoft : C.surface,
+                    borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : 'none',
+                    cursor: 'pointer', transition: 'background .1s',
+                    fontFamily: 'Instrument Sans, sans-serif',
+                  }}
+                  onMouseEnter={e => { if (!sel) e.currentTarget.style.background = C.bg }}
+                  onMouseLeave={e => { if (!sel) e.currentTarget.style.background = sel ? C.accentSoft : C.surface }}
+                >
+                  <span style={{ fontSize: 13, fontWeight: sel ? 600 : 400, color: sel ? C.accent : C.text }}>
+                    {o.label}
+                  </span>
+                  <div style={{
+                    width: 16, height: 16, borderRadius: '50%', flexShrink: 0,
+                    border: `2px solid ${sel ? C.accent : 'rgba(0,0,0,0.18)'}`,
+                    background: sel ? C.accent : 'transparent',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'all .15s',
+                  }}>
+                    {sel && <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#fff' }} />}
+                  </div>
+                </div>
+              )
+            })}
+            {filtered.length === 0 && q && (
+              <div style={{ padding: '16px', textAlign: 'center', fontSize: 13, color: C.t3 }}>
+                Nenhum modelo encontrado
+              </div>
+            )}
+          </div>
+        </div>
       )}
-    </>
+    </div>
   )
 }
 
-// ─── Condition Select (bottom sheet) ─────────────────────────
+// ─── Condition Select ─────────────────────────────────────────
 function ConditionSelect({ value, onChange }) {
-  const [open, setOpen] = useState(false)
-
-  const label = value === 'lacrado' ? '📦  Lacrado'
-              : value === 'seminovo' ? '✨  Seminovo'
-              : 'Qualquer condição'
-
-  const color = value === 'lacrado' ? C.accent : value === 'seminovo' ? C.violet : C.t3
-  const bg    = value === 'lacrado' ? C.accentSoft : value === 'seminovo' ? C.violetSoft : C.surface
+  const color  = value === 'lacrado' ? C.accent : value === 'seminovo' ? C.violet : C.t3
+  const bg     = value === 'lacrado' ? C.accentSoft : value === 'seminovo' ? C.violetSoft : C.surface
   const border = value ? color : C.border
+  const label  = value === 'lacrado' ? '📦 Lacrado' : value === 'seminovo' ? '✨ Seminovo' : 'Qualquer condição'
 
   return (
-    <>
-      <button
-        onClick={() => setOpen(true)}
-        style={{
-          flex: 1, minWidth: 160, maxWidth: 220,
+    <FilterDropdown
+      selected={value}
+      onSelect={onChange}
+      maxHeight={200}
+      options={[
+        { value: '',         label: 'Qualquer condição' },
+        { value: 'lacrado',  label: 'Lacrado',  icon: '📦' },
+        { value: 'seminovo', label: 'Seminovo', icon: '✨' },
+      ]}
+      trigger={(open) => (
+        <button style={{
           display: 'flex', alignItems: 'center', gap: 8,
-          padding: '10px 14px',
-          background: bg, border: `1.5px solid ${border}`,
+          padding: '10px 14px', width: '100%',
+          background: bg, border: `1.5px solid ${open ? (value ? color : C.text) : border}`,
           borderRadius: 12, cursor: 'pointer',
           boxShadow: C.shadow, transition: 'all .15s',
           fontFamily: 'Instrument Sans, sans-serif',
-        }}
-      >
-        <span style={{
-          flex: 1, textAlign: 'left', fontSize: 13,
-          color: value ? color : C.t3,
-          fontWeight: value ? 600 : 400,
         }}>
-          {label}
-        </span>
-        <ChevronDown size={13} style={{ color, flexShrink: 0 }} />
-      </button>
-
-      {open && (
-        <BottomSheet
-          title="Condição"
-          selected={value}
-          onSelect={onChange}
-          onClose={() => setOpen(false)}
-          options={[
-            { value: '',         label: 'Qualquer condição' },
-            { value: 'lacrado',  label: 'Lacrado',  icon: '📦' },
-            { value: 'seminovo', label: 'Seminovo', icon: '✨' },
-          ]}
-        />
+          <span style={{ flex: 1, textAlign: 'left', fontSize: 13, color: value ? color : C.t3, fontWeight: value ? 600 : 400 }}>
+            {label}
+          </span>
+          <ChevronDown size={13} style={{ color, flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
+        </button>
       )}
-    </>
+    />
   )
 }
 
@@ -877,11 +926,13 @@ export default function OrdersPage() {
 
         {/* Linha 2 — Modelo + Condição (dois selects lado a lado) */}
         <div style={{
-          display: 'flex', gap: 10, flexWrap: 'wrap',
+          display: 'flex', gap: 10,
           animation: 'fadeUp .3s ease forwards', animationDelay: '240ms', opacity: 0,
         }}>
           <ModelSelect     value={model}     onChange={handleModel} />
-          <ConditionSelect value={condition} onChange={handleCondition} />
+          <div style={{ flex: 1, minWidth: 150, maxWidth: 220, position: 'relative' }}>
+            <ConditionSelect value={condition} onChange={handleCondition} />
+          </div>
         </div>
 
         {/* Linha 3 — Tipo + Período */}
@@ -952,8 +1003,6 @@ export default function OrdersPage() {
 
       <style>{`
         @keyframes fadeUp  { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes bsFadeIn  { from { opacity:0; } to { opacity:1; } }
-        @keyframes bsSlideUp { from { transform:translateY(100%); } to { transform:translateY(0); } }
         @keyframes spin    { to { transform:rotate(360deg); } }
         @keyframes modalIn { from { opacity:0; transform:scale(.97) translateY(8px); } to { opacity:1; transform:scale(1) translateY(0); } }
       `}</style>

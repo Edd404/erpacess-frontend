@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useClients, useCreateClient, useLookupCEP } from '../hooks/useData'
+import { useIsMobile } from '../hooks/useIsMobile'
 import {
   Search, Plus, ChevronRight, Phone, Mail, MapPin, X, Loader2, Check,
   Download, ChevronUp, ChevronDown, ChevronsUpDown, Users, UserPlus, AlertTriangle,
@@ -238,6 +239,7 @@ export default function ClientsPage() {
   const [selected, setSelected] = useState(null)
   const [sort,     setSort]     = useState('name')
   const [order,    setOrder]    = useState('asc')
+  const isMobile = useIsMobile()
 
   const { data, isLoading } = useClients({ search, page, limit:100, sort, order })
   const clients = data?.data || []
@@ -366,7 +368,80 @@ export default function ClientsPage() {
               <div style={{ fontSize:14 }}>Nenhum cliente encontrado</div>
               <div style={{ fontSize:12, marginTop:4 }}>Cadastre o primeiro cliente clicando em "Novo Cliente"</div>
             </div>
+          ) : isMobile ? (
+            /* ── MOBILE: lista de cards ── */
+            <div>
+              {clients.map((c, i) => {
+                const inactive = isInactive(c)
+                return (
+                  <div
+                    key={c.id}
+                    onClick={() => setSelected(c.id)}
+                    style={{
+                      display:'flex', alignItems:'center', gap:12,
+                      padding:'13px 16px',
+                      borderBottom: i < clients.length - 1 ? `1px solid ${T.border}` : 'none',
+                      cursor:'pointer', transition:'background .1s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = T.bg}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <Avatar name={c.name} size={38} inactive={inactive}/>
+
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:13, fontWeight:600, color:T.text, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                        {c.name}
+                      </div>
+                      <div style={{ fontSize:11, color:T.t3, fontFamily:'JetBrains Mono,monospace', marginTop:1 }}>
+                        {c.cpf_formatted || formatCPF(c.cpf)}
+                      </div>
+                      <div style={{ display:'flex', flexWrap:'wrap', gap:'2px 12px', marginTop:5 }}>
+                        {c.phone && (
+                          <span style={{ fontSize:11, color:T.t2, display:'flex', alignItems:'center', gap:4 }}>
+                            <Phone size={10}/>{formatPhone(c.phone)}
+                          </span>
+                        )}
+                        {c.email && (
+                          <span style={{ fontSize:11, color:T.t2, display:'flex', alignItems:'center', gap:4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'100%' }}>
+                            <Mail size={10}/>{c.email}
+                          </span>
+                        )}
+                        {c.city && (
+                          <span style={{ fontSize:11, color:T.t2, display:'flex', alignItems:'center', gap:4 }}>
+                            <MapPin size={10}/>{c.city}/{c.state}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:3, flexShrink:0 }}>
+                      <span style={{
+                        background: parseInt(c.total_orders) > 0 ? T.accentL : '#F3F4F6',
+                        color: parseInt(c.total_orders) > 0 ? T.accent : T.t3,
+                        fontSize:12, fontWeight:700, padding:'3px 10px', borderRadius:999,
+                      }}>
+                        {c.total_orders || 0}
+                      </span>
+                      {c.last_order_date && (
+                        <span style={{ fontSize:10, color:T.t3 }}>
+                          {new Date(c.last_order_date).toLocaleDateString('pt-BR')}
+                        </span>
+                      )}
+                      {inactive && (
+                        <span style={{ fontSize:9, color:'#B45309', display:'flex', alignItems:'center', gap:3 }}>
+                          <span style={{ width:5, height:5, borderRadius:'50%', background:'#F59E0B', display:'inline-block' }}/>
+                          inativo
+                        </span>
+                      )}
+                    </div>
+
+                    <ChevronRight size={13} style={{ color:T.t3, flexShrink:0 }}/>
+                  </div>
+                )
+              })}
+            </div>
           ) : (
+            /* ── DESKTOP: tabela ── */
             <div style={{ overflowX:'auto' }}>
               <table style={{ width:'100%', borderCollapse:'collapse' }}>
                 <thead>
@@ -394,7 +469,6 @@ export default function ClientsPage() {
                         onMouseEnter={e => e.currentTarget.style.background = T.bg}
                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                       >
-                        {/* Cliente */}
                         <td style={{ padding:'13px 22px' }}>
                           <div style={{ display:'flex', alignItems:'center', gap:12 }}>
                             <Avatar name={c.name} size={34} inactive={inactive}/>
@@ -406,8 +480,6 @@ export default function ClientsPage() {
                             </div>
                           </div>
                         </td>
-
-                        {/* Contato */}
                         <td style={{ padding:'13px 14px' }}>
                           <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
                             <span style={{ fontSize:12, display:'flex', alignItems:'center', gap:5, color:T.t2 }}>
@@ -420,8 +492,6 @@ export default function ClientsPage() {
                             )}
                           </div>
                         </td>
-
-                        {/* Cidade */}
                         <td style={{ padding:'13px 14px', fontSize:12, color:T.t2 }}>
                           {c.city && (
                             <span style={{ display:'flex', alignItems:'center', gap:5 }}>
@@ -429,12 +499,10 @@ export default function ClientsPage() {
                             </span>
                           )}
                         </td>
-
-                        {/* Atendimentos */}
                         <td style={{ padding:'13px 14px' }}>
                           <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
                             <span style={{
-                              background: parseInt(c.total_orders) > 0 ? '#EEF4FF' : '#F3F4F6',
+                              background: parseInt(c.total_orders) > 0 ? T.accentL : '#F3F4F6',
                               color: parseInt(c.total_orders) > 0 ? T.accent : T.t3,
                               fontSize:12, fontWeight:600,
                               padding:'3px 10px', borderRadius:999,
@@ -455,8 +523,6 @@ export default function ClientsPage() {
                             )}
                           </div>
                         </td>
-
-                        {/* Chevron */}
                         <td style={{ padding:'13px 14px 13px 0', textAlign:'right', color:T.t3 }}>
                           <ChevronRight size={14}/>
                         </td>
@@ -466,7 +532,7 @@ export default function ClientsPage() {
                 </tbody>
               </table>
             </div>
-          )}
+          )}          )}
         </div>
       </div>
 

@@ -530,7 +530,7 @@ export default function ClientsPage() {
                 </tbody>
               </table>
             </div>
-          )}          )}
+          )}
         </div>
       </div>
 

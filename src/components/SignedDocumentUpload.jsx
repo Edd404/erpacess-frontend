@@ -1,10 +1,19 @@
 /**
- * SignedDocumentUpload.jsx
+ * SignedDocumentUpload.jsx  (FRONTEND)
  * Upload do documento assinado direto para Cloudinary.
- * - Compressão client-side (1200px / JPEG 75%)
- * - Nome = número da OS
- * - Thumbnail persistente
- * - Modal de confirmação premium (sem window.confirm)
+ *
+ * FLUXO GARANTIDO:
+ * 1. Comprime imagem client-side (1200px / JPEG 75%)
+ * 2. Envia para Cloudinary via XHR com progress
+ * 3. Salva url + public_id no backend (PostgreSQL)
+ * 4. Só atualiza o state local APÓS confirmação do backend
+ * 5. Se backend falhar → avisa o usuário, NÃO atualiza state
+ *    (evita mostrar doc que não foi salvo no banco)
+ *
+ * PERSISTÊNCIA:
+ * - signed_document_url  → URL permanente (Cloudinary não expira uploads públicos)
+ * - signed_document_public_id → backup para reconstruir URL se necessário
+ * - Ambos salvos em service_orders via PATCH /orders/:id/document
  */
 
 import { useState, useRef } from 'react'
@@ -18,7 +27,7 @@ const UPLOAD_URL    = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/uploa
 
 // ── Compressão client-side via Canvas ────────────────────────
 const compressImage = (file) =>
-  new Promise((resolve) => {
+  new Promise((resolve, reject) => {
     const MAX_PX  = 1200
     const QUALITY = 0.75
     const img = new Image()
@@ -33,14 +42,56 @@ const compressImage = (file) =>
       canvas.height = height
       canvas.getContext('2d').drawImage(img, 0, 0, width, height)
       canvas.toBlob(
-        (blob) => resolve(new File([blob], file.name, { type: 'image/jpeg' })),
+        (blob) => {
+          if (!blob) { reject(new Error('Falha na compressão')); return }
+          resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }))
+        },
         'image/jpeg', QUALITY
       )
     }
+    img.onerror = () => reject(new Error('Imagem inválida'))
     img.src = URL.createObjectURL(file)
   })
 
-// ── Modal de confirmação premium ─────────────────────────────
+// ── Upload para Cloudinary via XHR (com progresso) ───────────
+const uploadToCloudinary = ({ file, folder, publicId, onProgress }) =>
+  new Promise((resolve, reject) => {
+    if (!CLOUD_NAME || !UPLOAD_PRESET) {
+      reject(new Error('Cloudinary não configurado. Verifique VITE_CLOUDINARY_CLOUD_NAME e VITE_CLOUDINARY_UPLOAD_PRESET.'))
+      return
+    }
+
+    const fd = new FormData()
+    fd.append('file',          file)
+    fd.append('upload_preset', UPLOAD_PRESET)
+    fd.append('folder',        folder)
+    fd.append('public_id',     publicId)
+
+    const xhr = new XMLHttpRequest()
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 90)) // até 90% no upload
+    }
+    xhr.onload = () => {
+      try {
+        const res = JSON.parse(xhr.responseText)
+        if (xhr.status === 200 && res.secure_url) {
+          onProgress(100)
+          resolve({ url: res.secure_url, public_id: res.public_id })
+        } else {
+          reject(new Error(res.error?.message || `Cloudinary retornou status ${xhr.status}`))
+        }
+      } catch {
+        reject(new Error('Resposta inválida do Cloudinary'))
+      }
+    }
+    xhr.onerror   = () => reject(new Error('Sem conexão — verifique sua internet'))
+    xhr.ontimeout = () => reject(new Error('Timeout — tente novamente'))
+    xhr.timeout   = 60000 // 60s
+    xhr.open('POST', UPLOAD_URL)
+    xhr.send(fd)
+  })
+
+// ── Modal de confirmação de remoção ──────────────────────────
 function ConfirmModal({ onConfirm, onCancel }) {
   return (
     <div
@@ -59,18 +110,14 @@ function ConfirmModal({ onConfirm, onCancel }) {
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: '#FFFFFF',
-          borderRadius: 20,
-          padding: '28px 24px 20px',
-          width: '100%',
-          maxWidth: 340,
+          background: '#FFFFFF', borderRadius: 20,
+          padding: '28px 24px 20px', width: '100%', maxWidth: 340,
           boxShadow: '0 32px 80px rgba(0,0,0,0.24), 0 0 0 0.5px rgba(0,0,0,0.08)',
           animation: 'modalIn .2s cubic-bezier(.34,1.56,.64,1)',
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
           fontFamily: 'Instrument Sans, sans-serif',
         }}
       >
-        {/* Ícone */}
         <div style={{
           width: 56, height: 56, borderRadius: '50%',
           background: 'rgba(255,59,48,0.08)',
@@ -79,7 +126,6 @@ function ConfirmModal({ onConfirm, onCancel }) {
           <Trash2 size={24} style={{ color: '#FF3B30' }} />
         </div>
 
-        {/* Título */}
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 17, fontWeight: 700, color: '#1D1D1F', letterSpacing: '-0.3px', marginBottom: 6 }}>
             Remover documento?
@@ -89,34 +135,24 @@ function ConfirmModal({ onConfirm, onCancel }) {
           </div>
         </div>
 
-        {/* Botões */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', marginTop: 4 }}>
-          <button
-            onClick={onConfirm}
-            style={{
-              width: '100%', padding: '13px 0',
-              background: '#FF3B30', color: '#fff',
-              border: 'none', borderRadius: 12,
-              fontSize: 15, fontWeight: 600, cursor: 'pointer',
-              fontFamily: 'Instrument Sans, sans-serif',
-              letterSpacing: '-0.1px',
-              transition: 'opacity .15s',
-            }}
+          <button onClick={onConfirm} style={{
+            width: '100%', padding: '13px 0',
+            background: '#FF3B30', color: '#fff', border: 'none', borderRadius: 12,
+            fontSize: 15, fontWeight: 600, cursor: 'pointer',
+            fontFamily: 'Instrument Sans, sans-serif', transition: 'opacity .15s',
+          }}
             onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
             onMouseLeave={e => e.currentTarget.style.opacity = '1'}
           >
             Remover
           </button>
-          <button
-            onClick={onCancel}
-            style={{
-              width: '100%', padding: '13px 0',
-              background: 'rgba(0,0,0,0.05)', color: '#1D1D1F',
-              border: 'none', borderRadius: 12,
-              fontSize: 15, fontWeight: 500, cursor: 'pointer',
-              fontFamily: 'Instrument Sans, sans-serif',
-              transition: 'opacity .15s',
-            }}
+          <button onClick={onCancel} style={{
+            width: '100%', padding: '13px 0',
+            background: 'rgba(0,0,0,0.05)', color: '#1D1D1F', border: 'none', borderRadius: 12,
+            fontSize: 15, fontWeight: 500, cursor: 'pointer',
+            fontFamily: 'Instrument Sans, sans-serif', transition: 'opacity .15s',
+          }}
             onMouseEnter={e => e.currentTarget.style.opacity = '0.7'}
             onMouseLeave={e => e.currentTarget.style.opacity = '1'}
           >
@@ -140,62 +176,59 @@ export default function SignedDocumentUpload({ orderId, orderNumber, existingUrl
   const [progress,    setProgress]    = useState(0)
   const [removing,    setRemoving]    = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [error,       setError]       = useState(null)
   const fileRef = useRef(null)
 
   // ── Upload ────────────────────────────────────────────────
   const upload = async (file) => {
     if (!file) return
-    if (file.size > 15 * 1024 * 1024) { toast.error('Máximo 15MB.'); return }
+    if (file.size > 15 * 1024 * 1024) { toast.error('Arquivo muito grande. Máximo 15MB.'); return }
 
     setUploading(true)
     setProgress(0)
+    setError(null)
+
+    let cloudResult = null
 
     try {
+      // 1. Comprime
       const compressed = await compressImage(file)
-      const fd = new FormData()
-      fd.append('file',          compressed)
-      fd.append('upload_preset', UPLOAD_PRESET)
-      const safeId    = String(orderNumber || orderId).replace(/[^a-zA-Z0-9_-]/g, '-')
-      const uploadedId = `${safeId}_${Date.now()}`
-      fd.append('folder',    'istore/documentos')
-      fd.append('public_id', uploadedId)
 
-      const cloudUrl = await new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest()
-        xhr.upload.onprogress = (e) => {
-          if (e.lengthComputable) setProgress(Math.round((e.loaded / e.total) * 100))
-        }
-        xhr.onload = () => {
-          const res = JSON.parse(xhr.responseText)
-          if (xhr.status === 200) resolve(res.secure_url)
-          else reject(new Error(res.error?.message || 'Falha no upload'))
-        }
-        xhr.onerror = () => reject(new Error('Erro de rede'))
-        xhr.open('POST', UPLOAD_URL)
-        xhr.send(fd)
+      // 2. Sobe para o Cloudinary
+      const safeId   = String(orderNumber || orderId).replace(/[^a-zA-Z0-9_-]/g, '-')
+      const publicId = `${safeId}_${Date.now()}`
+
+      cloudResult = await uploadToCloudinary({
+        file:      compressed,
+        folder:    'istore/documentos',
+        publicId,
+        onProgress: setProgress,
       })
 
-      // Salva URL + public_id no backend
-      try {
-        await api.patch(`/orders/${orderId}/document`, {
-          url:       cloudUrl,
-          public_id: uploadedId,
-        })
-        setUrl(cloudUrl)
-        onSaved?.(cloudUrl)
-        toast.success('Documento anexado!')
-      } catch (backendErr) {
-        console.error('[saveDocument] Erro ao salvar no backend:', backendErr)
-        toast.error(
-          'Foto enviada ao Cloudinary, mas não foi salva no sistema. ' +
-          'Verifique se a migration 004 foi executada no Supabase.',
-          { duration: 6000 }
-        )
-        setUrl(cloudUrl)
-      }
+      // 3. Salva no banco via backend
+      // SÓ atualiza o state se o backend confirmar — garante persistência
+      await api.patch(`/orders/${orderId}/document`, {
+        url:       cloudResult.url,
+        public_id: cloudResult.public_id,
+      })
+
+      // 4. Sucesso total — atualiza UI
+      setUrl(cloudResult.url)
+      onSaved?.(cloudResult.url)
+      toast.success('Documento anexado com sucesso!')
+
     } catch (err) {
-      console.error('[Upload]', err)
-      toast.error('Erro ao enviar. Tente novamente.')
+      console.error('[SignedDocumentUpload] Erro:', err)
+
+      if (cloudResult) {
+        // Chegou no Cloudinary mas não salvou no banco
+        setError('Enviado ao servidor de imagens, mas não foi salvo no sistema. Tente novamente ou contate o suporte.')
+        toast.error('Erro ao salvar no sistema. O documento pode não persistir.', { duration: 8000 })
+      } else {
+        // Falhou antes ou durante o upload
+        setError(err.message || 'Erro ao enviar. Tente novamente.')
+        toast.error(err.message || 'Erro ao enviar. Tente novamente.')
+      }
     } finally {
       setUploading(false)
       setProgress(0)
@@ -213,7 +246,7 @@ export default function SignedDocumentUpload({ orderId, orderNumber, existingUrl
       onSaved?.(null)
       toast.success('Documento removido.')
     } catch {
-      toast.error('Erro ao remover.')
+      toast.error('Erro ao remover. Tente novamente.')
     } finally {
       setRemoving(false)
     }
@@ -230,6 +263,24 @@ export default function SignedDocumentUpload({ orderId, orderNumber, existingUrl
         onChange={(e) => upload(e.target.files?.[0])}
       />
 
+      {/* ── Erro de sincronização ── */}
+      {error && (
+        <div style={{
+          marginTop: 8, padding: '10px 12px',
+          background: 'rgba(255,59,48,0.07)',
+          border: '1px solid rgba(255,59,48,0.2)',
+          borderRadius: 10, display: 'flex', gap: 8, alignItems: 'flex-start',
+        }}>
+          <AlertTriangle size={13} style={{ color: '#FF3B30', flexShrink: 0, marginTop: 1 }} />
+          <div>
+            <p style={{ fontSize: 12, color: '#FF3B30', fontWeight: 600, marginBottom: 2 }}>
+              Erro ao salvar documento
+            </p>
+            <p style={{ fontSize: 11, color: '#6E6E73', lineHeight: 1.5 }}>{error}</p>
+          </div>
+        </div>
+      )}
+
       {/* ── COM documento ── */}
       {url && (
         <div style={{
@@ -238,7 +289,7 @@ export default function SignedDocumentUpload({ orderId, orderNumber, existingUrl
           background: 'rgba(52,199,89,0.04)',
           marginTop: 10,
         }}>
-          {/* Thumbnail clicável */}
+          {/* Thumbnail */}
           <div
             onClick={() => window.open(url, '_blank')}
             style={{
@@ -251,17 +302,18 @@ export default function SignedDocumentUpload({ orderId, orderNumber, existingUrl
               src={url}
               alt="Documento assinado"
               style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.92 }}
+              onError={(e) => {
+                // Imagem não carregou — mostra placeholder mas mantém URL no state
+                e.currentTarget.style.display = 'none'
+              }}
             />
             <div style={{
-              position: 'absolute', inset: 0,
-              background: 'rgba(0,0,0,0)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              position: 'absolute', inset: 0, background: 'rgba(0,0,0,0)',
               transition: 'background .2s',
             }}
               onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.3)'}
               onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0)'}
             />
-            {/* Badge */}
             <div style={{
               position: 'absolute', top: 8, left: 8,
               background: 'rgba(52,199,89,0.9)',
@@ -288,24 +340,20 @@ export default function SignedDocumentUpload({ orderId, orderNumber, existingUrl
               <ExternalLink size={12} /> Ver em tela cheia
             </button>
 
-            <button onClick={() => fileRef.current?.click()} disabled={uploading} style={{
+            <button onClick={() => { setError(null); fileRef.current?.click() }} disabled={uploading} style={{
               flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
               padding: '8px 0', background: 'rgba(10,102,255,0.08)', color: '#0A66FF',
               border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600,
-              cursor: 'pointer', fontFamily: 'Instrument Sans, sans-serif',
+              cursor: uploading ? 'default' : 'pointer', fontFamily: 'Instrument Sans, sans-serif',
             }}>
               <Camera size={12} /> Substituir
             </button>
 
-            <button
-              onClick={() => setShowConfirm(true)}
-              disabled={removing}
-              style={{
-                padding: '8px 12px', background: 'rgba(255,59,48,0.08)', color: '#FF3B30',
-                border: 'none', borderRadius: 8, cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}
-            >
+            <button onClick={() => setShowConfirm(true)} disabled={removing} style={{
+              padding: '8px 12px', background: 'rgba(255,59,48,0.08)', color: '#FF3B30',
+              border: 'none', borderRadius: 8, cursor: removing ? 'default' : 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
               {removing
                 ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
                 : <Trash2 size={13} />}
@@ -317,7 +365,7 @@ export default function SignedDocumentUpload({ orderId, orderNumber, existingUrl
       {/* ── SEM documento ── */}
       {!url && (
         <button
-          onClick={() => fileRef.current?.click()}
+          onClick={() => { setError(null); fileRef.current?.click() }}
           disabled={uploading}
           style={{
             width: '100%', marginTop: 10,
@@ -352,7 +400,6 @@ export default function SignedDocumentUpload({ orderId, orderNumber, existingUrl
         </button>
       )}
 
-      {/* ── Modal de confirmação ── */}
       {showConfirm && (
         <ConfirmModal
           onConfirm={confirmRemove}

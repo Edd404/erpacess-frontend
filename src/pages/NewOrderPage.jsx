@@ -154,7 +154,9 @@ function CapacityPicker({ value, onChange, options, placeholder = 'Selecionar...
         <div style={{
           position:'absolute', top:'calc(100% + 4px)', left:0, right:0,
           background:T.white, border:`1px solid ${T.ink5}`, borderRadius:12,
-          boxShadow:T.shadowLg, zIndex:600, overflow:'hidden',
+          boxShadow:T.shadowLg, zIndex:600,
+          maxHeight:280, overflowY:'auto',
+          WebkitOverflowScrolling:'touch',
         }}>
           {/* "Selecionar..." row */}
           <div

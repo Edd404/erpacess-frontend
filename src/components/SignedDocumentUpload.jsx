@@ -175,15 +175,14 @@ export default function SignedDocumentUpload({ orderId, orderNumber, existingUrl
         xhr.send(fd)
       })
 
-      // Salva apenas o public_id no backend — URL é gerada pelo servidor com expiração
+      // Salva URL + public_id no backend
       try {
-        const saved = await api.patch(`/orders/${orderId}/document`, {
+        await api.patch(`/orders/${orderId}/document`, {
+          url:       cloudUrl,
           public_id: uploadedId,
         })
-        // Usa a URL assinada retornada pelo backend (expira em 1h)
-        const signedUrl = saved.data?.data?.document_url || cloudUrl
-        setUrl(signedUrl)
-        onSaved?.(signedUrl)
+        setUrl(cloudUrl)
+        onSaved?.(cloudUrl)
         toast.success('Documento anexado!')
       } catch (backendErr) {
         console.error('[saveDocument] Erro ao salvar no backend:', backendErr)

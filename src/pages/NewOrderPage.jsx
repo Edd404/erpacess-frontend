@@ -110,111 +110,42 @@ const TextInput = ({ value, onChange, placeholder, err, style={}, ...rest }) => 
     {...rest}/>
 )
 
-// ── CapacityPicker — seletor customizado sem <select> nativo ──────────────────
+// ── CapacityPicker — chips horizontais roláveis ───────────────
 function CapacityPicker({ value, onChange, options, placeholder = 'Selecionar...' }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef()
-
-  useEffect(() => {
-    const close = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
-    }
-    document.addEventListener('mousedown', close)
-    document.addEventListener('touchstart', close)
-    return () => {
-      document.removeEventListener('mousedown', close)
-      document.removeEventListener('touchstart', close)
-    }
-  }, [])
-
   return (
-    <div ref={ref} style={{ position:'relative' }}>
-      {/* Trigger */}
-      <button
-        type="button"
-        onClick={() => setOpen(o => !o)}
-        style={{
-          width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between',
-          padding:'11px 14px', border:`1px solid ${T.ink5}`, borderRadius:10,
-          background:T.white, cursor:'pointer', fontFamily:'Instrument Sans,sans-serif',
-          fontSize:14, color: value ? T.ink : T.ink4, transition:'border-color .15s',
-          boxShadow: open ? `0 0 0 3px rgba(10,10,11,0.06)` : 'none',
-          borderColor: open ? T.ink : T.ink5,
-        }}>
-        <span>{value || placeholder}</span>
-        <ChevronDown size={14} style={{
-          color:T.ink4, flexShrink:0,
-          transform: open ? 'rotate(180deg)' : 'none',
-          transition:'transform .2s',
-        }}/>
-      </button>
-
-      {/* Dropdown */}
-      {open && (
-        <div style={{
-          position:'absolute', top:'calc(100% + 4px)', left:0, right:0,
-          background:T.white, border:`1px solid ${T.ink5}`, borderRadius:12,
-          boxShadow:T.shadowLg, zIndex:600,
-          maxHeight:280, overflowY:'auto',
-          WebkitOverflowScrolling:'touch',
-        }}>
-          {/* "Selecionar..." row */}
-          <div
-            onMouseDown={() => { onChange(''); setOpen(false) }}
-            onTouchEnd={e => { e.preventDefault(); onChange(''); setOpen(false) }}
-            style={{
-              display:'flex', alignItems:'center', justifyContent:'space-between',
-              padding:'14px 16px', cursor:'pointer',
-              background: !value ? T.ink6 : T.white,
-              borderBottom:`1px solid ${T.ink6}`,
-              fontSize:14, color:T.ink4, fontFamily:'Instrument Sans,sans-serif',
-            }}>
-            <span>{placeholder}</span>
-            <div style={{
-              width:22, height:22, borderRadius:'50%',
-              border:`2px solid ${!value ? T.blue : T.ink5}`,
-              background: !value ? T.blue : 'transparent',
-              display:'flex', alignItems:'center', justifyContent:'center',
-              flexShrink:0, transition:'all .15s',
-            }}>
-              {!value && <div style={{ width:8, height:8, borderRadius:'50%', background:T.white }}/>}
-            </div>
-          </div>
-
-          {options.map((opt, i) => {
-            const sel = value === opt
-            return (
-              <div
-                key={opt}
-                onMouseDown={() => { onChange(opt); setOpen(false) }}
-                onTouchEnd={e => { e.preventDefault(); onChange(opt); setOpen(false) }}
-                style={{
-                  display:'flex', alignItems:'center', justifyContent:'space-between',
-                  padding:'14px 16px', cursor:'pointer',
-                  background: sel ? T.ink6 : T.white,
-                  borderBottom: i < options.length - 1 ? `1px solid ${T.ink6}` : 'none',
-                  fontSize:15, fontWeight: sel ? 600 : 400,
-                  color: sel ? T.ink : T.ink2,
-                  fontFamily:'Instrument Sans,sans-serif',
-                  transition:'background .1s',
-                }}
-                onMouseEnter={e => { if (!sel) e.currentTarget.style.background = T.bg }}
-                onMouseLeave={e => { if (!sel) e.currentTarget.style.background = T.white }}>
-                <span>{opt}</span>
-                <div style={{
-                  width:22, height:22, borderRadius:'50%',
-                  border:`2px solid ${sel ? T.blue : T.ink5}`,
-                  background: sel ? T.blue : 'transparent',
-                  display:'flex', alignItems:'center', justifyContent:'center',
-                  flexShrink:0, transition:'all .15s',
-                }}>
-                  {sel && <div style={{ width:8, height:8, borderRadius:'50%', background:T.white }}/>}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
+    <div>
+      <div style={{
+        display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4,
+        WebkitOverflowScrolling: 'touch',
+        scrollbarWidth: 'none', msOverflowStyle: 'none',
+      }}>
+        {options.map(opt => {
+          const sel = value === opt
+          return (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => onChange(sel ? '' : opt)}
+              style={{
+                flexShrink: 0,
+                padding: '8px 16px',
+                borderRadius: 999,
+                border: `1.5px solid ${sel ? T.ink : T.ink5}`,
+                background: sel ? T.ink : T.white,
+                color: sel ? T.white : T.ink3,
+                fontSize: 13, fontWeight: sel ? 700 : 400,
+                cursor: 'pointer',
+                fontFamily: 'Instrument Sans, sans-serif',
+                transition: 'all .15s',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {opt}
+            </button>
+          )
+        })}
+      </div>
+      <style>{`.cap-scroll::-webkit-scrollbar{display:none}`}</style>
     </div>
   )
 }

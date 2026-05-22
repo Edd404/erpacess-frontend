@@ -175,14 +175,15 @@ export default function SignedDocumentUpload({ orderId, orderNumber, existingUrl
         xhr.send(fd)
       })
 
-      // Salva URL no backend — se falhar, avisa o usuário em vez de silenciar
+      // Salva apenas o public_id no backend — URL é gerada pelo servidor com expiração
       try {
-        await api.patch(`/orders/${orderId}/document`, {
-          url:       cloudUrl,
+        const saved = await api.patch(`/orders/${orderId}/document`, {
           public_id: uploadedId,
         })
-        setUrl(cloudUrl)
-        onSaved?.(cloudUrl)
+        // Usa a URL assinada retornada pelo backend (expira em 1h)
+        const signedUrl = saved.data?.data?.document_url || cloudUrl
+        setUrl(signedUrl)
+        onSaved?.(signedUrl)
         toast.success('Documento anexado!')
       } catch (backendErr) {
         console.error('[saveDocument] Erro ao salvar no backend:', backendErr)
@@ -191,7 +192,6 @@ export default function SignedDocumentUpload({ orderId, orderNumber, existingUrl
           'Verifique se a migration 004 foi executada no Supabase.',
           { duration: 6000 }
         )
-        // Ainda mostra a foto localmente para não confundir
         setUrl(cloudUrl)
       }
     } catch (err) {

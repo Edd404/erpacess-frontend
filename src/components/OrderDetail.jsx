@@ -41,22 +41,32 @@ export default function OrderDetail({ orderId, onClose }) {
   const currentStatusIdx = STATUS_FLOW.findIndex(s => s.v === order?.status)
   const currentStatus = STATUS_FLOW[currentStatusIdx] || STATUS_FLOW[0]
 
-  // Extrai notas estruturadas (geradas pelo frontend)
+  // Extrai campos estruturados das notas — usa regex para evitar problemas de encoding
   const parseNotes = (notes) => {
-    if (!notes) return { structured: [], free: '' }
+    if (!notes) return { servicos: [], problema: '', condicao: '', free: '' }
     const lines = notes.split('\n')
-    const structured = []
+    let servicos = []
+    let problema = ''
+    let condicao = ''
     const free = []
+
     lines.forEach(l => {
-      if (l.startsWith('Serviços:') || l.startsWith('Problema:') || l.startsWith('Condição:')) {
-        const [key, ...val] = l.split(':')
-        structured.push({ key: key.trim(), val: val.join(':').trim() })
-      } else if (l.trim()) free.push(l)
+      const t = l.trim()
+      if (!t) return
+      // regex case-insensitive para capturar variações de encoding
+      const mSrv = t.match(/^Servi.os:\s*(.+)/i)
+      const mProb = t.match(/^Problema:\s*(.+)/i)
+      const mCond = t.match(/^Condi.+o:\s*(.+)/i)
+      if (mSrv)  servicos = mSrv[1].split(', ').filter(Boolean)
+      else if (mProb) problema = mProb[1].trim()
+      else if (mCond) condicao = mCond[1].trim()
+      else free.push(t)
     })
-    return { structured, free: free.join('\n') }
+
+    return { servicos, problema, condicao, free: free.join('\n') }
   }
 
-  const { structured, free } = parseNotes(order?.notes)
+  const { servicos, problema, condicao, free } = parseNotes(order?.notes)
 
   return (
     <>
@@ -154,36 +164,38 @@ export default function OrderDetail({ orderId, onClose }) {
                 {order?.imei && <Row T={T} label="IMEI" value={order.imei} mono/>}
               </Section>
 
-              {/* Manutenção — notas estruturadas */}
-              {order?.type === 'manutencao' && structured.length > 0 && (
+              {/* Manutenção — serviços, problema e condição */}
+              {order?.type === 'manutencao' && (servicos.length > 0 || problema || condicao) && (
                 <Section T={T} title="Serviço">
-                  {structured.map(s => {
-                    if (s.key === 'Serviços') {
-                      // Cada serviço vira um chip individual
-                      const servicos = s.val.split(', ').filter(Boolean)
-                      return (
-                        <div key="servicos" style={{ padding:'4px 0 8px' }}>
-                          <div style={{ fontSize:11, fontWeight:600, color:T.ink4, textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:8 }}>
-                            Serviços realizados
-                          </div>
-                          <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-                            {servicos.map((sv, i) => (
-                              <span key={i} style={{
-                                display:'inline-flex', alignItems:'center', gap:5,
-                                background:T.ink, color:T.white,
-                                padding:'5px 12px', borderRadius:999,
-                                fontSize:11, fontWeight:500,
-                              }}>
-                                <span style={{ width:5, height:5, borderRadius:'50%', background:'rgba(255,255,255,0.4)', flexShrink:0 }}/>
-                                {sv}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )
-                    }
-                    return <Row key={s.key} T={T} label={s.key} value={s.val}/>
-                  })}
+                  {/* Chips de serviços */}
+                  {servicos.length > 0 && (
+                    <div style={{ padding:'4px 0 10px' }}>
+                      <div style={{ fontSize:11, fontWeight:600, color:T.ink4, textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:8 }}>
+                        Serviços realizados
+                      </div>
+                      <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+                        {servicos.map((sv, i) => (
+                          <span key={i} style={{
+                            display:'inline-flex', alignItems:'center', gap:5,
+                            background:T.ink, color:T.white,
+                            padding:'5px 12px', borderRadius:999,
+                            fontSize:11, fontWeight:500,
+                          }}>
+                            <span style={{ width:5, height:5, borderRadius:'50%', background:'rgba(255,255,255,0.4)', flexShrink:0 }}/>
+                            {sv}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {/* Problema relatado */}
+                  {problema && (
+                    <Row T={T} label="Problema" value={problema}/>
+                  )}
+                  {/* Condição */}
+                  {condicao && (
+                    <Row T={T} label="Condição" value={condicao}/>
+                  )}
                 </Section>
               )}
 

@@ -325,11 +325,59 @@ function OrderCard({ order, clientEmail, clientName, isFirst, isLast, onDocSaved
             </div>
             {order.notes && (() => {
               const lines = order.notes.split('\n')
-              const origemLine = lines.find(l => l.startsWith('Origem:'))
-              const origem = origemLine ? origemLine.replace('Origem:', '').trim() : null
-              const freeNotes = lines.filter(l => !l.startsWith('Origem:') && !l.startsWith('Serviços:') && !l.startsWith('Problema:') && l.trim()).join('\n')
+              const origemLine  = lines.find(l => l.startsWith('Origem:'))
+              const servicosLine = lines.find(l => l.startsWith('Serviços:'))
+              const problemaLine = lines.find(l => l.startsWith('Problema:'))
+              const condicaoLine = lines.find(l => l.startsWith('Condição:'))
+              const origem   = origemLine   ? origemLine.replace('Origem:', '').trim()   : null
+              const servicos = servicosLine ? servicosLine.replace('Serviços:', '').trim().split(', ').filter(Boolean) : []
+              const problema = problemaLine ? problemaLine.replace('Problema:', '').trim() : null
+              const condicao = condicaoLine ? condicaoLine.replace('Condição:', '').trim() : null
+              const freeNotes = lines.filter(l =>
+                !l.startsWith('Origem:') && !l.startsWith('Serviços:') &&
+                !l.startsWith('Problema:') && !l.startsWith('Condição:') && l.trim()
+              ).join('\n')
+
               return (
                 <>
+                  {/* Chips de serviços de manutenção */}
+                  {servicos.length > 0 && (
+                    <div style={{ marginBottom:10 }}>
+                      <div style={{ fontSize:10, fontWeight:700, color:'#9CA3AF', textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:6 }}>
+                        Serviços realizados
+                      </div>
+                      <div style={{ display:'flex', flexWrap:'wrap', gap:5 }}>
+                        {servicos.map((sv, i) => (
+                          <span key={i} style={{
+                            display:'inline-flex', alignItems:'center', gap:5,
+                            background:'#0C0C0E', color:'#FFFFFF',
+                            padding:'4px 10px', borderRadius:999,
+                            fontSize:11, fontWeight:500,
+                          }}>
+                            <span style={{ width:4, height:4, borderRadius:'50%', background:'rgba(255,255,255,0.4)', flexShrink:0 }}/>
+                            {sv}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Problema relatado */}
+                  {problema && (
+                    <div style={{ fontSize:12, color:'#6B7280', lineHeight:1.6, background:'#FFF8E7', borderRadius:8, padding:'9px 12px', border:'1px solid #FDE68A', marginBottom:8 }}>
+                      <span style={{ fontSize:10, fontWeight:700, color:'#B45309', textTransform:'uppercase', letterSpacing:'0.4px', display:'block', marginBottom:3 }}>Problema relatado</span>
+                      {problema}
+                    </div>
+                  )}
+
+                  {/* Condição */}
+                  {condicao && (
+                    <div style={{ display:'inline-flex', alignItems:'center', gap:5, borderRadius:7, padding:'4px 10px', marginBottom:8, background:'rgba(0,0,0,0.04)', border:'1px solid rgba(0,0,0,0.08)' }}>
+                      <span style={{ fontSize:10, fontWeight:600, color:'#6B7280' }}>Condição: {condicao}</span>
+                    </div>
+                  )}
+
+                  {/* Badge de origem */}
                   {origem && (
                     <div style={{ display:'inline-flex', alignItems:'center', gap:5, borderRadius:7, padding:'5px 10px', marginBottom:8,
                       background: origem === 'Já é cliente' ? 'rgba(245,158,11,0.08)' : 'rgba(139,92,246,0.08)',
@@ -340,6 +388,8 @@ function OrderCard({ order, clientEmail, clientName, isFirst, isLast, onDocSaved
                       </span>
                     </div>
                   )}
+
+                  {/* Notas livres */}
                   {freeNotes && (
                     <div style={{ fontSize:12, color:'#6B7280', lineHeight:1.6, background:'#F5F5F7', borderRadius:8, padding:'9px 12px', border:'1px solid #EBEBED', marginBottom:10 }}>
                       {freeNotes}

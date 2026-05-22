@@ -157,7 +157,33 @@ export default function OrderDetail({ orderId, onClose }) {
               {/* Manutenção — notas estruturadas */}
               {order?.type === 'manutencao' && structured.length > 0 && (
                 <Section T={T} title="Serviço">
-                  {structured.map(s => <Row key={s.key} T={T} label={s.key} value={s.val}/>)}
+                  {structured.map(s => {
+                    if (s.key === 'Serviços') {
+                      // Cada serviço vira um chip individual
+                      const servicos = s.val.split(', ').filter(Boolean)
+                      return (
+                        <div key="servicos" style={{ padding:'4px 0 8px' }}>
+                          <div style={{ fontSize:11, fontWeight:600, color:T.ink4, textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:8 }}>
+                            Serviços realizados
+                          </div>
+                          <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+                            {servicos.map((sv, i) => (
+                              <span key={i} style={{
+                                display:'inline-flex', alignItems:'center', gap:5,
+                                background:T.ink, color:T.white,
+                                padding:'5px 12px', borderRadius:999,
+                                fontSize:11, fontWeight:500,
+                              }}>
+                                <span style={{ width:5, height:5, borderRadius:'50%', background:'rgba(255,255,255,0.4)', flexShrink:0 }}/>
+                                {sv}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    }
+                    return <Row key={s.key} T={T} label={s.key} value={s.val}/>
+                  })}
                 </Section>
               )}
 

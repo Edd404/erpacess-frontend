@@ -464,7 +464,7 @@ function StepServico({ form, set, errors, models }) {
         <ErrMsg msg={errors.iphone_model}/>
       </div>
 
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+      <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
         <div>
           <Label>Cor</Label>
           <Field><TextInput value={form.color} onChange={e => set('color', e.target.value)} placeholder="Ex: Preto Meia-noite"/></Field>
@@ -897,13 +897,13 @@ function StepPagamento({ form, set, errors, isManut, models }) {
               </div>
             </div>
 
-            {/* IMEI + Valor */}
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+            {/* IMEI + Valor — empilhados para dar espaço suficiente no mobile */}
+            <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
               <div>
                 <Label>IMEI</Label>
                 <div style={{ border:`1px solid ${T.ink5}`, borderRadius:10, background:T.white }}>
                   <TextInput value={pd.iphone_entrada.imei} onChange={e => setPd('iphone_entrada','imei',e.target.value.replace(/\D/g,'').slice(0,15))}
-                    placeholder="15 dígitos" style={{ fontFamily:'JetBrains Mono,monospace', fontSize:12, letterSpacing:'0.5px' }}/>
+                    placeholder="15 dígitos" style={{ fontFamily:'JetBrains Mono,monospace', fontSize:13, letterSpacing:'0.5px' }}/>
                 </div>
               </div>
               <div>

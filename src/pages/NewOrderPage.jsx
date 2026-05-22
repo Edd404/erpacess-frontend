@@ -110,42 +110,35 @@ const TextInput = ({ value, onChange, placeholder, err, style={}, ...rest }) => 
     {...rest}/>
 )
 
-// ── CapacityPicker — chips horizontais roláveis ───────────────
-function CapacityPicker({ value, onChange, options, placeholder = 'Selecionar...' }) {
+// ── CapacityPicker — grid de chips com wrap (todos visíveis) ──
+function CapacityPicker({ value, onChange, options }) {
   return (
-    <div>
-      <div style={{
-        display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4,
-        WebkitOverflowScrolling: 'touch',
-        scrollbarWidth: 'none', msOverflowStyle: 'none',
-      }}>
-        {options.map(opt => {
-          const sel = value === opt
-          return (
-            <button
-              key={opt}
-              type="button"
-              onClick={() => onChange(sel ? '' : opt)}
-              style={{
-                flexShrink: 0,
-                padding: '8px 16px',
-                borderRadius: 999,
-                border: `1.5px solid ${sel ? T.ink : T.ink5}`,
-                background: sel ? T.ink : T.white,
-                color: sel ? T.white : T.ink3,
-                fontSize: 13, fontWeight: sel ? 700 : 400,
-                cursor: 'pointer',
-                fontFamily: 'Instrument Sans, sans-serif',
-                transition: 'all .15s',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {opt}
-            </button>
-          )
-        })}
-      </div>
-      <style>{`.cap-scroll::-webkit-scrollbar{display:none}`}</style>
+    <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
+      {options.map(opt => {
+        const sel = value === opt
+        return (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => onChange(sel ? '' : opt)}
+            style={{
+              padding:'9px 18px',
+              borderRadius:999,
+              border:`1.5px solid ${sel ? T.ink : T.ink5}`,
+              background: sel ? T.ink : T.white,
+              color: sel ? T.white : T.ink3,
+              fontSize:13, fontWeight: sel ? 700 : 400,
+              cursor:'pointer',
+              fontFamily:'Instrument Sans, sans-serif',
+              transition:'all .15s',
+              letterSpacing: sel ? '-0.2px' : '0',
+              boxShadow: sel ? '0 2px 8px rgba(0,0,0,0.15)' : 'none',
+            }}
+          >
+            {opt}
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -564,20 +557,18 @@ function StepProduto({ form, set, errors, models }) {
         <ErrMsg msg={errors.iphone_model}/>
       </div>
 
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
-        <div>
-          <Label>Capacidade</Label>
-          {/* CapacityPicker customizado — sem <select> nativo */}
-          <CapacityPicker
-            value={form.capacity}
-            onChange={v => set('capacity', v)}
-            options={['64GB','128GB','256GB','512GB','1TB']}
-          />
-        </div>
-        <div>
-          <Label>Cor</Label>
-          <Field><TextInput value={form.color} onChange={e => set('color', e.target.value)} placeholder="Ex: Titânio Natural"/></Field>
-        </div>
+      <div>
+        <Label>Capacidade</Label>
+        <CapacityPicker
+          value={form.capacity}
+          onChange={v => set('capacity', v)}
+          options={['64GB','128GB','256GB','512GB','1TB']}
+        />
+      </div>
+
+      <div>
+        <Label>Cor</Label>
+        <Field><TextInput value={form.color} onChange={e => set('color', e.target.value)} placeholder="Ex: Titânio Natural"/></Field>
       </div>
 
       <div>
@@ -811,22 +802,21 @@ function StepPagamento({ form, set, errors, isManut, models }) {
               )}
             </div>
 
-            {/* Memória + Cor */}
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-              <div>
-                <Label>Memória</Label>
-                {/* CapacityPicker customizado — sem <select> nativo */}
-                <CapacityPicker
-                  value={pd.iphone_entrada.capacity}
-                  onChange={v => setPd('iphone_entrada','capacity',v)}
-                  options={['16GB','32GB','64GB','128GB','256GB','512GB','1TB']}
-                />
-              </div>
-              <div>
-                <Label>Cor</Label>
-                <div style={{ border:`1px solid ${T.ink5}`, borderRadius:10, background:T.white }}>
-                  <TextInput value={pd.iphone_entrada.color} onChange={e => setPd('iphone_entrada','color',e.target.value)} placeholder="Ex: Preto"/>
-                </div>
+            {/* Memória */}
+            <div>
+              <Label>Memória</Label>
+              <CapacityPicker
+                value={pd.iphone_entrada.capacity}
+                onChange={v => setPd('iphone_entrada','capacity',v)}
+                options={['16GB','32GB','64GB','128GB','256GB','512GB','1TB']}
+              />
+            </div>
+
+            {/* Cor */}
+            <div>
+              <Label>Cor</Label>
+              <div style={{ border:`1px solid ${T.ink5}`, borderRadius:10, background:T.white }}>
+                <TextInput value={pd.iphone_entrada.color} onChange={e => setPd('iphone_entrada','color',e.target.value)} placeholder="Ex: Preto"/>
               </div>
             </div>
 

@@ -607,10 +607,27 @@ function OrderDetail({ order, onClose }) {
   ]
 
   // Campos de detalhe
-  const origemLine = (order?.notes || '').split('\n').find(l => l.startsWith('Origem:'))
+  const noteLines  = (order?.notes || '').split('\n')
+  const origemLine = noteLines.find(l => l.startsWith('Origem:'))
   const leadSource = origemLine ? origemLine.replace('Origem:', '').trim() : null
+
+  const servicosLine = noteLines.find(l => l.startsWith('Serviços:'))
+  const servicos     = servicosLine ? servicosLine.replace('Serviços:', '').trim().split(', ').filter(Boolean) : []
+
+  const problemaLine = noteLines.find(l => l.startsWith('Problema:'))
+  const problema     = problemaLine ? problemaLine.replace('Problema:', '').trim() : null
+
+  const condicaoLine = noteLines.find(l => /^Condi.+o:/i.test(l))
+  const condicao     = condicaoLine ? condicaoLine.replace(/^Condi.+o:\s*/i, '').trim() : null
+
   const freeNotes  = order.notes
-    ? order.notes.split('\n').filter(l => !l.startsWith('Origem:') && !l.startsWith('Serviços:') && !l.startsWith('Problema:') && l.trim()).join('\n')
+    ? order.notes.split('\n').filter(l =>
+        !l.startsWith('Origem:') &&
+        !l.startsWith('Serviços:') &&
+        !l.startsWith('Problema:') &&
+        !/^Condi.+o:/i.test(l) &&
+        l.trim()
+      ).join('\n')
     : null
 
   const details = [
@@ -724,6 +741,57 @@ function OrderDetail({ order, onClose }) {
             </div>
             <Shield size={28} style={{ color: daysLeft<=0 ? '#FCA5A5' : daysLeft<=30 ? '#FDE68A' : '#86EFAC', flexShrink:0 }}/>
           </div>
+        )}
+
+        {/* Serviços realizados — só manutenção */}
+        {isManut && (servicos.length > 0 || problema || condicao) && (
+          <section style={{ margin:'16px 20px 0' }}>
+            <div style={{ fontSize:10, fontWeight:700, color:'#9CA3AF', textTransform:'uppercase',
+              letterSpacing:'0.7px', marginBottom:8 }}>Serviços realizados</div>
+            <div style={{ background:'#fff', borderRadius:12, border:'1px solid rgba(0,0,0,0.07)',
+              overflow:'hidden', boxShadow:'0 1px 4px rgba(0,0,0,0.04)', padding:'14px 16px',
+              display:'flex', flexDirection:'column', gap:10 }}>
+
+              {/* Chips de serviços */}
+              {servicos.length > 0 && (
+                <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+                  {servicos.map((sv, i) => (
+                    <span key={i} style={{
+                      display:'inline-flex', alignItems:'center', gap:5,
+                      background:'#111827', color:'#fff',
+                      padding:'5px 12px', borderRadius:999,
+                      fontSize:11, fontWeight:500, fontFamily:'Instrument Sans,sans-serif',
+                    }}>
+                      <span style={{ width:5, height:5, borderRadius:'50%', background:'rgba(255,255,255,0.4)', flexShrink:0 }}/>
+                      {sv}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Problema relatado */}
+              {problema && (
+                <div style={{ background:'#FFFBEB', border:'1px solid #FDE68A', borderRadius:8, padding:'10px 12px' }}>
+                  <div style={{ fontSize:10, fontWeight:700, color:'#B45309', textTransform:'uppercase',
+                    letterSpacing:'0.5px', marginBottom:4 }}>Problema relatado</div>
+                  <div style={{ fontSize:13, color:'#1D1D1F', lineHeight:1.5 }}>{problema}</div>
+                </div>
+              )}
+
+              {/* Condição */}
+              {condicao && (
+                <span style={{
+                  display:'inline-flex', alignSelf:'flex-start', alignItems:'center',
+                  background:'#F3F4F6', border:'1px solid #E5E7EB',
+                  padding:'4px 12px', borderRadius:999,
+                  fontSize:12, fontWeight:500, color:'#374151',
+                  fontFamily:'Instrument Sans,sans-serif',
+                }}>
+                  Condição: {condicao}
+                </span>
+              )}
+            </div>
+          </section>
         )}
 
         {/* Detalhes do aparelho */}

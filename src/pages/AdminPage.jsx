@@ -401,7 +401,7 @@ function BackupPanel({ T }) {
 
       {/* Card principal */}
       <div style={{ background:'#fff', borderRadius:16, border:'1px solid #E5E7EB',
-        overflow:'hidden', boxShadow:'0 1px 4px rgba(0,0,0,0.06)' }}>
+        overflow:'hidden', boxShadow:'0 1px 4px rgba(0,0,0,0.06)', boxSizing:'border-box', width:'100%' }}>
         <div style={{ padding:'20px 20px 16px', borderBottom:'1px solid #F3F4F6' }}>
           <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:4 }}>
             <div style={{ width:36, height:36, borderRadius:10, background:'#0C0C0E',
@@ -417,11 +417,11 @@ function BackupPanel({ T }) {
           </div>
         </div>
 
-        <div style={{ padding:'16px 20px' }}>
+        <div style={{ padding:'16px 20px', boxSizing:'border-box' }}>
           <button onClick={runBackup} disabled={status === 'loading'} style={{
             display:'flex', alignItems:'center', justifyContent:'center', gap:8,
-            width:'100%', boxSizing:'border-box',
-            padding:'13px 20px', borderRadius:10, border:'none', cursor: status === 'loading' ? 'wait' : 'pointer',
+            width:'100%', boxSizing:'border-box', maxWidth:'100%',
+            padding:'13px 16px', borderRadius:10, border:'none', cursor: status === 'loading' ? 'wait' : 'pointer',
             background: status === 'loading' ? '#E5E7EB' : '#0C0C0E',
             color: status === 'loading' ? '#9CA3AF' : '#fff',
             fontSize:13, fontWeight:700, fontFamily:'Instrument Sans,sans-serif',

@@ -637,10 +637,7 @@ function OrderDetail({ order, onClose }) {
     order.color          ? { label:'Cor',       value: order.color    } : null,
     order.imei           ? { label:'IMEI',      value: order.imei, mono: true, copyAction: copyIMEI, copied: copiedIMEI } : null,
     leadSource ? { label:'Origem', value: leadSource, badge: true,
-      badgeColor:  leadSource === 'Já é cliente' ? '#D97706' : '#7C3AED',
-      badgeBg:     leadSource === 'Já é cliente' ? 'rgba(245,158,11,0.08)' : 'rgba(139,92,246,0.08)',
-      badgeBorder: leadSource === 'Já é cliente' ? 'rgba(245,158,11,0.20)' : 'rgba(139,92,246,0.20)',
-      emoji:       leadSource === 'Já é cliente' ? '⭐' : '📲',
+      ...(() => { const MAP = { 'Instagram': { color:'#7C3AED', bg:'rgba(139,92,246,0.08)', border:'rgba(139,92,246,0.20)', emoji:'📸' }, 'Indicação': { color:'#0891B2', bg:'rgba(8,145,178,0.08)', border:'rgba(8,145,178,0.20)', emoji:'🗣️' }, 'Já é cliente': { color:'#D97706', bg:'rgba(245,158,11,0.08)', border:'rgba(245,158,11,0.20)', emoji:'⭐' }, 'Instagram/Indicação': { color:'#7C3AED', bg:'rgba(139,92,246,0.08)', border:'rgba(139,92,246,0.20)', emoji:'📲' } }; const m = MAP[leadSource] || { color:'#6B7280', bg:'rgba(107,114,128,0.08)', border:'rgba(107,114,128,0.20)', emoji:'📌' }; return { badgeColor: m.color, badgeBg: m.bg, badgeBorder: m.border, emoji: m.emoji } })(),
     } : null,
     freeNotes ? { label:'Observações', value: freeNotes, wrap: true } : null,
   ].filter(Boolean)

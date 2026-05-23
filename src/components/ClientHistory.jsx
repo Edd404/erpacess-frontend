@@ -378,16 +378,22 @@ function OrderCard({ order, clientEmail, clientName, isFirst, isLast, onDocSaved
                   )}
 
                   {/* Badge de origem */}
-                  {origem && (
-                    <div style={{ display:'inline-flex', alignItems:'center', gap:5, borderRadius:7, padding:'5px 10px', marginBottom:8,
-                      background: origem === 'Já é cliente' ? 'rgba(245,158,11,0.08)' : 'rgba(139,92,246,0.08)',
-                      border: `1px solid ${origem === 'Já é cliente' ? 'rgba(245,158,11,0.20)' : 'rgba(139,92,246,0.20)'}` }}>
-                      <span style={{ fontSize:12 }}>{origem === 'Já é cliente' ? '⭐' : '📲'}</span>
-                      <span style={{ fontSize:11, fontWeight:700, color: origem === 'Já é cliente' ? '#D97706' : '#7C3AED' }}>
-                        {origem}
-                      </span>
-                    </div>
-                  )}
+                  {origem && (() => {
+                    const ORIGIN_META = {
+                      'Instagram':           { emoji:'📸', color:'#7C3AED', bg:'rgba(139,92,246,0.08)', border:'rgba(139,92,246,0.20)' },
+                      'Indicação':           { emoji:'🗣️', color:'#0891B2', bg:'rgba(8,145,178,0.08)',  border:'rgba(8,145,178,0.20)'  },
+                      'Já é cliente':        { emoji:'⭐', color:'#D97706', bg:'rgba(245,158,11,0.08)', border:'rgba(245,158,11,0.20)' },
+                      'Instagram/Indicação': { emoji:'📲', color:'#7C3AED', bg:'rgba(139,92,246,0.08)', border:'rgba(139,92,246,0.20)' },
+                    }
+                    const m = ORIGIN_META[origem] || { emoji:'📌', color:'#6B7280', bg:'rgba(107,114,128,0.08)', border:'rgba(107,114,128,0.20)' }
+                    return (
+                      <div style={{ display:'inline-flex', alignItems:'center', gap:5, borderRadius:7,
+                        padding:'5px 10px', marginBottom:8, background:m.bg, border:`1px solid ${m.border}` }}>
+                        <span style={{ fontSize:12 }}>{m.emoji}</span>
+                        <span style={{ fontSize:11, fontWeight:700, color:m.color }}>{origem}</span>
+                      </div>
+                    )
+                  })()}
 
                   {/* Notas livres */}
                   {freeNotes && (

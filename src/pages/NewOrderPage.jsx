@@ -614,13 +614,15 @@ function StepProduto({ form, set, errors, models }) {
         <Label required>Como o cliente chegou até nós?</Label>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
           {[
-            { v:'Instagram/Indicação', emoji:'📲', desc:'Veio pelo Instagram ou foi indicado' },
-            { v:'Já é cliente',        emoji:'⭐', desc:'Cliente que já comprou antes' },
+            { v:'Instagram',   emoji:'📸', desc:'Veio pelo Instagram' },
+            { v:'Indicação',   emoji:'🗣️', desc:'Foi indicado por alguém' },
+            { v:'Já é cliente', emoji:'⭐', desc:'Cliente que já comprou antes', full: true },
           ].map(opt => {
             const on = form.lead_source === opt.v
             return (
               <button key={opt.v} onClick={() => set('lead_source', opt.v)}
                 style={{
+                  gridColumn: opt.full ? '1 / -1' : undefined,
                   padding:'16px 14px', borderRadius:12, cursor:'pointer', textAlign:'left',
                   border:`1.5px solid ${errors.lead_source ? T.red : on ? T.blue : T.ink5}`,
                   background: on ? T.blueL : T.white,

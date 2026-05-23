@@ -397,8 +397,10 @@ function LeadSourcePanel({ byLeadSource, isMobile }) {
   const [open, setOpen] = useState(true)
 
   const SOURCES = {
-    'Instagram/Indicação': { emoji:'📲', color:'#7C3AED', soft:'rgba(139,92,246,0.08)', border:'rgba(139,92,246,0.18)' },
+    'Instagram':           { emoji:'📸', color:'#7C3AED', soft:'rgba(139,92,246,0.08)', border:'rgba(139,92,246,0.18)' },
+    'Indicação':           { emoji:'🗣️', color:'#0891B2', soft:'rgba(8,145,178,0.08)',   border:'rgba(8,145,178,0.18)'  },
     'Já é cliente':        { emoji:'⭐', color:'#D97706', soft:'rgba(245,158,11,0.08)',  border:'rgba(245,158,11,0.18)'  },
+    'Instagram/Indicação': { emoji:'📲', color:'#7C3AED', soft:'rgba(139,92,246,0.08)', border:'rgba(139,92,246,0.18)' },
     'Não informado':       { emoji:'❓', color:'#6B7280', soft:'rgba(107,114,128,0.06)', border:'rgba(107,114,128,0.14)' },
   }
 

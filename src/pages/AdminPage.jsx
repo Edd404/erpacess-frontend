@@ -777,29 +777,34 @@ export default function AdminPage() {
 
       {/* Tabs */}
       <div style={{ display:'flex', background:'rgba(0,0,0,0.05)', borderRadius:12,
-        padding:4, marginBottom:20, gap:4 }}>
+        padding:4, marginBottom:20, gap:3 }}>
         {[
-          { k:'users',  l:'Usuários',  Icon:Users, count:users.length },
-          { k:'models', l:'Modelos',   Icon:Smartphone, count:models.filter(m=>m.is_active).length },
-          { k:'backup', l:'Backup',    Icon:Database,  count:null },
+          { k:'users',  l:'Usuários',  Icon:Users,       count:users.length },
+          { k:'models', l:'Modelos',   Icon:Smartphone,  count:models.filter(m=>m.is_active).length },
+          { k:'backup', l:'Backup',    Icon:Database,    count:null },
         ].map(({ k, l, Icon, count }) => {
           const active = tab === k
           return (
             <button key={k} onClick={()=>setTab(k)} style={{
-              flex:1, padding:'10px 16px', borderRadius:9, border:'none',
+              flex:1, minWidth:0, padding:'9px 4px', borderRadius:9, border:'none',
               background: active ? '#fff' : 'transparent',
               boxShadow: active ? '0 1px 6px rgba(0,0,0,0.12)' : 'none',
-              cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8,
-              fontFamily:'Instrument Sans,sans-serif', fontSize:13,
-              fontWeight: active ? 700 : 400, color: active ? '#0C0C0E' : '#6B7280',
-              transition:'all .15s',
+              cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:4,
+              fontFamily:'Instrument Sans,sans-serif', fontSize:12,
+              fontWeight: active ? 700 : 500, color: active ? '#0C0C0E' : '#6B7280',
+              transition:'all .15s', overflow:'hidden',
             }}>
-              <Icon size={14}/>
-              {l}
-              <span style={{ background: active ? '#0C0C0E' : 'rgba(0,0,0,0.1)', color: active ? '#fff' : '#6B7280',
-                borderRadius:999, padding:'1px 7px', fontSize:10, fontWeight:700 }}>
-                {count}
-              </span>
+              <Icon size={13} style={{ flexShrink:0 }}/>
+              <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{l}</span>
+              {count !== null && (
+                <span style={{
+                  background: active ? '#0C0C0E' : 'rgba(0,0,0,0.1)',
+                  color: active ? '#fff' : '#6B7280',
+                  borderRadius:999, padding:'1px 6px', fontSize:10, fontWeight:700, flexShrink:0,
+                }}>
+                  {count}
+                </span>
+              )}
             </button>
           )
         })}

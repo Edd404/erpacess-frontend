@@ -376,6 +376,287 @@ function ModelModal({ model, onClose, T }) {
 
 // ── Página principal ──────────────────────────────────────────
 
+
+// ── Restore Panel ─────────────────────────────────────────────
+function RestorePanel({ T }) {
+  const [file,        setFile]        = useState(null)
+  const [parsed,      setParsed]      = useState(null)   // { exportedAt, tables:{...} }
+  const [parseErr,    setParseErr]    = useState('')
+  const [selTables,   setSelTables]   = useState([])
+  const [mode,        setMode]        = useState('missing_only')
+  const [confirm,     setConfirm]     = useState(false)
+  const [status,      setStatus]      = useState(null)   // null|'loading'|'ok'|'error'
+  const [results,     setResults]     = useState(null)
+  const [errMsg,      setErrMsg]      = useState('')
+
+  const TABLE_LABELS = { users:'Usuários', clients:'Clientes', service_orders:'Ordens de serviço' }
+
+  const handleFile = async (e) => {
+    const f = e.target.files?.[0]
+    if (!f) return
+    setFile(f); setParsed(null); setParseErr(''); setSelTables([])
+    setStatus(null); setResults(null); setConfirm(false)
+    try {
+      let text
+      if (f.name.endsWith('.gz')) {
+        const buf    = await f.arrayBuffer()
+        const stream = new DecompressionStream('gzip')
+        const writer = stream.writable.getWriter()
+        writer.write(buf); writer.close()
+        const out    = await new Response(stream.readable).arrayBuffer()
+        text         = new TextDecoder().decode(out)
+      } else {
+        text = await f.text()
+      }
+      const json = JSON.parse(text)
+      if (!json.tables) throw new Error('Arquivo inválido — campo "tables" não encontrado.')
+      setParsed(json)
+      setSelTables(Object.keys(json.tables).filter(t => ['users','clients','service_orders'].includes(t)))
+    } catch (err) {
+      setParseErr(err.message || 'Erro ao ler o arquivo.')
+    }
+  }
+
+  const toggleTable = (t) =>
+    setSelTables(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t])
+
+  const doRestore = async () => {
+    setConfirm(false); setStatus('loading'); setResults(null); setErrMsg('')
+    try {
+      const { data } = await api.post('/admin/backup/restore', {
+        data:   parsed.tables,
+        tables: selTables,
+        mode,
+      })
+      setResults(data.results)
+      setStatus('ok')
+    } catch (err) {
+      setErrMsg(err?.response?.data?.error || err.message || 'Erro desconhecido')
+      setStatus('error')
+    }
+  }
+
+  const totalInserted = results ? Object.values(results).reduce((a,r) => a + r.inserted, 0) : 0
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:14, marginTop:4 }}>
+
+      {/* Upload */}
+      <div style={{ background:'#fff', borderRadius:14, border:'1px solid #E5E7EB',
+        overflow:'hidden', boxShadow:'0 1px 4px rgba(0,0,0,0.05)', boxSizing:'border-box', width:'100%' }}>
+        <div style={{ padding:'16px 18px', borderBottom:'1px solid #F3F4F6' }}>
+          <div style={{ fontSize:14, fontWeight:700, color:'#111827' }}>Restaurar backup</div>
+          <div style={{ fontSize:11, color:'#6B7280', marginTop:2 }}>
+            Selecione um arquivo <strong>.json</strong> ou <strong>.json.gz</strong> gerado pelo sistema
+          </div>
+        </div>
+        <div style={{ padding:'14px 18px' }}>
+          <label style={{
+            display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+            width:'100%', boxSizing:'border-box', padding:'12px 16px',
+            borderRadius:10, border:'2px dashed #D1D5DB', cursor:'pointer',
+            background:'#F9FAFB', fontSize:13, fontWeight:600, color:'#374151',
+            fontFamily:'Instrument Sans,sans-serif', transition:'all .15s',
+          }}>
+            <Database size={15}/>
+            {file ? file.name : 'Selecionar arquivo de backup'}
+            <input type="file" accept=".json,.gz" onChange={handleFile}
+              style={{ display:'none' }}/>
+          </label>
+        </div>
+      </div>
+
+      {/* Parse error */}
+      {parseErr && (
+        <div style={{ background:'#FEF2F2', border:'1px solid #FECACA', borderRadius:12,
+          padding:'12px 16px', display:'flex', gap:8, alignItems:'flex-start' }}>
+          <AlertCircle size={16} style={{ color:'#DC2626', flexShrink:0, marginTop:1 }}/>
+          <div style={{ fontSize:12, color:'#B91C1C' }}>{parseErr}</div>
+        </div>
+      )}
+
+      {/* Preview do arquivo */}
+      {parsed && (
+        <>
+          {/* Info do backup */}
+          <div style={{ background:'#F0F9FF', border:'1px solid #BAE6FD', borderRadius:12,
+            padding:'12px 16px', fontSize:12, color:'#0369A1' }}>
+            📅 Backup de <strong>{new Date(parsed.exportedAt).toLocaleString('pt-BR', { timeZone:'America/Sao_Paulo' })}</strong>
+          </div>
+
+          {/* Seleção de tabelas */}
+          <div style={{ background:'#fff', borderRadius:14, border:'1px solid #E5E7EB',
+            overflow:'hidden', boxSizing:'border-box', width:'100%' }}>
+            <div style={{ padding:'12px 18px', borderBottom:'1px solid #F3F4F6',
+              fontSize:11, fontWeight:700, color:'#6B7280', textTransform:'uppercase', letterSpacing:'0.7px' }}>
+              Tabelas para restaurar
+            </div>
+            {Object.entries(parsed.tables)
+              .filter(([t]) => ['users','clients','service_orders'].includes(t))
+              .map(([t, rows]) => {
+                const sel = selTables.includes(t)
+                return (
+                  <button key={t} onClick={() => toggleTable(t)} style={{
+                    display:'flex', alignItems:'center', gap:12, width:'100%',
+                    padding:'12px 18px', border:'none', background: sel ? '#F0F9FF' : '#fff',
+                    borderBottom:'1px solid #F3F4F6', cursor:'pointer', textAlign:'left',
+                    fontFamily:'Instrument Sans,sans-serif', transition:'background .1s',
+                  }}>
+                    <div style={{
+                      width:20, height:20, borderRadius:5, flexShrink:0,
+                      border: `2px solid ${sel ? '#0891B2' : '#D1D5DB'}`,
+                      background: sel ? '#0891B2' : '#fff',
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                    }}>
+                      {sel && <Check size={11} style={{ color:'#fff' }}/>}
+                    </div>
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontSize:13, fontWeight:600, color: sel ? '#0369A1' : '#111827' }}>
+                        {TABLE_LABELS[t] || t}
+                      </div>
+                      <div style={{ fontSize:11, color:'#6B7280', marginTop:1 }}>
+                        {rows.length.toLocaleString('pt-BR')} registros no backup
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
+          </div>
+
+          {/* Modo de restauração */}
+          <div style={{ background:'#fff', borderRadius:14, border:'1px solid #E5E7EB',
+            overflow:'hidden', boxSizing:'border-box', width:'100%' }}>
+            <div style={{ padding:'12px 18px', borderBottom:'1px solid #F3F4F6',
+              fontSize:11, fontWeight:700, color:'#6B7280', textTransform:'uppercase', letterSpacing:'0.7px' }}>
+              Modo de restauração
+            </div>
+            {[
+              { v:'missing_only', label:'Apenas registros ausentes', desc:'Insere só o que não existe no banco — seguro, sem sobrescrever nada', safe:true },
+              { v:'overwrite',    label:'Sobrescrever existentes',   desc:'Atualiza registros que já existem. Senhas de usuários nunca são alteradas', safe:false },
+            ].map(opt => {
+              const sel = mode === opt.v
+              return (
+                <button key={opt.v} onClick={() => setMode(opt.v)} style={{
+                  display:'flex', alignItems:'flex-start', gap:12, width:'100%',
+                  padding:'12px 18px', border:'none', background: sel ? (opt.safe ? '#F0FDF4' : '#FFFBEB') : '#fff',
+                  borderBottom:'1px solid #F3F4F6', cursor:'pointer', textAlign:'left',
+                  fontFamily:'Instrument Sans,sans-serif', transition:'background .1s',
+                }}>
+                  <div style={{
+                    width:18, height:18, borderRadius:'50%', flexShrink:0, marginTop:1,
+                    border: `2px solid ${sel ? (opt.safe ? '#16A34A' : '#D97706') : '#D1D5DB'}`,
+                    background: sel ? (opt.safe ? '#16A34A' : '#D97706') : '#fff',
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                  }}>
+                    {sel && <div style={{ width:6, height:6, borderRadius:'50%', background:'#fff' }}/>}
+                  </div>
+                  <div>
+                    <div style={{ fontSize:13, fontWeight:600,
+                      color: sel ? (opt.safe ? '#15803D' : '#B45309') : '#111827' }}>
+                      {opt.label}
+                    </div>
+                    <div style={{ fontSize:11, color:'#6B7280', marginTop:1, lineHeight:1.5 }}>{opt.desc}</div>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Botão restaurar */}
+          {selTables.length > 0 && !confirm && status !== 'ok' && (
+            <button onClick={() => setConfirm(true)} style={{
+              display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+              width:'100%', boxSizing:'border-box', padding:'13px 16px',
+              borderRadius:10, border:'none', cursor:'pointer',
+              background: mode === 'overwrite' ? '#D97706' : '#15803D',
+              color:'#fff', fontSize:13, fontWeight:700,
+              fontFamily:'Instrument Sans,sans-serif', transition:'all .15s',
+            }}>
+              <Database size={15}/>
+              Restaurar {selTables.length} {selTables.length === 1 ? 'tabela' : 'tabelas'}
+            </button>
+          )}
+
+          {/* Confirmação */}
+          {confirm && (
+            <div style={{ background: mode === 'overwrite' ? '#FFFBEB' : '#F0FDF4',
+              border: `1px solid ${mode === 'overwrite' ? '#FDE68A' : '#86EFAC'}`,
+              borderRadius:14, padding:'16px 18px' }}>
+              <div style={{ fontSize:13, fontWeight:700,
+                color: mode === 'overwrite' ? '#92400E' : '#15803D', marginBottom:6 }}>
+                {mode === 'overwrite' ? '⚠️ Confirmar restauração com sobrescrita?' : '✅ Confirmar restauração?'}
+              </div>
+              <div style={{ fontSize:12, color:'#374151', marginBottom:14, lineHeight:1.6 }}>
+                Tabelas: <strong>{selTables.map(t => TABLE_LABELS[t]).join(', ')}</strong><br/>
+                Modo: <strong>{mode === 'overwrite' ? 'Sobrescrever existentes' : 'Apenas registros ausentes'}</strong>
+              </div>
+              <div style={{ display:'flex', gap:8 }}>
+                <button onClick={() => setConfirm(false)} style={{
+                  flex:1, padding:'10px', borderRadius:8, border:'1px solid #D1D5DB',
+                  background:'#fff', fontSize:12, fontWeight:600, cursor:'pointer',
+                  fontFamily:'Instrument Sans,sans-serif',
+                }}>Cancelar</button>
+                <button onClick={doRestore} style={{
+                  flex:2, padding:'10px', borderRadius:8, border:'none',
+                  background: mode === 'overwrite' ? '#D97706' : '#15803D',
+                  color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer',
+                  fontFamily:'Instrument Sans,sans-serif',
+                }}>Confirmar restauração</button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Loading */}
+      {status === 'loading' && (
+        <div style={{ display:'flex', alignItems:'center', gap:10, padding:'16px',
+          background:'#F8FAFC', borderRadius:12, border:'1px solid #E2E8F0' }}>
+          <Loader2 size={18} style={{ color:'#6B7280', animation:'spin 1s linear infinite' }}/>
+          <div style={{ fontSize:13, color:'#374151' }}>Restaurando dados...</div>
+        </div>
+      )}
+
+      {/* Resultado OK */}
+      {status === 'ok' && results && (
+        <div style={{ background:'#F0FDF4', border:'1px solid #86EFAC', borderRadius:14, padding:'16px 18px' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:12 }}>
+            <CheckCircle2 size={18} style={{ color:'#16A34A' }}/>
+            <div style={{ fontSize:14, fontWeight:700, color:'#15803D' }}>
+              Restauração concluída — {totalInserted} registros inseridos
+            </div>
+          </div>
+          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+            {Object.entries(results).map(([t, r]) => (
+              <div key={t} style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
+                background:'#fff', borderRadius:8, padding:'8px 12px', border:'1px solid #BBF7D0' }}>
+                <div style={{ fontSize:12, color:'#374151' }}>{TABLE_LABELS[t] || t}</div>
+                <div style={{ display:'flex', gap:10 }}>
+                  <span style={{ fontSize:11, fontWeight:700, color:'#15803D' }}>+{r.inserted} inseridos</span>
+                  <span style={{ fontSize:11, color:'#9CA3AF' }}>{r.skipped} ignorados</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Resultado ERRO */}
+      {status === 'error' && (
+        <div style={{ background:'#FEF2F2', border:'1px solid #FECACA', borderRadius:14,
+          padding:'16px 18px', display:'flex', gap:10, alignItems:'flex-start' }}>
+          <AlertCircle size={18} style={{ color:'#DC2626', flexShrink:0, marginTop:1 }}/>
+          <div>
+            <div style={{ fontSize:13, fontWeight:700, color:'#B91C1C', marginBottom:4 }}>Falha na restauração</div>
+            <div style={{ fontSize:12, color:'#7F1D1D', fontFamily:'JetBrains Mono,monospace',
+              background:'rgba(0,0,0,0.04)', padding:'6px 10px', borderRadius:6 }}>{errMsg}</div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Backup Panel ──────────────────────────────────────────────
 function BackupPanel({ T }) {
   const [status, setStatus]   = useState(null)   // null | 'loading' | 'ok' | 'error'
@@ -728,7 +1009,13 @@ export default function AdminPage() {
 
 
       {/* ── ABA BACKUP ───────────────────────────────────────── */}
-      {tab === 'backup' && <BackupPanel T={T}/>}
+      {tab === 'backup' && (
+        <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
+          <BackupPanel T={T}/>
+          <div style={{ height:1, background:'#E5E7EB' }}/>
+          <RestorePanel T={T}/>
+        </div>
+      )}
 
             {/* Modals */}
       {userModal  !== null && <UserModal  user={Object.keys(userModal).length  ? userModal  : null} onClose={()=>setUserModal(null)}  T={T}/>}

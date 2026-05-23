@@ -4,13 +4,14 @@ import { useAuth } from '../context/AuthContext'
 import {
   Users, Smartphone, Plus, Pencil, Check, X, Eye, EyeOff,
   ShieldCheck, ShieldOff, Key, ChevronDown, Loader2,
-  UserCircle, Crown, Briefcase,
+  UserCircle, Crown, Briefcase, Database, Send, CheckCircle2, AlertCircle,
 } from 'lucide-react'
 import {
   useAdminUsers, useAdminModels,
   useCreateUser, useUpdateUser, useResetPassword,
   useCreateModel, useUpdateModel,
 } from '../hooks/useData'
+import api from '../services/api'
 
 // ── Constantes ────────────────────────────────────────────────
 const ALL_CAPACITIES = ['16GB','32GB','64GB','128GB','256GB','512GB','1TB']
@@ -374,6 +375,126 @@ function ModelModal({ model, onClose, T }) {
 }
 
 // ── Página principal ──────────────────────────────────────────
+
+// ── Backup Panel ──────────────────────────────────────────────
+function BackupPanel({ T }) {
+  const [status, setStatus]   = useState(null)   // null | 'loading' | 'ok' | 'error'
+  const [result, setResult]   = useState(null)
+  const [errMsg, setErrMsg]   = useState('')
+
+  const runBackup = async () => {
+    setStatus('loading')
+    setResult(null)
+    setErrMsg('')
+    try {
+      const { data } = await api.post('/admin/backup/run')
+      setResult(data)
+      setStatus('ok')
+    } catch (err) {
+      setErrMsg(err?.response?.data?.error || err.message || 'Erro desconhecido')
+      setStatus('error')
+    }
+  }
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+
+      {/* Card principal */}
+      <div style={{ background:'#fff', borderRadius:16, border:'1px solid #E5E7EB',
+        overflow:'hidden', boxShadow:'0 1px 4px rgba(0,0,0,0.06)' }}>
+        <div style={{ padding:'20px 20px 16px', borderBottom:'1px solid #F3F4F6' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:4 }}>
+            <div style={{ width:36, height:36, borderRadius:10, background:'#0C0C0E',
+              display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <Database size={18} style={{ color:'#fff' }}/>
+            </div>
+            <div>
+              <div style={{ fontSize:15, fontWeight:700, color:'#111827' }}>Backup manual</div>
+              <div style={{ fontSize:11, color:'#6B7280', marginTop:1 }}>
+                Exporta clients, users e service_orders → envia para eddjpog@gmail.com
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ padding:'16px 20px' }}>
+          <button onClick={runBackup} disabled={status === 'loading'} style={{
+            display:'flex', alignItems:'center', gap:8,
+            padding:'12px 20px', borderRadius:10, border:'none', cursor: status === 'loading' ? 'wait' : 'pointer',
+            background: status === 'loading' ? '#E5E7EB' : '#0C0C0E',
+            color: status === 'loading' ? '#9CA3AF' : '#fff',
+            fontSize:13, fontWeight:700, fontFamily:'Instrument Sans,sans-serif',
+            transition:'all .15s', opacity: status === 'loading' ? 0.7 : 1,
+          }}>
+            {status === 'loading'
+              ? <><Loader2 size={15} style={{ animation:'spin 1s linear infinite' }}/> Executando backup...</>
+              : <><Send size={15}/> Executar backup agora</>
+            }
+          </button>
+        </div>
+      </div>
+
+      {/* Resultado OK */}
+      {status === 'ok' && result && (
+        <div style={{ background:'#F0FDF4', border:'1px solid #86EFAC', borderRadius:14,
+          padding:'16px 18px', display:'flex', flexDirection:'column', gap:10 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <CheckCircle2 size={18} style={{ color:'#16A34A', flexShrink:0 }}/>
+            <div style={{ fontSize:14, fontWeight:700, color:'#15803D' }}>Backup enviado com sucesso!</div>
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+            {[
+              { l:'Arquivo',    v: result.fileName },
+              { l:'Tamanho',    v: `${result.sizeKB} KB` },
+              { l:'Clientes',   v: result.rowCounts?.clients?.toLocaleString('pt-BR') ?? '—' },
+              { l:'Ordens',     v: result.rowCounts?.service_orders?.toLocaleString('pt-BR') ?? '—' },
+            ].map(({ l, v }) => (
+              <div key={l} style={{ background:'#fff', borderRadius:8, padding:'10px 12px',
+                border:'1px solid #BBF7D0' }}>
+                <div style={{ fontSize:9, fontWeight:700, color:'#6B7280', textTransform:'uppercase',
+                  letterSpacing:'0.7px', marginBottom:2 }}>{l}</div>
+                <div style={{ fontSize:12, fontWeight:600, color:'#111827', wordBreak:'break-all' }}>{v}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize:11, color:'#166534' }}>
+            📧 Verifique sua caixa de entrada em <strong>eddjpog@gmail.com</strong>
+          </div>
+        </div>
+      )}
+
+      {/* Resultado ERRO */}
+      {status === 'error' && (
+        <div style={{ background:'#FEF2F2', border:'1px solid #FECACA', borderRadius:14,
+          padding:'16px 18px', display:'flex', gap:10, alignItems:'flex-start' }}>
+          <AlertCircle size={18} style={{ color:'#DC2626', flexShrink:0, marginTop:1 }}/>
+          <div>
+            <div style={{ fontSize:13, fontWeight:700, color:'#B91C1C', marginBottom:4 }}>Falha no backup</div>
+            <div style={{ fontSize:12, color:'#7F1D1D', fontFamily:'JetBrains Mono,monospace',
+              background:'rgba(0,0,0,0.04)', padding:'6px 10px', borderRadius:6 }}>{errMsg}</div>
+          </div>
+        </div>
+      )}
+
+      {/* Info automático */}
+      <div style={{ background:'#F8FAFC', border:'1px solid #E2E8F0', borderRadius:12,
+        padding:'14px 16px', display:'flex', gap:10, alignItems:'flex-start' }}>
+        <div style={{ fontSize:16, flexShrink:0 }}>🕒</div>
+        <div>
+          <div style={{ fontSize:12, fontWeight:700, color:'#374151', marginBottom:3 }}>
+            Backup automático diário às 03:00 BRT
+          </div>
+          <div style={{ fontSize:11, color:'#6B7280', lineHeight:1.6 }}>
+            O sistema executa automaticamente todo dia às 03:00 (horário de Brasília).
+            Se o servidor reiniciar e o último backup tiver mais de 20h, um backup de recuperação
+            é disparado imediatamente na inicialização.
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function AdminPage() {
   const { T }    = useTheme()
   const { user } = useAuth()
@@ -422,6 +543,7 @@ export default function AdminPage() {
         {[
           { k:'users',  l:'Usuários',  Icon:Users, count:users.length },
           { k:'models', l:'Modelos',   Icon:Smartphone, count:models.filter(m=>m.is_active).length },
+          { k:'backup', l:'Backup',    Icon:Database,  count:null },
         ].map(({ k, l, Icon, count }) => {
           const active = tab === k
           return (
@@ -603,7 +725,11 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* Modals */}
+
+      {/* ── ABA BACKUP ───────────────────────────────────────── */}
+      {tab === 'backup' && <BackupPanel T={T}/>}
+
+            {/* Modals */}
       {userModal  !== null && <UserModal  user={Object.keys(userModal).length  ? userModal  : null} onClose={()=>setUserModal(null)}  T={T}/>}
       {modelModal !== null && <ModelModal model={Object.keys(modelModal).length ? modelModal : null} onClose={()=>setModelModal(null)} T={T}/>}
 

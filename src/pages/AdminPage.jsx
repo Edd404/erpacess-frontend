@@ -419,8 +419,9 @@ function BackupPanel({ T }) {
 
         <div style={{ padding:'16px 20px' }}>
           <button onClick={runBackup} disabled={status === 'loading'} style={{
-            display:'flex', alignItems:'center', gap:8,
-            padding:'12px 20px', borderRadius:10, border:'none', cursor: status === 'loading' ? 'wait' : 'pointer',
+            display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+            width:'100%', boxSizing:'border-box',
+            padding:'13px 20px', borderRadius:10, border:'none', cursor: status === 'loading' ? 'wait' : 'pointer',
             background: status === 'loading' ? '#E5E7EB' : '#0C0C0E',
             color: status === 'loading' ? '#9CA3AF' : '#fff',
             fontSize:13, fontWeight:700, fontFamily:'Instrument Sans,sans-serif',

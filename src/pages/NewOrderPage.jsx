@@ -1048,12 +1048,6 @@ function StepPagamento({ form, set, errors, isManut, models }) {
                 <span style={{ fontSize:14, fontWeight:700, color:T.amber }}>R$ {fmtNum(cashTotal)}</span>
               </div>
             )}
-            {tradeVal > 0 && total > 0 && balanced && (
-              <div style={{ background:T.greenL, border:`1px solid #A7F3D0`, borderRadius:8, padding:'9px 13px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                <span style={{ fontSize:12, color:T.green, fontWeight:500 }}>✓ Coberto pelo pagamento</span>
-                <span style={{ fontSize:14, fontWeight:700, color:T.green }}>R$ {fmtNum(cashTotal)}</span>
-              </div>
-            )}
           </div>
         </div>
       )}

@@ -82,6 +82,16 @@ const PAY_OPTS = [
 ]
 const PARCELAS = [1,2,3,4,5,6,7,8,9,10,11,12]
 
+const ACCESSORY_OPTIONS = [
+  { label:'Película 3D',         icon:'🛡️' },
+  { label:'Película Privativa',  icon:'🛡️' },
+  { label:'Cabo Tipo C/C',       icon:'🔗' },
+  { label:'Cabo Tipo C/Lightning', icon:'🔗' },
+  { label:'Capa Personalizada',  icon:'📱' },
+  { label:'Carregador',          icon:'🔌' },
+  { label:'Powerbank',           icon:'🔋' },
+]
+
 // ── Utils ─────────────────────────────────────────────────────────────────────
 const parseVal = (s) => parseFloat((s||'0').replace(/\./g,'').replace(',','.')) || 0
 const fmtNum   = (n) => n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})
@@ -735,14 +745,21 @@ function StepAcessorio({ form, set, errors, models }) {
             <div key={idx} style={{ display:'flex', alignItems:'center', gap:8,
               background:'#fff', border:`1px solid ${T.ink6}`, borderRadius:10, padding:'10px 12px' }}>
               <div style={{ flex:1 }}>
-                <input
+                <select
                   value={item.name}
                   onChange={e => updateItem(idx, 'name', e.target.value)}
-                  placeholder="Nome do produto"
-                  style={{ width:'100%', border:'none', outline:'none', fontSize:13,
-                    color:T.ink, background:'transparent', fontFamily:'Instrument Sans,sans-serif',
-                    marginBottom:4 }}
-                />
+                  style={{
+                    width:'100%', border:'none', outline:'none', fontSize:13,
+                    color: item.name ? T.ink : T.ink4,
+                    background:'transparent', fontFamily:'Instrument Sans,sans-serif',
+                    marginBottom:4, cursor:'pointer', appearance:'none',
+                    WebkitAppearance:'none',
+                  }}>
+                  <option value="" disabled>Selecionar acessório</option>
+                  {ACCESSORY_OPTIONS.map(opt => (
+                    <option key={opt.label} value={opt.label}>{opt.icon} {opt.label}</option>
+                  ))}
+                </select>
                 <div style={{ display:'flex', alignItems:'center', gap:4 }}>
                   <span style={{ fontSize:12, color:T.ink4 }}>R$</span>
                   <input
@@ -1025,10 +1042,16 @@ function StepPagamento({ form, set, errors, isManut, models }) {
               </div>
             </div>
 
-            {tradeVal > 0 && total > 0 && (
+            {tradeVal > 0 && total > 0 && !balanced && (
               <div style={{ background:T.amberL, border:`1px solid #FDE68A`, borderRadius:8, padding:'9px 13px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                 <span style={{ fontSize:12, color:T.amber, fontWeight:500 }}>Restante a pagar</span>
                 <span style={{ fontSize:14, fontWeight:700, color:T.amber }}>R$ {fmtNum(cashTotal)}</span>
+              </div>
+            )}
+            {tradeVal > 0 && total > 0 && balanced && (
+              <div style={{ background:T.greenL, border:`1px solid #A7F3D0`, borderRadius:8, padding:'9px 13px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                <span style={{ fontSize:12, color:T.green, fontWeight:500 }}>✓ Coberto pelo pagamento</span>
+                <span style={{ fontSize:14, fontWeight:700, color:T.green }}>R$ {fmtNum(cashTotal)}</span>
               </div>
             )}
           </div>
@@ -1140,32 +1163,6 @@ function StepPagamento({ form, set, errors, isManut, models }) {
       <div>
         <Label>Acessórios incluídos na venda</Label>
 
-        {/* Chips do catálogo */}
-        {catalogItems.length > 0 && (
-          <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:10 }}>
-            {catalogItems.map(item => (
-              <button key={item.id} onClick={() => addAccessory(item)} style={{
-                display:'flex', alignItems:'center', gap:5,
-                padding:'6px 12px', borderRadius:999,
-                border:`1.5px solid ${T.ink5}`, background:T.white,
-                cursor:'pointer', fontSize:12, fontWeight:600, color:T.ink,
-                fontFamily:'Instrument Sans,sans-serif', transition:'all .12s',
-              }}>
-                <span style={{ fontSize:13 }}>
-                  {item.name.includes('Película') ? '🛡️'
-                    : item.name.includes('Carregador') || item.name.includes('Fonte') ? '🔌'
-                    : item.name.includes('Cabo') ? '🔗'
-                    : item.name.includes('Capa') ? '📱'
-                    : item.name.includes('Fone') ? '🎧'
-                    : item.name.includes('Powerbank') ? '🔋'
-                    : '📦'}
-                </span>
-                + {item.name}
-              </button>
-            ))}
-          </div>
-        )}
-
         {/* Lista dos adicionados */}
         {accessories.length > 0 && (
           <div style={{ display:'flex', flexDirection:'column', gap:6, marginBottom:8 }}>
@@ -1174,14 +1171,22 @@ function StepPagamento({ form, set, errors, isManut, models }) {
                 background:T.white, border:`1px solid ${T.ink6}`, borderRadius:10,
                 padding:'9px 12px' }}>
                 <div style={{ flex:1 }}>
-                  <input
+                  {/* Dropdown de seleção */}
+                  <select
                     value={item.name}
                     onChange={e => updateAccessory(idx, 'name', e.target.value)}
-                    placeholder="Nome do acessório"
-                    style={{ width:'100%', border:'none', outline:'none', fontSize:13,
-                      color:T.ink, background:'transparent',
-                      fontFamily:'Instrument Sans,sans-serif', marginBottom:3 }}
-                  />
+                    style={{
+                      width:'100%', border:'none', outline:'none', fontSize:13,
+                      color: item.name ? T.ink : T.ink4,
+                      background:'transparent', fontFamily:'Instrument Sans,sans-serif',
+                      marginBottom:3, cursor:'pointer', appearance:'none',
+                      WebkitAppearance:'none',
+                    }}>
+                    <option value="" disabled>Selecionar acessório</option>
+                    {ACCESSORY_OPTIONS.map(opt => (
+                      <option key={opt.label} value={opt.label}>{opt.icon} {opt.label}</option>
+                    ))}
+                  </select>
                   <div style={{ display:'flex', alignItems:'center', gap:4 }}>
                     <span style={{ fontSize:12, color:T.ink4 }}>R$</span>
                     <input
@@ -1225,7 +1230,7 @@ function StepPagamento({ form, set, errors, isManut, models }) {
           cursor:'pointer', fontSize:12, fontWeight:600, color:T.ink3,
           fontFamily:'Instrument Sans,sans-serif', transition:'all .15s',
         }}>
-          <Plus size={13}/> Adicionar item manualmente
+          <Plus size={13}/> Adicionar acessório
         </button>
       </div>
 

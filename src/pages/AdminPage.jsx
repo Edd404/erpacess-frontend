@@ -853,7 +853,7 @@ export default function AdminPage() {
         padding:4, marginBottom:20, gap:3 }}>
         {[
           { k:'users',  l:'Usuários',  Icon:Users,       count:users.length },
-          { k:'models', l:'Modelos',   Icon:Smartphone,  count:models.filter(m=>m.is_active).length },
+          { k:'models', l:'Catálogo',  Icon:Smartphone,  count:models.filter(m=>m.is_active).length },
           { k:'backup', l:'Backup',    Icon:Database,    count:null },
         ].map(({ k, l, Icon, count }) => {
           const active = tab === k
@@ -964,7 +964,7 @@ export default function AdminPage() {
         <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, flexWrap:'wrap' }}>
             <div style={{ fontSize:12, color:'#6B7280' }}>
-              {models.filter(m=>m.is_active).length} modelos ativos · {models.filter(m=>!m.is_active).length} inativos
+              {models.filter(m=>m.is_active).length} itens ativos · {models.filter(m=>!m.is_active).length} inativos
             </div>
             <button onClick={()=>setModelModal({})} style={{
               display:'flex', alignItems:'center', gap:7, padding:'9px 18px',
@@ -983,60 +983,101 @@ export default function AdminPage() {
             </div>
           )}
 
-          {/* Agrupar por série */}
+          {/* Separado por categoria */}
           {!loadM && (() => {
-            const bySeries = {}
-            models.forEach(m => {
-              if (!bySeries[m.series]) bySeries[m.series] = []
-              bySeries[m.series].push(m)
-            })
-            return Object.entries(bySeries).map(([series, list]) => (
-              <div key={series}>
-                <div style={{ fontSize:10, fontWeight:700, color:'#9CA3AF', textTransform:'uppercase',
-                  letterSpacing:'0.7px', marginBottom:8, paddingLeft:4 }}>
-                  iPhone {series} · {list.filter(m=>m.is_active).length} ativos
+            const iphones    = models.filter(m => !m.category || m.category === 'iphone')
+            const acessorios = models.filter(m => m.category === 'acessorio')
+            const outros     = models.filter(m => m.category === 'outro')
+
+            const ModelCard = ({ m }) => (
+              <div key={m.id} style={{
+                background:'#fff', borderRadius:12, border:'1px solid rgba(0,0,0,0.07)',
+                padding:'12px 14px', display:'flex', alignItems:'center', gap:12,
+                boxShadow:'0 1px 4px rgba(0,0,0,0.04)', opacity: m.is_active ? 1 : 0.5,
+                transition:'opacity .15s',
+              }}>
+                <div style={{ width:36, height:36, borderRadius:9, flexShrink:0,
+                  background: m.category === 'acessorio' ? '#F0FDF4' : m.category === 'outro' ? '#FFF7ED' : '#EFF6FF',
+                  display:'flex', alignItems:'center', justifyContent:'center', fontSize:16 }}>
+                  {m.category === 'acessorio'
+                    ? (m.name.includes('Película') ? '🛡️' : m.name.includes('Carregador') || m.name.includes('Fonte') ? '🔌'
+                      : m.name.includes('Cabo') ? '🔗' : m.name.includes('Capa') ? '📱'
+                      : m.name.includes('Fone') ? '🎧' : m.name.includes('Powerbank') ? '🔋' : '📦')
+                    : m.category === 'outro' ? '⌚'
+                    : <Smartphone size={16} style={{ color:'#2563EB' }}/>}
                 </div>
-                <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                  {list.map(m => (
-                    <div key={m.id} style={{
-                      background:'#fff', borderRadius:12, border:'1px solid rgba(0,0,0,0.07)',
-                      padding:'12px 14px', display:'flex', alignItems:'center', gap:12,
-                      boxShadow:'0 1px 4px rgba(0,0,0,0.04)', opacity: m.is_active ? 1 : 0.5,
-                      transition:'opacity .15s',
-                    }}>
-                      <div style={{ width:36, height:36, borderRadius:9, background:'#EFF6FF',
-                        display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                        <Smartphone size={16} style={{ color:'#2563EB' }}/>
-                      </div>
-                      <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontSize:13, fontWeight:700, color:'#111827', marginBottom:4 }}>{m.name}</div>
-                        <div style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
-                          {m.capacities?.map(c => (
-                            <span key={c} style={{ fontSize:10, background:'#F3F4F6', color:'#374151',
-                              padding:'2px 7px', borderRadius:6, fontWeight:600,
-                              fontFamily:'JetBrains Mono,monospace' }}>{c}</span>
-                          ))}
-                        </div>
-                      </div>
-                      <div style={{ display:'flex', gap:7, flexShrink:0 }}>
-                        <button onClick={()=>updateModel.mutate({ id:m.id, data:{ is_active:!m.is_active }})}
-                          title={m.is_active ? 'Desativar' : 'Ativar'}
-                          style={{ background: m.is_active ? '#FEE2E2' : '#DCFCE7', border:'none', borderRadius:8,
-                            padding:'6px', cursor:'pointer', display:'flex', alignItems:'center',
-                            color: m.is_active ? '#B91C1C' : '#15803D' }}>
-                          {m.is_active ? <ShieldOff size={13}/> : <ShieldCheck size={13}/>}
-                        </button>
-                        <button onClick={()=>setModelModal(m)}
-                          style={{ background:'rgba(0,0,0,0.05)', border:'none', borderRadius:8,
-                            padding:'6px', cursor:'pointer', display:'flex', alignItems:'center', color:'#6B7280' }}>
-                          <Pencil size={13}/>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:13, fontWeight:700, color:'#111827', marginBottom:4 }}>{m.name}</div>
+                  <div style={{ display:'flex', flexWrap:'wrap', gap:4, alignItems:'center' }}>
+                    {m.capacities?.map(c => (
+                      <span key={c} style={{ fontSize:10, background:'#F3F4F6', color:'#374151',
+                        padding:'2px 7px', borderRadius:6, fontWeight:600,
+                        fontFamily:'JetBrains Mono,monospace' }}>{c}</span>
+                    ))}
+                    {m.suggested_price && (
+                      <span style={{ fontSize:10, background:'#F0FDF4', color:'#15803D',
+                        padding:'2px 7px', borderRadius:6, fontWeight:700,
+                        fontFamily:'JetBrains Mono,monospace' }}>
+                        R$ {Number(m.suggested_price).toLocaleString('pt-BR',{minimumFractionDigits:2})}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div style={{ display:'flex', gap:7, flexShrink:0 }}>
+                  <button onClick={()=>updateModel.mutate({ id:m.id, data:{ is_active:!m.is_active }})}
+                    title={m.is_active ? 'Desativar' : 'Ativar'}
+                    style={{ background: m.is_active ? '#FEE2E2' : '#DCFCE7', border:'none', borderRadius:8,
+                      padding:'6px', cursor:'pointer', display:'flex', alignItems:'center',
+                      color: m.is_active ? '#B91C1C' : '#15803D' }}>
+                    {m.is_active ? <ShieldOff size={13}/> : <ShieldCheck size={13}/>}
+                  </button>
+                  <button onClick={()=>setModelModal(m)}
+                    style={{ background:'rgba(0,0,0,0.05)', border:'none', borderRadius:8,
+                      padding:'6px', cursor:'pointer', display:'flex', alignItems:'center', color:'#6B7280' }}>
+                    <Pencil size={13}/>
+                  </button>
                 </div>
               </div>
-            ))
+            )
+
+            const Section = ({ label, list, emoji }) => list.length === 0 ? null : (
+              <div>
+                <div style={{ fontSize:10, fontWeight:700, color:'#9CA3AF', textTransform:'uppercase',
+                  letterSpacing:'0.7px', marginBottom:8, paddingLeft:4, display:'flex', alignItems:'center', gap:6 }}>
+                  <span>{emoji}</span> {label} · {list.filter(m=>m.is_active).length} ativos
+                </div>
+                <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                  {list.map(m => <ModelCard key={m.id} m={m}/>)}
+                </div>
+              </div>
+            )
+
+            // iPhones agrupados por série
+            const bySeries = {}
+            iphones.forEach(m => {
+              const s = m.series || 'Outros'
+              if (!bySeries[s]) bySeries[s] = []
+              bySeries[s].push(m)
+            })
+
+            return (
+              <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
+                {/* iPhones por série */}
+                {Object.entries(bySeries).map(([series, list]) => (
+                  <div key={series}>
+                    <div style={{ fontSize:10, fontWeight:700, color:'#9CA3AF', textTransform:'uppercase',
+                      letterSpacing:'0.7px', marginBottom:8, paddingLeft:4, display:'flex', alignItems:'center', gap:6 }}>
+                      📱 iPhone {series} · {list.filter(m=>m.is_active).length} ativos
+                    </div>
+                    <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                      {list.map(m => <ModelCard key={m.id} m={m}/>)}
+                    </div>
+                  </div>
+                ))}
+                <Section label="Acessórios"       list={acessorios} emoji="🛡️"/>
+                <Section label="Outros produtos"   list={outros}     emoji="⌚"/>
+              </div>
+            )
           })()}
         </div>
       )}

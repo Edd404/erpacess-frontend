@@ -821,6 +821,27 @@ function StepAcessorio({ form, set, errors, models }) {
 
 // ── Step 3 — Pagamento ────────────────────────────────────────────────────────
 function StepPagamento({ form, set, errors, isManut, models }) {
+  // Acessórios adicionados na venda
+  const accessories    = form.accessories || []
+  const accessoriesTotal = accessories.reduce((sum, a) => {
+    return sum + (parseFloat(String(a.price || '0').replace(',', '.')) || 0)
+  }, 0)
+
+  const addAccessory = (item) => {
+    const price = item.suggested_price
+      ? String(Number(item.suggested_price).toFixed(2)).replace('.', ',')
+      : ''
+    set('accessories', [...accessories, { name: item.name, price }])
+  }
+  const removeAccessory = (idx) => set('accessories', accessories.filter((_, i) => i !== idx))
+  const updateAccessory = (idx, field, value) => {
+    set('accessories', accessories.map((a, i) => i === idx ? { ...a, [field]: value } : a))
+  }
+  const addCustom = () => set('accessories', [...accessories, { name: '', price: '' }])
+
+  const catalogItems = (models || [])
+    .filter(m => m.category === 'acessorio' || m.category === 'outro')
+
   const [pd, setPdState] = useState({
     pix:             { value:'' },
     dinheiro:        { value:'' },
@@ -837,7 +858,8 @@ function StepPagamento({ form, set, errors, isManut, models }) {
     form.payment_methods.includes(v) ? form.payment_methods.filter(x => x !== v) : [...form.payment_methods, v]
   )
 
-  const total       = parseVal(form.price)
+  const basePrice   = parseVal(form.price)
+  const total       = basePrice + accessoriesTotal
   const tradeVal    = form.payment_methods.includes('iphone_entrada') ? parseVal(pd.iphone_entrada.value) : 0
   const cashTotal   = Math.max(0, total - tradeVal)
   const cashMethods = form.payment_methods.filter(m => m !== 'iphone_entrada')
@@ -1113,6 +1135,100 @@ function StepPagamento({ form, set, errors, isManut, models }) {
         </div>
       )}
 
+
+      {/* ── Acessórios ──────────────────────────────────────────── */}
+      <div>
+        <Label>Acessórios incluídos na venda</Label>
+
+        {/* Chips do catálogo */}
+        {catalogItems.length > 0 && (
+          <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:10 }}>
+            {catalogItems.map(item => (
+              <button key={item.id} onClick={() => addAccessory(item)} style={{
+                display:'flex', alignItems:'center', gap:5,
+                padding:'6px 12px', borderRadius:999,
+                border:`1.5px solid ${T.ink5}`, background:T.white,
+                cursor:'pointer', fontSize:12, fontWeight:600, color:T.ink,
+                fontFamily:'Instrument Sans,sans-serif', transition:'all .12s',
+              }}>
+                <span style={{ fontSize:13 }}>
+                  {item.name.includes('Película') ? '🛡️'
+                    : item.name.includes('Carregador') || item.name.includes('Fonte') ? '🔌'
+                    : item.name.includes('Cabo') ? '🔗'
+                    : item.name.includes('Capa') ? '📱'
+                    : item.name.includes('Fone') ? '🎧'
+                    : item.name.includes('Powerbank') ? '🔋'
+                    : '📦'}
+                </span>
+                + {item.name}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Lista dos adicionados */}
+        {accessories.length > 0 && (
+          <div style={{ display:'flex', flexDirection:'column', gap:6, marginBottom:8 }}>
+            {accessories.map((item, idx) => (
+              <div key={idx} style={{ display:'flex', alignItems:'center', gap:8,
+                background:T.white, border:`1px solid ${T.ink6}`, borderRadius:10,
+                padding:'9px 12px' }}>
+                <div style={{ flex:1 }}>
+                  <input
+                    value={item.name}
+                    onChange={e => updateAccessory(idx, 'name', e.target.value)}
+                    placeholder="Nome do acessório"
+                    style={{ width:'100%', border:'none', outline:'none', fontSize:13,
+                      color:T.ink, background:'transparent',
+                      fontFamily:'Instrument Sans,sans-serif', marginBottom:3 }}
+                  />
+                  <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                    <span style={{ fontSize:12, color:T.ink4 }}>R$</span>
+                    <input
+                      value={item.price}
+                      onChange={e => updateAccessory(idx, 'price', e.target.value.replace(/[^0-9,\.]/g,''))}
+                      placeholder="0,00"
+                      style={{ border:'none', outline:'none', fontSize:13, fontWeight:700,
+                        color:T.ink, background:'transparent',
+                        fontFamily:'JetBrains Mono,monospace', width:80 }}
+                    />
+                  </div>
+                </div>
+                <button onClick={() => removeAccessory(idx)} style={{
+                  background:'none', border:'none', cursor:'pointer',
+                  color:T.red, padding:4, borderRadius:6,
+                  display:'flex', alignItems:'center',
+                }}>
+                  <X size={14}/>
+                </button>
+              </div>
+            ))}
+
+            {/* Subtotal acessórios */}
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
+              padding:'8px 12px', background:T.blueL, borderRadius:8,
+              border:`1px solid rgba(10,102,255,0.15)` }}>
+              <span style={{ fontSize:12, color:T.blue, fontWeight:500 }}>
+                + {accessories.length} acessório{accessories.length > 1 ? 's' : ''}
+              </span>
+              <span style={{ fontSize:13, fontWeight:700, color:T.blue }}>
+                + R$ {accessoriesTotal.toLocaleString('pt-BR', { minimumFractionDigits:2 })}
+              </span>
+            </div>
+          </div>
+        )}
+
+        <button onClick={addCustom} style={{
+          display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+          width:'100%', padding:'10px', borderRadius:10,
+          border:`1.5px dashed ${T.ink5}`, background:'transparent',
+          cursor:'pointer', fontSize:12, fontWeight:600, color:T.ink3,
+          fontFamily:'Instrument Sans,sans-serif', transition:'all .15s',
+        }}>
+          <Plus size={13}/> Adicionar item manualmente
+        </button>
+      </div>
+
       {/* Observações */}
       <div>
         <Label>Observações</Label>
@@ -1124,19 +1240,42 @@ function StepPagamento({ form, set, errors, isManut, models }) {
       </div>
 
       {/* Resumo */}
-      {form.price && (
+      {(form.price || accessoriesTotal > 0) && (
         <div style={{ background:T.ink, borderRadius:12, padding:'18px 20px' }}>
           <div style={{ fontSize:10, fontWeight:700, letterSpacing:'1px', color:'rgba(255,255,255,0.35)', textTransform:'uppercase', marginBottom:12 }}>Resumo</div>
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8 }}>
+
+          {/* Linha produto/serviço */}
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:6 }}>
             <span style={{ fontSize:13, color:'rgba(255,255,255,0.55)', maxWidth:'60%', lineHeight:1.4 }}>
               {isManut
                 ? (form.service_types?.slice(0,2).join(', ') || 'Manutenção') + (form.service_types?.length > 2 ? ` +${form.service_types.length - 2}` : '')
                 : `${form.iphone_model || '—'} ${form.capacity || ''}${form.condition_sale ? ' · ' + (form.condition_sale === 'lacrado' ? '📦 Lacrado' : '✨ Seminovo') : ''}`}
             </span>
-            <span style={{ fontSize:20, fontWeight:700, color:T.white, letterSpacing:'-0.5px' }}>R$ {form.price}</span>
+            <span style={{ fontSize:18, fontWeight:700, color:T.white, letterSpacing:'-0.5px' }}>R$ {form.price || '0,00'}</span>
           </div>
+
+          {/* Acessórios */}
+          {accessories.length > 0 && accessories.map((a, i) => (
+            <div key={i} style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
+              <span style={{ fontSize:12, color:'rgba(255,255,255,0.4)' }}>{a.name || 'Acessório'}</span>
+              <span style={{ fontSize:12, color:'rgba(255,255,255,0.6)', fontWeight:600 }}>
+                + R$ {a.price || '0,00'}
+              </span>
+            </div>
+          ))}
+
+          {/* Total com acessórios */}
+          {accessoriesTotal > 0 && (
+            <div style={{ display:'flex', justifyContent:'space-between', paddingTop:8,
+              borderTop:'1px solid rgba(255,255,255,0.08)', marginBottom:6, marginTop:4 }}>
+              <span style={{ fontSize:13, color:'rgba(255,255,255,0.65)', fontWeight:600 }}>Total</span>
+              <span style={{ fontSize:18, fontWeight:700, color:'#60A5FA' }}>R$ {fmtNum(total)}</span>
+            </div>
+          )}
+
+          {/* iPhone entrada */}
           {tradeVal > 0 && (
-            <div style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
               <span style={{ fontSize:12, color:'rgba(255,255,255,0.4)' }}>
                 iPhone entrada ({pd.iphone_entrada.model || '—'})
               </span>
@@ -1144,11 +1283,12 @@ function StepPagamento({ form, set, errors, isManut, models }) {
             </div>
           )}
           {tradeVal > 0 && (
-            <div style={{ display:'flex', justifyContent:'space-between', paddingTop:8, borderTop:'1px solid rgba(255,255,255,0.08)', marginBottom:8 }}>
-              <span style={{ fontSize:13, color:'rgba(255,255,255,0.65)', fontWeight:600 }}>Total a pagar</span>
+            <div style={{ display:'flex', justifyContent:'space-between', paddingTop:8, borderTop:'1px solid rgba(255,255,255,0.08)', marginBottom:6 }}>
+              <span style={{ fontSize:13, color:'rgba(255,255,255,0.65)', fontWeight:600 }}>A pagar</span>
               <span style={{ fontSize:16, fontWeight:700, color:'#86EFAC' }}>R$ {fmtNum(cashTotal)}</span>
             </div>
           )}
+
           <div style={{ height:1, background:'rgba(255,255,255,0.08)', margin:'8px 0' }}/>
           <div style={{ display:'flex', justifyContent:'space-between' }}>
             <span style={{ fontSize:11, color:'rgba(255,255,255,0.35)' }}>
@@ -1191,11 +1331,10 @@ export default function NewOrderPage() {
 
   const set = (k, v) => { setForm(f => ({ ...f, [k]:v })); setErrors(e => ({ ...e, [k]:'' })) }
   const isManut    = form.type === 'manutencao'
-  const isAcessorio = form.type === 'acessorio'
 
   const stepLabels = [
     { n:1, l:'Cliente' },
-    { n:2, l: isManut ? 'Serviço' : isAcessorio ? 'Acessórios' : 'Produto' },
+    { n:2, l: isManut ? 'Serviço' : 'Produto' },
     { n:3, l:'Pagamento' },
   ]
 
@@ -1203,22 +1342,13 @@ export default function NewOrderPage() {
     const e = {}
     if (step === 1 && !form.client_id) e.client_id = 'Selecione um cliente'
     if (step === 2) {
-      if (isAcessorio) {
-        if (!form.accessories?.length) e.accessories = 'Adicione ao menos um item'
-        else {
-          const invalid = form.accessories.some(a => !a.name?.trim() || !a.price)
-          if (invalid) e.accessories = 'Preencha nome e valor de todos os itens'
-        }
-        if (!form.lead_source) e.lead_source = 'Selecione a origem do cliente'
-      } else {
-        if (!form.iphone_model) e.iphone_model = 'Selecione o modelo'
-        if (!isManut && !form.condition_sale) e.condition_sale = 'Selecione a condição do aparelho'
-        if (!isManut && !form.lead_source) e.lead_source = 'Selecione a origem do cliente'
-        if (form.imei && !validateIMEI(form.imei)) e.imei = 'IMEI inválido'
-        if (isManut) {
-          if (!form.service_types?.length) e.service_types = 'Selecione ao menos um serviço'
-          if (!form.problem_description?.trim()) e.problem_description = 'Descreva o problema relatado'
-        }
+      if (!form.iphone_model) e.iphone_model = 'Selecione o modelo'
+      if (!isManut && !form.condition_sale) e.condition_sale = 'Selecione a condição do aparelho'
+      if (!isManut && !form.lead_source) e.lead_source = 'Selecione a origem do cliente'
+      if (form.imei && !validateIMEI(form.imei)) e.imei = 'IMEI inválido'
+      if (isManut) {
+        if (!form.service_types?.length) e.service_types = 'Selecione ao menos um serviço'
+        if (!form.problem_description?.trim()) e.problem_description = 'Descreva o problema relatado'
       }
     }
     if (step === 3) {
@@ -1233,14 +1363,6 @@ export default function NewOrderPage() {
 
   const handleSubmit = async () => {
     if (!validate()) return
-    const parsePrice = (v) => parseFloat(String(v || '0').replace(',', '.')) || 0
-
-    // Para acessórios, calcula preço total e monta descrição
-    let accessoriesPrice = 0
-    if (isAcessorio && form.accessories?.length) {
-      accessoriesPrice = form.accessories.reduce((sum, a) => sum + parsePrice(a.price), 0)
-    }
-
     const noteParts = []
     if (isManut && form.service_types?.length) noteParts.push(`Serviços: ${form.service_types.join(', ')}`)
     if (isManut && form.problem_description) noteParts.push(`Problema: ${form.problem_description}`)
@@ -1248,8 +1370,12 @@ export default function NewOrderPage() {
       const cond = { otimo:'Ótimo', bom:'Bom', regular:'Regular', danificado:'Danificado' }
       noteParts.push(`Condição: ${cond[form.device_condition] || form.device_condition}`)
     }
-    if (isAcessorio && form.accessories?.length) {
-      noteParts.push(`Itens: ${form.accessories.map(a => `${a.name} (R$ ${parsePrice(a.price).toLocaleString('pt-BR', { minimumFractionDigits:2 })})`).join(', ')}`)
+if (form.accessories?.length) {
+      const accLine = form.accessories.map(a => {
+        const p = parseFloat(String(a.price||'0').replace(',','.')) || 0
+        return `${a.name} (R$ ${p.toLocaleString('pt-BR',{minimumFractionDigits:2})})`
+      }).join(', ')
+      noteParts.push(`Acessórios: ${accLine}`)
     }
     if (!isManut && form.lead_source) noteParts.push(`Origem: ${form.lead_source}`)
     if (form.notes) noteParts.push(form.notes)
@@ -1261,7 +1387,7 @@ export default function NewOrderPage() {
       capacity:       form.capacity || undefined,
       color:          form.color || undefined,
       imei:           form.imei || undefined,
-      price:          isAcessorio ? accessoriesPrice : parseVal(form.price),
+      price:          parseVal(form.price) + (form.accessories||[]).reduce((s,a)=>s+(parseFloat(String(a.price||'0').replace(',','.'))||0),0),
       warranty_months: parseInt(form.warranty_months) || (isManut ? 3 : 12),
       payment_methods: form.payment_methods,
       notes:          noteParts.join('\n') || undefined,
@@ -1334,7 +1460,6 @@ export default function NewOrderPage() {
                 {[
                   { v:'venda',     l:'Venda',      desc:'iPhone novo ou usado',     icon:Smartphone },
                   { v:'manutencao',l:'Manutenção', desc:'Reparo ou serviço técnico', icon:Wrench },
-                  { v:'acessorio', l:'Acessório',  desc:'Película, capa, cabo...',   icon:ShoppingBag, full:true },
                 ].map(t => {
                   const on = form.type === t.v
                   return (

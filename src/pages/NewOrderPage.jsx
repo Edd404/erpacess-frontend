@@ -6,7 +6,8 @@ import { formatCurrencyInput } from '../utils/formatters'
 import { validateIMEI } from '../utils/validators'
 import {
   ArrowLeft, ChevronRight, Check, Smartphone, Wrench, Zap, CreditCard,
-  Banknote, Loader2, Send, Search, AlertCircle, CheckCircle2, X, ChevronDown, User, Phone
+  Banknote, Loader2, Send, Search, AlertCircle, CheckCircle2, X, ChevronDown, User, Phone,
+  ShoppingBag, Plus
 } from 'lucide-react'
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
@@ -657,6 +658,167 @@ function StepProduto({ form, set, errors, models }) {
   )
 }
 
+
+// ── Step 2 — Acessório / Outro produto ───────────────────────────────────────
+function StepAcessorio({ form, set, errors, models }) {
+  const T = useTheme().T
+
+  // Filtra acessórios e outros do catálogo
+  const catalogItems = (models || []).filter(m => m.category === 'acessorio' || m.category === 'outro')
+
+  const items = form.accessories || []  // [{ name, price }]
+
+  const addItem = (item) => {
+    set('accessories', [...items, { name: item.name, price: item.suggested_price ? String(item.suggested_price) : '' }])
+  }
+
+  const removeItem = (idx) => {
+    set('accessories', items.filter((_, i) => i !== idx))
+  }
+
+  const updateItem = (idx, field, value) => {
+    const updated = items.map((item, i) => i === idx ? { ...item, [field]: value } : item)
+    set('accessories', updated)
+  }
+
+  const addCustom = () => {
+    set('accessories', [...items, { name: '', price: '' }])
+  }
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:22 }}>
+
+      {/* Catálogo de acessórios */}
+      {catalogItems.length > 0 && (
+        <div>
+          <Label>Adicionar do catálogo</Label>
+          <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
+            {catalogItems.map(item => (
+              <button key={item.id} onClick={() => addItem(item)} style={{
+                padding:'8px 14px', borderRadius:999, border:`1.5px solid ${T.ink5}`,
+                background: T.white, cursor:'pointer', fontSize:12, fontWeight:600,
+                color: T.ink, fontFamily:'Instrument Sans,sans-serif',
+                display:'flex', alignItems:'center', gap:6, transition:'all .15s',
+              }}>
+                <span style={{ fontSize:14 }}>
+                  {item.name.includes('Película') ? '🛡️'
+                    : item.name.includes('Carregador') || item.name.includes('Fonte') ? '🔌'
+                    : item.name.includes('Cabo') ? '🔗'
+                    : item.name.includes('Capa') ? '📱'
+                    : item.name.includes('Fone') ? '🎧'
+                    : item.name.includes('Powerbank') ? '🔋'
+                    : '📦'}
+                </span>
+                {item.name}
+                {item.suggested_price && (
+                  <span style={{ color:T.ink4, fontWeight:400 }}>
+                    · R$ {Number(item.suggested_price).toLocaleString('pt-BR', { minimumFractionDigits:2 })}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Lista de itens adicionados */}
+      <div>
+        <Label required>Itens da venda</Label>
+        {items.length === 0 && (
+          <div style={{ padding:'20px 16px', textAlign:'center', background:T.bg, borderRadius:10,
+            border:`1.5px dashed ${errors.accessories ? T.red : T.ink5}`, color:T.ink4, fontSize:13 }}>
+            Nenhum item adicionado. Selecione do catálogo ou adicione manualmente.
+          </div>
+        )}
+        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+          {items.map((item, idx) => (
+            <div key={idx} style={{ display:'flex', alignItems:'center', gap:8,
+              background:'#fff', border:`1px solid ${T.ink6}`, borderRadius:10, padding:'10px 12px' }}>
+              <div style={{ flex:1 }}>
+                <input
+                  value={item.name}
+                  onChange={e => updateItem(idx, 'name', e.target.value)}
+                  placeholder="Nome do produto"
+                  style={{ width:'100%', border:'none', outline:'none', fontSize:13,
+                    color:T.ink, background:'transparent', fontFamily:'Instrument Sans,sans-serif',
+                    marginBottom:4 }}
+                />
+                <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                  <span style={{ fontSize:12, color:T.ink4 }}>R$</span>
+                  <input
+                    value={item.price}
+                    onChange={e => updateItem(idx, 'price', e.target.value.replace(/[^0-9,\.]/g, ''))}
+                    placeholder="0,00"
+                    style={{ border:'none', outline:'none', fontSize:13, fontWeight:600,
+                      color:T.ink, background:'transparent', fontFamily:'JetBrains Mono,monospace',
+                      width:80 }}
+                  />
+                </div>
+              </div>
+              <button onClick={() => removeItem(idx)} style={{
+                background:'none', border:'none', cursor:'pointer', color:T.red,
+                padding:4, borderRadius:6, display:'flex', alignItems:'center',
+              }}>
+                <X size={15}/>
+              </button>
+            </div>
+          ))}
+        </div>
+        <ErrMsg msg={errors.accessories}/>
+      </div>
+
+      {/* Botão adicionar item manual */}
+      <button onClick={addCustom} style={{
+        display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+        width:'100%', padding:'11px', borderRadius:10, border:`1.5px dashed ${T.ink5}`,
+        background:'transparent', cursor:'pointer', fontSize:13, fontWeight:600,
+        color:T.ink3, fontFamily:'Instrument Sans,sans-serif', transition:'all .15s',
+      }}>
+        <Plus size={14}/> Adicionar item manualmente
+      </button>
+
+      {/* Origem */}
+      <div>
+        <Label required>Como o cliente chegou até nós?</Label>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+          {[
+            { v:'Instagram',    emoji:'📸', desc:'Veio pelo Instagram' },
+            { v:'Indicação',    emoji:'🗣️', desc:'Foi indicado por alguém' },
+            { v:'Já é cliente', emoji:'⭐', desc:'Cliente que já comprou antes', full: true },
+          ].map(opt => {
+            const on = form.lead_source === opt.v
+            return (
+              <button key={opt.v} onClick={() => set('lead_source', opt.v)} style={{
+                gridColumn: opt.full ? '1 / -1' : undefined,
+                padding:'14px', borderRadius:12, cursor:'pointer', textAlign:'left',
+                border:`1.5px solid ${errors.lead_source ? T.red : on ? T.blue : T.ink5}`,
+                background: on ? T.blueL : T.white,
+                transition:'all .15s', display:'flex', alignItems:'center', gap:10,
+                fontFamily:'Instrument Sans,sans-serif',
+              }}>
+                <div style={{ width:30, height:30, borderRadius:8, fontSize:15,
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  background: on ? 'rgba(10,102,255,0.12)' : T.ink6 }}>{opt.emoji}</div>
+                <div>
+                  <div style={{ fontSize:13, fontWeight:700, color: on ? T.blue : T.ink }}>{opt.v}</div>
+                  <div style={{ fontSize:11, color: on ? T.blue : T.ink4, opacity: on ? 0.7 : 1 }}>{opt.desc}</div>
+                </div>
+                {on && (
+                  <div style={{ marginLeft:'auto', width:18, height:18, borderRadius:'50%',
+                    background:T.blue, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                    <Check size={10} style={{ color:'#fff' }}/>
+                  </div>
+                )}
+              </button>
+            )
+          })}
+        </div>
+        <ErrMsg msg={errors.lead_source}/>
+      </div>
+    </div>
+  )
+}
+
 // ── Step 3 — Pagamento ────────────────────────────────────────────────────────
 function StepPagamento({ form, set, errors, isManut, models }) {
   const [pd, setPdState] = useState({
@@ -1024,14 +1186,16 @@ export default function NewOrderPage() {
     client_id: searchParams.get('client_id') || '', type:'venda', iphone_model:'', capacity:'', color:'',
     imei:'', price:'', warranty_months:'', notes:'', condition_sale:'', lead_source:'',
     payment_methods:[], service_types:[], problem_description:'', device_condition:'',
+    accessories:[],  // [{ name, price }] — para tipo 'acessorio'
   })
 
   const set = (k, v) => { setForm(f => ({ ...f, [k]:v })); setErrors(e => ({ ...e, [k]:'' })) }
-  const isManut = form.type === 'manutencao'
+  const isManut    = form.type === 'manutencao'
+  const isAcessorio = form.type === 'acessorio'
 
   const stepLabels = [
     { n:1, l:'Cliente' },
-    { n:2, l: isManut ? 'Serviço' : 'Produto' },
+    { n:2, l: isManut ? 'Serviço' : isAcessorio ? 'Acessórios' : 'Produto' },
     { n:3, l:'Pagamento' },
   ]
 
@@ -1039,13 +1203,22 @@ export default function NewOrderPage() {
     const e = {}
     if (step === 1 && !form.client_id) e.client_id = 'Selecione um cliente'
     if (step === 2) {
-      if (!form.iphone_model) e.iphone_model = 'Selecione o modelo'
-      if (!isManut && !form.condition_sale) e.condition_sale = 'Selecione a condição do aparelho'
-      if (!isManut && !form.lead_source) e.lead_source = 'Selecione a origem do cliente'
-      if (form.imei && !validateIMEI(form.imei)) e.imei = 'IMEI inválido'
-      if (isManut) {
-        if (!form.service_types?.length) e.service_types = 'Selecione ao menos um serviço'
-        if (!form.problem_description?.trim()) e.problem_description = 'Descreva o problema relatado'
+      if (isAcessorio) {
+        if (!form.accessories?.length) e.accessories = 'Adicione ao menos um item'
+        else {
+          const invalid = form.accessories.some(a => !a.name?.trim() || !a.price)
+          if (invalid) e.accessories = 'Preencha nome e valor de todos os itens'
+        }
+        if (!form.lead_source) e.lead_source = 'Selecione a origem do cliente'
+      } else {
+        if (!form.iphone_model) e.iphone_model = 'Selecione o modelo'
+        if (!isManut && !form.condition_sale) e.condition_sale = 'Selecione a condição do aparelho'
+        if (!isManut && !form.lead_source) e.lead_source = 'Selecione a origem do cliente'
+        if (form.imei && !validateIMEI(form.imei)) e.imei = 'IMEI inválido'
+        if (isManut) {
+          if (!form.service_types?.length) e.service_types = 'Selecione ao menos um serviço'
+          if (!form.problem_description?.trim()) e.problem_description = 'Descreva o problema relatado'
+        }
       }
     }
     if (step === 3) {
@@ -1060,12 +1233,23 @@ export default function NewOrderPage() {
 
   const handleSubmit = async () => {
     if (!validate()) return
+    const parsePrice = (v) => parseFloat(String(v || '0').replace(',', '.')) || 0
+
+    // Para acessórios, calcula preço total e monta descrição
+    let accessoriesPrice = 0
+    if (isAcessorio && form.accessories?.length) {
+      accessoriesPrice = form.accessories.reduce((sum, a) => sum + parsePrice(a.price), 0)
+    }
+
     const noteParts = []
     if (isManut && form.service_types?.length) noteParts.push(`Serviços: ${form.service_types.join(', ')}`)
     if (isManut && form.problem_description) noteParts.push(`Problema: ${form.problem_description}`)
     if (isManut && form.device_condition) {
       const cond = { otimo:'Ótimo', bom:'Bom', regular:'Regular', danificado:'Danificado' }
       noteParts.push(`Condição: ${cond[form.device_condition] || form.device_condition}`)
+    }
+    if (isAcessorio && form.accessories?.length) {
+      noteParts.push(`Itens: ${form.accessories.map(a => `${a.name} (R$ ${parsePrice(a.price).toLocaleString('pt-BR', { minimumFractionDigits:2 })})`).join(', ')}`)
     }
     if (!isManut && form.lead_source) noteParts.push(`Origem: ${form.lead_source}`)
     if (form.notes) noteParts.push(form.notes)
@@ -1077,7 +1261,7 @@ export default function NewOrderPage() {
       capacity:       form.capacity || undefined,
       color:          form.color || undefined,
       imei:           form.imei || undefined,
-      price:          parseVal(form.price),
+      price:          isAcessorio ? accessoriesPrice : parseVal(form.price),
       warranty_months: parseInt(form.warranty_months) || (isManut ? 3 : 12),
       payment_methods: form.payment_methods,
       notes:          noteParts.join('\n') || undefined,
@@ -1148,13 +1332,15 @@ export default function NewOrderPage() {
               <Label required>Tipo de atendimento</Label>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
                 {[
-                  { v:'venda',     l:'Venda',      desc:'iPhone novo ou usado', icon:Smartphone },
-                  { v:'manutencao',l:'Manutenção',  desc:'Reparo ou serviço técnico', icon:Wrench },
+                  { v:'venda',     l:'Venda',      desc:'iPhone novo ou usado',     icon:Smartphone },
+                  { v:'manutencao',l:'Manutenção', desc:'Reparo ou serviço técnico', icon:Wrench },
+                  { v:'acessorio', l:'Acessório',  desc:'Película, capa, cabo...',   icon:ShoppingBag, full:true },
                 ].map(t => {
                   const on = form.type === t.v
                   return (
-                    <button key={t.v} onClick={() => set('type', t.v)}
+                    <button key={t.v} onClick={() => { set('type', t.v); set('accessories', []); set('iphone_model', '') }}
                       style={{
+                        gridColumn: t.full ? '1 / -1' : undefined,
                         padding:'18px 16px', borderRadius:10, cursor:'pointer', textAlign:'left',
                         border:`1.5px solid ${on ? T.ink : T.ink5}`,
                         background: on ? T.ink : T.white,

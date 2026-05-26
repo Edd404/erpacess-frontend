@@ -238,37 +238,55 @@ function UserModal({ user, onClose, T }) {
 }
 
 // ── Modal de modelo ───────────────────────────────────────────
-function ModelModal({ model, onClose, T }) {
+function ModelModal({ model, onClose, T, defaultCategory = 'iphone' }) {
   const isEdit    = !!model
   const createMdl = useCreateModel()
   const updateMdl = useUpdateModel()
 
-  const [name,  setName]  = useState(model?.name   || '')
-  const [series,setSeries]= useState(model?.series  || '')
-  const [year,  setYear]  = useState(model?.year    || new Date().getFullYear())
-  const [caps,  setCaps]  = useState(model?.capacities || [])
-  const [errors,setErrors]= useState({})
+  const [category,     setCategory]     = useState(model?.category || defaultCategory)
+  const [name,         setName]         = useState(model?.name   || '')
+  const [series,       setSeries]       = useState(model?.series  || '')
+  const [year,         setYear]         = useState(model?.year    || new Date().getFullYear())
+  const [caps,         setCaps]         = useState(model?.capacities || [])
+  const [suggestedPrice, setSuggestedPrice] = useState(model?.suggested_price || '')
+  const [errors,       setErrors]       = useState({})
+
+  const isIphone = category === 'iphone'
 
   const toggleCap = (c) =>
     setCaps(prev => prev.includes(c) ? prev.filter(x=>x!==c) : [...prev, c])
 
   const validate = () => {
     const e = {}
-    if (!name.trim())   e.name   = 'Nome obrigatório'
-    if (!series.trim()) e.series = 'Série obrigatória'
-    if (!caps.length)   e.caps   = 'Selecione ao menos uma capacidade'
+    if (!name.trim()) e.name = 'Nome obrigatório'
+    if (isIphone) {
+      if (!series.trim()) e.series = 'Série obrigatória'
+      if (!caps.length)   e.caps   = 'Selecione ao menos uma capacidade'
+    }
     setErrors(e); return !Object.keys(e).length
   }
 
   const handleSave = async () => {
     if (!validate()) return
-    const payload = { name: name.trim(), series: series.trim(), year: parseInt(year), capacities: caps }
+    const payload = {
+      name: name.trim(), category,
+      series: isIphone ? series.trim() : undefined,
+      year:   isIphone ? parseInt(year) : undefined,
+      capacities: isIphone ? caps : [],
+      suggested_price: suggestedPrice ? parseFloat(String(suggestedPrice).replace(',','.')) : undefined,
+    }
     if (isEdit) { await updateMdl.mutateAsync({ id: model.id, data: payload }) }
     else        { await createMdl.mutateAsync(payload) }
     onClose()
   }
 
   const busy = createMdl.isPending || updateMdl.isPending
+
+  const CAT_OPTS = [
+    { v:'iphone',    l:'iPhone',    emoji:'📱' },
+    { v:'acessorio', l:'Acessório', emoji:'🛡️' },
+    { v:'outro',     l:'Outro produto Apple', emoji:'⌚' },
+  ]
 
   return (
     <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', backdropFilter:'blur(5px)',
@@ -288,7 +306,7 @@ function ModelModal({ model, onClose, T }) {
               <Smartphone size={16} style={{ color:'#60A5FA' }}/>
             </div>
             <div style={{ fontSize:15, fontWeight:700, color:'#fff' }}>
-              {isEdit ? `Editar — ${model.name}` : 'Novo modelo'}
+              {isEdit ? `Editar — ${model.name}` : 'Novo item no catálogo'}
             </div>
           </div>
           <button onClick={onClose} style={{ background:'rgba(255,255,255,0.08)', border:'none',
@@ -299,60 +317,115 @@ function ModelModal({ model, onClose, T }) {
         </div>
 
         <div style={{ overflowY:'auto', padding:'20px', display:'flex', flexDirection:'column', gap:14 }}>
-          {/* Dados do modelo */}
+
+          {/* Categoria */}
+          {!isEdit && (
+            <div style={{ background:T.surface, borderRadius:12, padding:'16px' }}>
+              <SectionTitle>Categoria</SectionTitle>
+              <div style={{ display:'flex', flexDirection:'column', gap:6, marginTop:8 }}>
+                {CAT_OPTS.map(opt => {
+                  const on = category === opt.v
+                  return (
+                    <button key={opt.v} onClick={() => setCategory(opt.v)} style={{
+                      display:'flex', alignItems:'center', gap:10, padding:'10px 12px',
+                      borderRadius:9, border:`1.5px solid ${on ? '#0C0C0E' : T.ink5}`,
+                      background: on ? '#0C0C0E' : T.surface, cursor:'pointer', textAlign:'left',
+                      fontFamily:'Instrument Sans,sans-serif', transition:'all .15s',
+                    }}>
+                      <span style={{ fontSize:16 }}>{opt.emoji}</span>
+                      <span style={{ fontSize:13, fontWeight: on ? 700 : 500,
+                        color: on ? '#fff' : T.ink }}>{opt.l}</span>
+                      {on && <Check size={13} style={{ color:'#fff', marginLeft:'auto' }}/>}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Identificação */}
           <div style={{ background:T.surface, borderRadius:12, padding:'16px', display:'flex', flexDirection:'column', gap:12 }}>
             <SectionTitle>Identificação</SectionTitle>
             <div>
-              <div style={{ fontSize:11, fontWeight:600, color:'#6B7280', marginBottom:5 }}>Nome completo</div>
+              <div style={{ fontSize:11, fontWeight:600, color:'#6B7280', marginBottom:5 }}>Nome</div>
               <input value={name} onChange={e=>{setName(e.target.value);setErrors(v=>({...v,name:''}))}}
-                placeholder="Ex: iPhone 17 Pro Max" style={inp(errors.name, T)}/>
+                placeholder={isIphone ? 'Ex: iPhone 17 Pro Max' : 'Ex: Película 3D, Apple Watch Ultra 3'}
+                style={inp(errors.name, T)}/>
               {errors.name && <div style={{ fontSize:11, color:'#EF4444', marginTop:3 }}>{errors.name}</div>}
             </div>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
-              <div>
-                <div style={{ fontSize:11, fontWeight:600, color:'#6B7280', marginBottom:5 }}>Série</div>
-                <input value={series} onChange={e=>{setSeries(e.target.value);setErrors(v=>({...v,series:''}))}}
-                  placeholder="Ex: 17" style={inp(errors.series, T)}/>
-                {errors.series && <div style={{ fontSize:11, color:'#EF4444', marginTop:3 }}>{errors.series}</div>}
-              </div>
-              <div>
-                <div style={{ fontSize:11, fontWeight:600, color:'#6B7280', marginBottom:5 }}>Ano de lançamento</div>
-                <input value={year} onChange={e=>setYear(e.target.value)}
-                  type="number" min="2007" max="2035" style={inp(false, T)}/>
-              </div>
-            </div>
-          </div>
 
-          {/* Capacidades */}
-          <div style={{ background:T.surface, borderRadius:12, padding:'16px' }}>
-            <SectionTitle>Capacidades disponíveis</SectionTitle>
-            {errors.caps && <div style={{ fontSize:11, color:'#EF4444', marginBottom:8 }}>{errors.caps}</div>}
-            <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
-              {ALL_CAPACITIES.map(c => {
-                const on = caps.includes(c)
-                return (
-                  <button key={c} onClick={()=>{toggleCap(c);setErrors(v=>({...v,caps:''}))}}
-                    style={{ padding:'9px 18px', borderRadius:9,
-                      border:`1.5px solid ${on ? '#0C0C0E' : T.ink5}`,
-                      background: on ? '#0C0C0E' : T.surface,
-                      color: on ? '#fff' : T.ink3,
-                      fontSize:13, fontWeight: on ? 700 : 400,
-                      cursor:'pointer', transition:'all .15s',
-                      fontFamily:'Instrument Sans,sans-serif',
-                      display:'flex', alignItems:'center', gap:5,
-                    }}>
-                    {on && <Check size={11}/>}{c}
-                  </button>
-                )
-              })}
-            </div>
-            {caps.length > 0 && (
-              <div style={{ marginTop:10, fontSize:11, color:'#6B7280' }}>
-                {caps.length} capacidade{caps.length>1?'s':''} selecionada{caps.length>1?'s':''}:&nbsp;
-                <strong style={{ color:T.ink }}>{caps.join(', ')}</strong>
+            {/* Série e Ano — só para iPhones */}
+            {isIphone && (
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                <div>
+                  <div style={{ fontSize:11, fontWeight:600, color:'#6B7280', marginBottom:5 }}>Série</div>
+                  <input value={series} onChange={e=>{setSeries(e.target.value);setErrors(v=>({...v,series:''}))}}
+                    placeholder="Ex: 17" style={inp(errors.series, T)}/>
+                  {errors.series && <div style={{ fontSize:11, color:'#EF4444', marginTop:3 }}>{errors.series}</div>}
+                </div>
+                <div>
+                  <div style={{ fontSize:11, fontWeight:600, color:'#6B7280', marginBottom:5 }}>Ano</div>
+                  <input value={year} onChange={e=>setYear(e.target.value)}
+                    type="number" min="2007" max="2035" style={inp(false, T)}/>
+                </div>
+              </div>
+            )}
+
+            {/* Preço sugerido — para acessórios e outros */}
+            {!isIphone && (
+              <div>
+                <div style={{ fontSize:11, fontWeight:600, color:'#6B7280', marginBottom:5 }}>
+                  Preço sugerido <span style={{ fontWeight:400, color:'#9CA3AF' }}>(opcional)</span>
+                </div>
+                <div style={{ display:'flex', alignItems:'center', gap:6, ...inp(false, T),
+                  padding:'10px 12px' }}>
+                  <span style={{ fontSize:13, color:'#6B7280' }}>R$</span>
+                  <input value={suggestedPrice}
+                    onChange={e => setSuggestedPrice(e.target.value.replace(/[^0-9,\.]/g,''))}
+                    placeholder="0,00"
+                    style={{ border:'none', outline:'none', fontSize:13, fontWeight:600,
+                      background:'transparent', fontFamily:'JetBrains Mono,monospace',
+                      color:T.ink, width:'100%' }}/>
+                </div>
+                <div style={{ fontSize:11, color:'#9CA3AF', marginTop:3 }}>
+                  Aparece como sugestão na venda — pode ser alterado na hora
+                </div>
               </div>
             )}
           </div>
+
+          {/* Capacidades — só para iPhones */}
+          {isIphone && (
+            <div style={{ background:T.surface, borderRadius:12, padding:'16px' }}>
+              <SectionTitle>Capacidades disponíveis</SectionTitle>
+              {errors.caps && <div style={{ fontSize:11, color:'#EF4444', marginBottom:8 }}>{errors.caps}</div>}
+              <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
+                {ALL_CAPACITIES.map(c => {
+                  const on = caps.includes(c)
+                  return (
+                    <button key={c} onClick={()=>{toggleCap(c);setErrors(v=>({...v,caps:''}))}}
+                      style={{ padding:'9px 18px', borderRadius:9,
+                        border:`1.5px solid ${on ? '#0C0C0E' : T.ink5}`,
+                        background: on ? '#0C0C0E' : T.surface,
+                        color: on ? '#fff' : T.ink3,
+                        fontSize:13, fontWeight: on ? 700 : 400,
+                        cursor:'pointer', transition:'all .15s',
+                        fontFamily:'Instrument Sans,sans-serif',
+                        display:'flex', alignItems:'center', gap:5,
+                      }}>
+                      {on && <Check size={11}/>}{c}
+                    </button>
+                  )
+                })}
+              </div>
+              {caps.length > 0 && (
+                <div style={{ marginTop:10, fontSize:11, color:'#6B7280' }}>
+                  {caps.length} capacidade{caps.length>1?'s':''} selecionada{caps.length>1?'s':''}:&nbsp;
+                  <strong style={{ color:T.ink }}>{caps.join(', ')}</strong>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Ações */}
           <div style={{ display:'flex', gap:8 }}>
@@ -365,7 +438,7 @@ function ModelModal({ model, onClose, T }) {
               fontSize:13, fontWeight:600, display:'flex', alignItems:'center', justifyContent:'center', gap:7,
               fontFamily:'Instrument Sans,sans-serif', opacity: busy ? 0.7 : 1 }}>
               {busy ? <Loader2 size={14} style={{animation:'spin 1s linear infinite'}}/> : <Check size={14}/>}
-              {isEdit ? 'Salvar' : 'Adicionar modelo'}
+              {isEdit ? 'Salvar' : 'Adicionar ao catálogo'}
             </button>
           </div>
         </div>
@@ -899,7 +972,7 @@ export default function AdminPage() {
               border:'none', borderRadius:9, cursor:'pointer', fontSize:13, fontWeight:600,
               fontFamily:'Instrument Sans,sans-serif', boxShadow:'0 4px 12px rgba(10,102,255,0.25)',
             }}>
-              <Plus size={14}/> Novo modelo
+              <Plus size={14}/> Novo item
             </button>
           </div>
 

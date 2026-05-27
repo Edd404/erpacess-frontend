@@ -122,7 +122,18 @@ const TextInput = ({ value, onChange, placeholder, err, style={}, ...rest }) => 
 )
 
 // ── AccessoryPickerSheet — bottom sheet Apple light, nativo do sistema ────────
-function AccessoryPickerSheet({ open, current, onSelect, onClose }) {
+const ICON_FALLBACK = { bg:'#F3F4F6', color:'#6B7280', glyph:'📦' }
+const ICON_MAP_ACC = {
+  'Película 3D':            { bg:'#EEF4FF', glyph:'🛡️' },
+  'Película Privativa':     { bg:'#EEF4FF', glyph:'🕶️' },
+  'Cabo Tipo C/C':          { bg:'#EDFAF3', glyph:'🔗' },
+  'Cabo Tipo C/Lightning':  { bg:'#EDFAF3', glyph:'⚡' },
+  'Capa Personalizada':     { bg:'#F5F0FF', glyph:'📱' },
+  'Carregador':             { bg:'#FFF8E7', glyph:'🔌' },
+  'Powerbank':              { bg:'#EDFAF3', glyph:'🔋' },
+}
+
+function AccessoryPickerSheet({ open, current, onSelect, onClose, catalogItems = [] }) {
   useEffect(() => {
     if (open) document.body.style.overflow = 'hidden'
     else       document.body.style.overflow = ''
@@ -131,15 +142,18 @@ function AccessoryPickerSheet({ open, current, onSelect, onClose }) {
 
   if (!open) return null
 
-  const ITEMS = [
-    { label:'Película 3D',            bg:'#EEF4FF', color:'#0A66FF', glyph:'🛡️' },
-    { label:'Película Privativa',     bg:'#EEF4FF', color:'#0A66FF', glyph:'🕶️' },
-    { label:'Cabo Tipo C/C',          bg:'#EDFAF3', color:'#12A150', glyph:'🔗' },
-    { label:'Cabo Tipo C/Lightning',  bg:'#EDFAF3', color:'#12A150', glyph:'⚡' },
-    { label:'Capa Personalizada',     bg:'#F5F0FF', color:'#7C3AED', glyph:'📱' },
-    { label:'Carregador',             bg:'#FFF8E7', color:'#C47D00', glyph:'🔌' },
-    { label:'Powerbank',              bg:'#EDFAF3', color:'#12A150', glyph:'🔋' },
-  ]
+  // Usa catálogo dinâmico se disponível, senão usa lista fixa
+  const items = catalogItems.length > 0
+    ? catalogItems.map(m => ({
+        label: m.name,
+        bg:    ICON_MAP_ACC[m.name]?.glyph ? ICON_MAP_ACC[m.name].bg : '#F3F4F6',
+        glyph: ICON_MAP_ACC[m.name]?.glyph || '📦',
+      }))
+    : ACCESSORY_OPTIONS.map(o => ({
+        label: o.label,
+        bg:    ICON_MAP_ACC[o.label]?.bg    || '#F3F4F6',
+        glyph: ICON_MAP_ACC[o.label]?.glyph || '📦',
+      }))
 
   return (
     <div
@@ -152,7 +166,6 @@ function AccessoryPickerSheet({ open, current, onSelect, onClose }) {
       }}>
       <style>{`
         @keyframes _sheetUp { from { transform:translateY(100%); opacity:0 } to { transform:translateY(0); opacity:1 } }
-        @keyframes _sheetBg { from { opacity:0 } to { opacity:1 } }
       `}</style>
 
       <div
@@ -201,8 +214,10 @@ function AccessoryPickerSheet({ open, current, onSelect, onClose }) {
           border:`1px solid ${T.ink6}`,
           overflow:'hidden',
           boxShadow:'0 1px 4px rgba(0,0,0,0.05)',
+          maxHeight:'55vh',
+          overflowY:'auto',
         }}>
-          {ITEMS.map((opt, i) => {
+          {items.map((opt, i) => {
             const active = current === opt.label
             return (
               <button
@@ -213,12 +228,10 @@ function AccessoryPickerSheet({ open, current, onSelect, onClose }) {
                   padding:'13px 16px',
                   background: active ? T.blueL : T.white,
                   border:'none', cursor:'pointer',
-                  borderBottom: i < ITEMS.length - 1 ? `1px solid ${T.ink6}` : 'none',
+                  borderBottom: i < items.length - 1 ? `1px solid ${T.ink6}` : 'none',
                   fontFamily:'Instrument Sans,sans-serif',
                   transition:'background .1s',
                 }}>
-
-                {/* Ícone */}
                 <div style={{
                   width:38, height:38, borderRadius:10, flexShrink:0,
                   background: opt.bg,
@@ -227,8 +240,6 @@ function AccessoryPickerSheet({ open, current, onSelect, onClose }) {
                 }}>
                   {opt.glyph}
                 </div>
-
-                {/* Nome */}
                 <span style={{
                   flex:1, textAlign:'left',
                   fontSize:15, fontWeight: active ? 700 : 500,
@@ -237,8 +248,6 @@ function AccessoryPickerSheet({ open, current, onSelect, onClose }) {
                 }}>
                   {opt.label}
                 </span>
-
-                {/* Check */}
                 {active
                   ? (
                     <div style={{
@@ -522,10 +531,14 @@ function ModelSearch({ value, onSelect, err, models }) {
 }
 
 // ── Step 2 — Manutenção ───────────────────────────────────────────────────────
-function StepServico({ form, set, errors, models }) {
+function StepServico({ form, set, errors, models, outroModels = [] }) {
   const [q, setQ] = useState('')
   const [openCat, setOpenCat] = useState(null)
   const selected = form.service_types || []
+
+  const allModels = outroModels.length > 0
+    ? [...(models || []), { series:'Outro produto Apple', year:'', m: outroModels.map(m => m.name) }]
+    : (models || [])
 
   const groups = q
     ? SERVICOS.map(g => ({ ...g, items: g.items.filter(i => i.toLowerCase().includes(q.toLowerCase())) })).filter(g => g.items.length > 0)
@@ -539,7 +552,7 @@ function StepServico({ form, set, errors, models }) {
     <div style={{ display:'flex', flexDirection:'column', gap:22 }}>
       <div>
         <Label required>Modelo do aparelho</Label>
-        <ModelSearch value={form.iphone_model} onSelect={v => set('iphone_model', v)} err={errors.iphone_model} models={models || []}/>
+        <ModelSearch value={form.iphone_model} onSelect={v => set('iphone_model', v)} err={errors.iphone_model} models={allModels}/>
         <ErrMsg msg={errors.iphone_model}/>
       </div>
 
@@ -701,12 +714,17 @@ function StepServico({ form, set, errors, models }) {
 }
 
 // ── Step 2 — Venda ────────────────────────────────────────────────────────────
-function StepProduto({ form, set, errors, models }) {
+function StepProduto({ form, set, errors, models, outroModels = [] }) {
+  // Adiciona "Outro produto Apple" como grupo extra no seletor se houver itens
+  const allModels = outroModels.length > 0
+    ? [...(models || []), { series:'Outro produto Apple', year:'', m: outroModels.map(m => m.name) }]
+    : (models || [])
+
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:22 }}>
       <div>
         <Label required>Modelo do iPhone</Label>
-        <ModelSearch value={form.iphone_model} onSelect={v => set('iphone_model', v)} err={errors.iphone_model} models={models || []}/>
+        <ModelSearch value={form.iphone_model} onSelect={v => set('iphone_model', v)} err={errors.iphone_model} models={allModels}/>
         <ErrMsg msg={errors.iphone_model}/>
       </div>
 
@@ -812,12 +830,14 @@ function StepProduto({ form, set, errors, models }) {
 
 
 // ── Step 2 — Acessório / Outro produto ───────────────────────────────────────
-function StepAcessorio({ form, set, errors, models }) {
+function StepAcessorio({ form, set, errors, models, accessoryModels = [] }) {
   const T = useTheme().T
   const [pickerIdx, setPickerIdx] = useState(null)
 
-  // Filtra acessórios e outros do catálogo
-  const catalogItems = (models || []).filter(m => m.category === 'acessorio' || m.category === 'outro')
+  // Usa modelos da API se disponível
+  const catalogItems = accessoryModels.length > 0
+    ? accessoryModels
+    : (models || []).filter(m => m.category === 'acessorio' || m.category === 'outro')
 
   const items = form.accessories || []  // [{ name, price }]
 
@@ -848,10 +868,8 @@ function StepAcessorio({ form, set, errors, models }) {
         current={pickerIdx !== null ? (items[pickerIdx]?.name || '') : ''}
         onSelect={name => pickerIdx !== null && updateItem(pickerIdx, 'name', name)}
         onClose={() => setPickerIdx(null)}
+        catalogItems={catalogItems}
       />
-
-      {/* Catálogo de acessórios */}
-      {catalogItems.length > 0 && (
         <div>
           <Label>Adicionar do catálogo</Label>
           <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
@@ -987,7 +1005,7 @@ function StepAcessorio({ form, set, errors, models }) {
 }
 
 // ── Step 3 — Pagamento ────────────────────────────────────────────────────────
-function StepPagamento({ form, set, errors, isManut, models }) {
+function StepPagamento({ form, set, errors, isManut, models, accessoryModels = [] }) {
   const [pickerIdx, setPickerIdx] = useState(null)
 
   // Acessórios adicionados na venda
@@ -995,6 +1013,10 @@ function StepPagamento({ form, set, errors, isManut, models }) {
   const accessoriesTotal = accessories.reduce((sum, a) => {
     return sum + (parseFloat(String(a.price || '0').replace(',', '.')) || 0)
   }, 0)
+
+  const catalogItems = accessoryModels.length > 0
+    ? accessoryModels
+    : (models || []).filter(m => m.category === 'acessorio' || m.category === 'outro')
 
   const addAccessory = (item) => {
     const price = item.suggested_price
@@ -1066,6 +1088,7 @@ function StepPagamento({ form, set, errors, isManut, models }) {
         current={pickerIdx !== null ? (accessories[pickerIdx]?.name || '') : ''}
         onSelect={name => pickerIdx !== null && updateAccessory(pickerIdx, 'name', name)}
         onClose={() => setPickerIdx(null)}
+        catalogItems={catalogItems}
       />
 
       {/* Valor + Garantia */}
@@ -1469,15 +1492,22 @@ export default function NewOrderPage() {
   const [searchParams] = useSearchParams()
   const createOrder = useCreateOrder()
 
+  const [allModels,    setAllModels]    = useState([])
   const [iphoneModels, setIphoneModels] = useState(IPHONE_MODELS_STATIC)
   useEffect(() => {
     adminService.activeModels()
       .then(r => {
-        const grouped = groupModels(r.data?.data || [])
+        const data = r.data?.data || []
+        setAllModels(data)
+        const grouped = groupModels(data.filter(m => m.category === 'iphone' || !m.category))
         if (grouped.length > 0) setIphoneModels(grouped)
       })
       .catch(() => {})
   }, [])
+
+  // Modelos por categoria para os pickers
+  const accessoryModels = allModels.filter(m => m.category === 'acessorio')
+  const outroModels     = allModels.filter(m => m.category === 'outro')
 
   const [step, setStep] = useState(1)
   const [errors, setErrors] = useState({})
@@ -1651,11 +1681,11 @@ if (form.accessories?.length) {
         )}
 
         {step === 2 && (isManut
-          ? <StepServico form={form} set={set} errors={errors} models={iphoneModels}/>
-          : <StepProduto form={form} set={set} errors={errors} models={iphoneModels}/>
+          ? <StepServico  form={form} set={set} errors={errors} models={iphoneModels} outroModels={outroModels}/>
+          : <StepProduto  form={form} set={set} errors={errors} models={iphoneModels} outroModels={outroModels}/>
         )}
 
-        {step === 3 && <StepPagamento form={form} set={set} errors={errors} isManut={isManut} models={iphoneModels}/>}
+        {step === 3 && <StepPagamento form={form} set={set} errors={errors} isManut={isManut} models={iphoneModels} accessoryModels={accessoryModels}/>}
 
         {/* Navigation */}
         <div style={{ display:'flex', gap:10, marginTop:28, paddingTop:20, borderTop:`1px solid ${T.ink6}` }}>

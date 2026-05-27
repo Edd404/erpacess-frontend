@@ -121,6 +121,131 @@ const TextInput = ({ value, onChange, placeholder, err, style={}, ...rest }) => 
     {...rest}/>
 )
 
+// ── AccessoryPickerSheet — bottom sheet nativo do sistema ────────────────────
+function AccessoryPickerSheet({ open, current, onSelect, onClose }) {
+  useEffect(() => {
+    if (open) document.body.style.overflow = 'hidden'
+    else       document.body.style.overflow = ''
+    return () => { document.body.style.overflow = '' }
+  }, [open])
+
+  if (!open) return null
+
+  const ICON_MAP = {
+    'Película 3D':          { bg:'#1C2B3A', color:'#60AFFF', glyph:'🛡️' },
+    'Película Privativa':   { bg:'#1C2B3A', color:'#60AFFF', glyph:'🛡️' },
+    'Cabo Tipo C/C':        { bg:'#1A2B1A', color:'#4ADE80', glyph:'🔗' },
+    'Cabo Tipo C/Lightning':{ bg:'#1A2B1A', color:'#4ADE80', glyph:'🔗' },
+    'Capa Personalizada':   { bg:'#2B1A2B', color:'#C084FC', glyph:'📱' },
+    'Carregador':           { bg:'#2B1A1A', color:'#FCA5A5', glyph:'🔌' },
+    'Powerbank':            { bg:'#1A2B1A', color:'#86EFAC', glyph:'🔋' },
+  }
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position:'fixed', inset:0, zIndex:9999,
+        background:'rgba(0,0,0,0.55)',
+        backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)',
+        display:'flex', alignItems:'flex-end',
+        animation:'fadeIn .18s ease',
+      }}>
+      <style>{`
+        @keyframes fadeIn  { from { opacity:0 } to { opacity:1 } }
+        @keyframes slideUp { from { transform:translateY(100%) } to { transform:translateY(0) } }
+      `}</style>
+
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width:'100%',
+          background:'#1C1C1E',
+          borderRadius:'20px 20px 0 0',
+          paddingBottom:'env(safe-area-inset-bottom, 16px)',
+          animation:'slideUp .22s cubic-bezier(.32,1.05,.72,.97)',
+          overflow:'hidden',
+        }}>
+
+        {/* Handle */}
+        <div style={{ display:'flex', justifyContent:'center', paddingTop:10, paddingBottom:6 }}>
+          <div style={{ width:40, height:4, borderRadius:99, background:'rgba(255,255,255,0.18)' }}/>
+        </div>
+
+        {/* Header */}
+        <div style={{
+          display:'flex', alignItems:'center', justifyContent:'space-between',
+          padding:'6px 20px 14px',
+          borderBottom:'1px solid rgba(255,255,255,0.08)',
+        }}>
+          <span style={{ fontSize:15, fontWeight:700, color:'#FFF', fontFamily:'Instrument Sans,sans-serif', letterSpacing:'-0.2px' }}>
+            Acessório
+          </span>
+          <button onClick={onClose} style={{
+            background:'rgba(255,255,255,0.1)', border:'none', cursor:'pointer',
+            width:28, height:28, borderRadius:99,
+            display:'flex', alignItems:'center', justifyContent:'center',
+            color:'rgba(255,255,255,0.7)',
+          }}>
+            <X size={14}/>
+          </button>
+        </div>
+
+        {/* Options */}
+        <div style={{ padding:'8px 0' }}>
+          {ACCESSORY_OPTIONS.map((opt, i) => {
+            const meta   = ICON_MAP[opt.label] || { bg:'#2A2A2C', color:'#CCC', glyph:'📦' }
+            const active = current === opt.label
+            return (
+              <button
+                key={opt.label}
+                onClick={() => { onSelect(opt.label); onClose() }}
+                style={{
+                  width:'100%', display:'flex', alignItems:'center', gap:14,
+                  padding:'13px 20px',
+                  background: active ? 'rgba(10,102,255,0.15)' : 'transparent',
+                  border:'none', cursor:'pointer',
+                  borderBottom: i < ACCESSORY_OPTIONS.length - 1
+                    ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                  fontFamily:'Instrument Sans,sans-serif',
+                  transition:'background .12s',
+                }}>
+                {/* Icon pill */}
+                <div style={{
+                  width:36, height:36, borderRadius:10, flexShrink:0,
+                  background: meta.bg,
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  fontSize:17,
+                }}>
+                  {meta.glyph}
+                </div>
+
+                {/* Label */}
+                <span style={{
+                  flex:1, textAlign:'left',
+                  fontSize:15, fontWeight: active ? 700 : 500,
+                  color: active ? '#60AFFF' : '#F5F5F7',
+                  letterSpacing:'-0.1px',
+                }}>
+                  {opt.label}
+                </span>
+
+                {/* Check */}
+                {active && (
+                  <div style={{ width:22, height:22, borderRadius:99, background:'#0A66FF',
+                    display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                    <Check size={12} color="#FFF" strokeWidth={3}/>
+                  </div>
+                )}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── CapacityPicker — grid de chips com wrap (todos visíveis) ──
 function CapacityPicker({ value, onChange, options }) {
   return (
@@ -672,6 +797,7 @@ function StepProduto({ form, set, errors, models }) {
 // ── Step 2 — Acessório / Outro produto ───────────────────────────────────────
 function StepAcessorio({ form, set, errors, models }) {
   const T = useTheme().T
+  const [pickerIdx, setPickerIdx] = useState(null)
 
   // Filtra acessórios e outros do catálogo
   const catalogItems = (models || []).filter(m => m.category === 'acessorio' || m.category === 'outro')
@@ -692,11 +818,20 @@ function StepAcessorio({ form, set, errors, models }) {
   }
 
   const addCustom = () => {
+    const newIdx = items.length
     set('accessories', [...items, { name: '', price: '' }])
+    setTimeout(() => setPickerIdx(newIdx), 50)
   }
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:22 }}>
+
+      <AccessoryPickerSheet
+        open={pickerIdx !== null}
+        current={pickerIdx !== null ? (items[pickerIdx]?.name || '') : ''}
+        onSelect={name => pickerIdx !== null && updateItem(pickerIdx, 'name', name)}
+        onClose={() => setPickerIdx(null)}
+      />
 
       {/* Catálogo de acessórios */}
       {catalogItems.length > 0 && (
@@ -745,21 +880,19 @@ function StepAcessorio({ form, set, errors, models }) {
             <div key={idx} style={{ display:'flex', alignItems:'center', gap:8,
               background:'#fff', border:`1px solid ${T.ink6}`, borderRadius:10, padding:'10px 12px' }}>
               <div style={{ flex:1 }}>
-                <select
-                  value={item.name}
-                  onChange={e => updateItem(idx, 'name', e.target.value)}
+                {/* Trigger do picker */}
+                <button
+                  onClick={() => setPickerIdx(idx)}
                   style={{
-                    width:'100%', border:'none', outline:'none', fontSize:13,
-                    color: item.name ? T.ink : T.ink4,
-                    background:'transparent', fontFamily:'Instrument Sans,sans-serif',
-                    marginBottom:4, cursor:'pointer', appearance:'none',
-                    WebkitAppearance:'none',
+                    width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between',
+                    border:'none', background:'transparent', cursor:'pointer', padding:'0 0 4px',
+                    fontFamily:'Instrument Sans,sans-serif',
                   }}>
-                  <option value="" disabled>Selecionar acessório</option>
-                  {ACCESSORY_OPTIONS.map(opt => (
-                    <option key={opt.label} value={opt.label}>{opt.icon} {opt.label}</option>
-                  ))}
-                </select>
+                  <span style={{ fontSize:13, color: item.name ? T.ink : T.ink4, fontWeight: item.name ? 600 : 400 }}>
+                    {item.name || 'Selecionar acessório'}
+                  </span>
+                  <ChevronDown size={13} color={T.ink4}/>
+                </button>
                 <div style={{ display:'flex', alignItems:'center', gap:4 }}>
                   <span style={{ fontSize:12, color:T.ink4 }}>R$</span>
                   <input
@@ -838,6 +971,8 @@ function StepAcessorio({ form, set, errors, models }) {
 
 // ── Step 3 — Pagamento ────────────────────────────────────────────────────────
 function StepPagamento({ form, set, errors, isManut, models }) {
+  const [pickerIdx, setPickerIdx] = useState(null)
+
   // Acessórios adicionados na venda
   const accessories    = form.accessories || []
   const accessoriesTotal = accessories.reduce((sum, a) => {
@@ -854,7 +989,11 @@ function StepPagamento({ form, set, errors, isManut, models }) {
   const updateAccessory = (idx, field, value) => {
     set('accessories', accessories.map((a, i) => i === idx ? { ...a, [field]: value } : a))
   }
-  const addCustom = () => set('accessories', [...accessories, { name: '', price: '' }])
+  const addCustom = () => {
+    const newIdx = accessories.length
+    set('accessories', [...accessories, { name: '', price: '' }])
+    setTimeout(() => setPickerIdx(newIdx), 50)
+  }
 
   const catalogItems = (models || [])
     .filter(m => m.category === 'acessorio' || m.category === 'outro')
@@ -904,6 +1043,13 @@ function StepPagamento({ form, set, errors, isManut, models }) {
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:22 }}>
+
+      <AccessoryPickerSheet
+        open={pickerIdx !== null}
+        current={pickerIdx !== null ? (accessories[pickerIdx]?.name || '') : ''}
+        onSelect={name => pickerIdx !== null && updateAccessory(pickerIdx, 'name', name)}
+        onClose={() => setPickerIdx(null)}
+      />
 
       {/* Valor + Garantia */}
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
@@ -1165,22 +1311,19 @@ function StepPagamento({ form, set, errors, isManut, models }) {
                 background:T.white, border:`1px solid ${T.ink6}`, borderRadius:10,
                 padding:'9px 12px' }}>
                 <div style={{ flex:1 }}>
-                  {/* Dropdown de seleção */}
-                  <select
-                    value={item.name}
-                    onChange={e => updateAccessory(idx, 'name', e.target.value)}
+                  {/* Trigger do picker */}
+                  <button
+                    onClick={() => setPickerIdx(idx)}
                     style={{
-                      width:'100%', border:'none', outline:'none', fontSize:13,
-                      color: item.name ? T.ink : T.ink4,
-                      background:'transparent', fontFamily:'Instrument Sans,sans-serif',
-                      marginBottom:3, cursor:'pointer', appearance:'none',
-                      WebkitAppearance:'none',
+                      width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between',
+                      border:'none', background:'transparent', cursor:'pointer', padding:'0 0 4px',
+                      fontFamily:'Instrument Sans,sans-serif',
                     }}>
-                    <option value="" disabled>Selecionar acessório</option>
-                    {ACCESSORY_OPTIONS.map(opt => (
-                      <option key={opt.label} value={opt.label}>{opt.icon} {opt.label}</option>
-                    ))}
-                  </select>
+                    <span style={{ fontSize:13, color: item.name ? T.ink : T.ink4, fontWeight: item.name ? 600 : 400 }}>
+                      {item.name || 'Selecionar acessório'}
+                    </span>
+                    <ChevronDown size={13} color={T.ink4}/>
+                  </button>
                   <div style={{ display:'flex', alignItems:'center', gap:4 }}>
                     <span style={{ fontSize:12, color:T.ink4 }}>R$</span>
                     <input

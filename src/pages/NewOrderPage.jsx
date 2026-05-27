@@ -121,7 +121,7 @@ const TextInput = ({ value, onChange, placeholder, err, style={}, ...rest }) => 
     {...rest}/>
 )
 
-// ── AccessoryPickerSheet — bottom sheet nativo do sistema ────────────────────
+// ── AccessoryPickerSheet — bottom sheet Apple light, nativo do sistema ────────
 function AccessoryPickerSheet({ open, current, onSelect, onClose }) {
   useEffect(() => {
     if (open) document.body.style.overflow = 'hidden'
@@ -131,112 +131,129 @@ function AccessoryPickerSheet({ open, current, onSelect, onClose }) {
 
   if (!open) return null
 
-  const ICON_MAP = {
-    'Película 3D':          { bg:'#1C2B3A', color:'#60AFFF', glyph:'🛡️' },
-    'Película Privativa':   { bg:'#1C2B3A', color:'#60AFFF', glyph:'🛡️' },
-    'Cabo Tipo C/C':        { bg:'#1A2B1A', color:'#4ADE80', glyph:'🔗' },
-    'Cabo Tipo C/Lightning':{ bg:'#1A2B1A', color:'#4ADE80', glyph:'🔗' },
-    'Capa Personalizada':   { bg:'#2B1A2B', color:'#C084FC', glyph:'📱' },
-    'Carregador':           { bg:'#2B1A1A', color:'#FCA5A5', glyph:'🔌' },
-    'Powerbank':            { bg:'#1A2B1A', color:'#86EFAC', glyph:'🔋' },
-  }
+  const ITEMS = [
+    { label:'Película 3D',            bg:'#EEF4FF', color:'#0A66FF', glyph:'🛡️' },
+    { label:'Película Privativa',     bg:'#EEF4FF', color:'#0A66FF', glyph:'🕶️' },
+    { label:'Cabo Tipo C/C',          bg:'#EDFAF3', color:'#12A150', glyph:'🔗' },
+    { label:'Cabo Tipo C/Lightning',  bg:'#EDFAF3', color:'#12A150', glyph:'⚡' },
+    { label:'Capa Personalizada',     bg:'#F5F0FF', color:'#7C3AED', glyph:'📱' },
+    { label:'Carregador',             bg:'#FFF8E7', color:'#C47D00', glyph:'🔌' },
+    { label:'Powerbank',              bg:'#EDFAF3', color:'#12A150', glyph:'🔋' },
+  ]
 
   return (
     <div
       onClick={onClose}
       style={{
         position:'fixed', inset:0, zIndex:9999,
-        background:'rgba(0,0,0,0.55)',
-        backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)',
+        background:'rgba(0,0,0,0.32)',
+        backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
         display:'flex', alignItems:'flex-end',
-        animation:'fadeIn .18s ease',
       }}>
       <style>{`
-        @keyframes fadeIn  { from { opacity:0 } to { opacity:1 } }
-        @keyframes slideUp { from { transform:translateY(100%) } to { transform:translateY(0) } }
+        @keyframes _sheetUp { from { transform:translateY(100%); opacity:0 } to { transform:translateY(0); opacity:1 } }
+        @keyframes _sheetBg { from { opacity:0 } to { opacity:1 } }
       `}</style>
 
       <div
         onClick={e => e.stopPropagation()}
         style={{
           width:'100%',
-          background:'#1C1C1E',
-          borderRadius:'20px 20px 0 0',
-          paddingBottom:'env(safe-area-inset-bottom, 16px)',
-          animation:'slideUp .22s cubic-bezier(.32,1.05,.72,.97)',
+          background:'#F5F5F7',
+          borderRadius:'22px 22px 0 0',
+          paddingBottom:'env(safe-area-inset-bottom, 20px)',
+          boxShadow:'0 -8px 40px rgba(0,0,0,0.14)',
+          animation:'_sheetUp .26s cubic-bezier(.32,1.05,.72,.97)',
           overflow:'hidden',
         }}>
 
         {/* Handle */}
-        <div style={{ display:'flex', justifyContent:'center', paddingTop:10, paddingBottom:6 }}>
-          <div style={{ width:40, height:4, borderRadius:99, background:'rgba(255,255,255,0.18)' }}/>
+        <div style={{ display:'flex', justifyContent:'center', paddingTop:12, paddingBottom:4 }}>
+          <div style={{ width:36, height:4, borderRadius:99, background:'#D1D1D6' }}/>
         </div>
 
         {/* Header */}
         <div style={{
           display:'flex', alignItems:'center', justifyContent:'space-between',
-          padding:'6px 20px 14px',
-          borderBottom:'1px solid rgba(255,255,255,0.08)',
+          padding:'10px 20px 12px',
         }}>
-          <span style={{ fontSize:15, fontWeight:700, color:'#FFF', fontFamily:'Instrument Sans,sans-serif', letterSpacing:'-0.2px' }}>
+          <span style={{
+            fontSize:17, fontWeight:700, color:T.ink,
+            fontFamily:'Instrument Sans,sans-serif', letterSpacing:'-0.3px',
+          }}>
             Acessório
           </span>
           <button onClick={onClose} style={{
-            background:'rgba(255,255,255,0.1)', border:'none', cursor:'pointer',
-            width:28, height:28, borderRadius:99,
+            width:30, height:30, borderRadius:99,
+            background:T.ink6, border:'none', cursor:'pointer',
             display:'flex', alignItems:'center', justifyContent:'center',
-            color:'rgba(255,255,255,0.7)',
+            color:T.ink3,
           }}>
-            <X size={14}/>
+            <X size={15}/>
           </button>
         </div>
 
-        {/* Options */}
-        <div style={{ padding:'8px 0' }}>
-          {ACCESSORY_OPTIONS.map((opt, i) => {
-            const meta   = ICON_MAP[opt.label] || { bg:'#2A2A2C', color:'#CCC', glyph:'📦' }
+        {/* Options — card branco com separadores */}
+        <div style={{
+          margin:'0 16px 16px',
+          background:T.white,
+          borderRadius:14,
+          border:`1px solid ${T.ink6}`,
+          overflow:'hidden',
+          boxShadow:'0 1px 4px rgba(0,0,0,0.05)',
+        }}>
+          {ITEMS.map((opt, i) => {
             const active = current === opt.label
             return (
               <button
                 key={opt.label}
                 onClick={() => { onSelect(opt.label); onClose() }}
                 style={{
-                  width:'100%', display:'flex', alignItems:'center', gap:14,
-                  padding:'13px 20px',
-                  background: active ? 'rgba(10,102,255,0.15)' : 'transparent',
+                  width:'100%', display:'flex', alignItems:'center', gap:13,
+                  padding:'13px 16px',
+                  background: active ? T.blueL : T.white,
                   border:'none', cursor:'pointer',
-                  borderBottom: i < ACCESSORY_OPTIONS.length - 1
-                    ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                  borderBottom: i < ITEMS.length - 1 ? `1px solid ${T.ink6}` : 'none',
                   fontFamily:'Instrument Sans,sans-serif',
-                  transition:'background .12s',
+                  transition:'background .1s',
                 }}>
-                {/* Icon pill */}
+
+                {/* Ícone */}
                 <div style={{
-                  width:36, height:36, borderRadius:10, flexShrink:0,
-                  background: meta.bg,
+                  width:38, height:38, borderRadius:10, flexShrink:0,
+                  background: opt.bg,
                   display:'flex', alignItems:'center', justifyContent:'center',
-                  fontSize:17,
+                  fontSize:19,
                 }}>
-                  {meta.glyph}
+                  {opt.glyph}
                 </div>
 
-                {/* Label */}
+                {/* Nome */}
                 <span style={{
                   flex:1, textAlign:'left',
                   fontSize:15, fontWeight: active ? 700 : 500,
-                  color: active ? '#60AFFF' : '#F5F5F7',
-                  letterSpacing:'-0.1px',
+                  color: active ? T.blue : T.ink,
+                  letterSpacing:'-0.15px',
                 }}>
                   {opt.label}
                 </span>
 
                 {/* Check */}
-                {active && (
-                  <div style={{ width:22, height:22, borderRadius:99, background:'#0A66FF',
-                    display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                    <Check size={12} color="#FFF" strokeWidth={3}/>
-                  </div>
-                )}
+                {active
+                  ? (
+                    <div style={{
+                      width:24, height:24, borderRadius:99, background:T.blue, flexShrink:0,
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                    }}>
+                      <Check size={13} color="#FFF" strokeWidth={3}/>
+                    </div>
+                  ) : (
+                    <div style={{
+                      width:24, height:24, borderRadius:99, flexShrink:0,
+                      border:`1.5px solid ${T.ink5}`,
+                    }}/>
+                  )
+                }
               </button>
             )
           })}

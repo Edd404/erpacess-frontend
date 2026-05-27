@@ -1034,9 +1034,6 @@ function StepPagamento({ form, set, errors, isManut, models, accessoryModels = [
     setTimeout(() => setPickerIdx(newIdx), 50)
   }
 
-  const catalogItems = (models || [])
-    .filter(m => m.category === 'acessorio' || m.category === 'outro')
-
   const [pd, setPdState] = useState({
     pix:             { value:'' },
     dinheiro:        { value:'' },

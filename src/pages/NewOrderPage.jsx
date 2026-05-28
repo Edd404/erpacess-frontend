@@ -831,7 +831,6 @@ function StepProduto({ form, set, errors, models, outroModels = [] }) {
 
 // ── Step 2 — Acessório / Outro produto ───────────────────────────────────────
 function StepAcessorio({ form, set, errors, models, accessoryModels = [] }) {
-  const T = useTheme().T
   const [pickerIdx, setPickerIdx] = useState(null)
 
   // Usa modelos da API se disponível
@@ -1045,12 +1044,13 @@ function StepPagamento({ form, set, errors, isManut, models, accessoryModels = [
   const [tradeModelSearch, setTradeModelSearch] = useState('')
   const [tradeModelOpen, setTradeModelOpen] = useState(false)
 
-  const setPd = (m, f, v) => setPdState(p => ({ ...p, [m]: { ...p[m], [f]: v } }))
-
-  // Sincroniza pd com form.payment_details para o handleSubmit ler
-  useEffect(() => {
-    set('payment_details', pd)
-  }, [pd])
+  const setPd = (m, f, v) => {
+    setPdState(p => {
+      const next = { ...p, [m]: { ...p[m], [f]: v } }
+      set('payment_details', next)
+      return next
+    })
+  }
 
   const togglePay = (v) => set('payment_methods',
     form.payment_methods.includes(v) ? form.payment_methods.filter(x => x !== v) : [...form.payment_methods, v]
@@ -1518,7 +1518,8 @@ export default function NewOrderPage() {
     client_id: searchParams.get('client_id') || '', type:'venda', iphone_model:'', capacity:'', color:'',
     imei:'', price:'', warranty_months:'', notes:'', condition_sale:'', lead_source:'',
     payment_methods:[], service_types:[], problem_description:'', device_condition:'',
-    accessories:[],  // [{ name, price }] — para tipo 'acessorio'
+    accessories:[],        // [{ name, price }] — para tipo 'acessorio'
+    payment_details: {},   // { pix:{value}, iphone_entrada:{value,model,...}, ... }
   })
 
   const set = (k, v) => { setForm(f => ({ ...f, [k]:v })); setErrors(e => ({ ...e, [k]:'' })) }

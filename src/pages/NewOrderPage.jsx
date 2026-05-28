@@ -1556,28 +1556,56 @@ export default function NewOrderPage() {
       const cond = { otimo:'Ótimo', bom:'Bom', regular:'Regular', danificado:'Danificado' }
       noteParts.push(`Condição: ${cond[form.device_condition] || form.device_condition}`)
     }
-if (form.accessories?.length) {
-      const accLine = form.accessories.map(a => {
-        const p = parseFloat(String(a.price||'0').replace(',','.')) || 0
-        return `${a.name} (R$ ${p.toLocaleString('pt-BR',{minimumFractionDigits:2})})`
-      }).join(', ')
-      noteParts.push(`Acessórios: ${accLine}`)
-    }
     if (!isManut && form.lead_source) noteParts.push(`Origem: ${form.lead_source}`)
     if (form.notes) noteParts.push(form.notes)
 
+    // Acessórios estruturados (nome + preço numérico)
+    const accessories = (form.accessories || [])
+      .filter(a => a.name)
+      .map(a => ({ name: a.name, price: parseFloat(String(a.price||'0').replace(',','.')) || 0 }))
+
+    const accTotal = accessories.reduce((s, a) => s + a.price, 0)
+
+    // payment_details: valor por método + detalhes do iPhone de entrada
+    const payment_details = {}
+    const methods = form.payment_methods || []
+    methods.forEach(m => {
+      if (m === 'iphone_entrada') {
+        payment_details.iphone_entrada = {
+          value:    parseFloat(String(form.trade_value||'0').replace(',','.')) || 0,
+          model:    form.trade_model    || '',
+          capacity: form.trade_capacity || '',
+          color:    form.trade_color    || '',
+          imei:     form.trade_imei     || '',
+        }
+      } else if (m === 'cartao_credito') {
+        payment_details.cartao_credito = {
+          value:    parseFloat(String(form.credit_value||'0').replace(',','.')) || 0,
+          parcelas: parseInt(form.parcelas) || 1,
+        }
+      } else if (m === 'cartao_debito') {
+        payment_details.cartao_debito  = { value: parseFloat(String(form.debit_value||'0').replace(',','.'))  || 0 }
+      } else if (m === 'pix') {
+        payment_details.pix            = { value: parseFloat(String(form.pix_value||'0').replace(',','.'))    || 0 }
+      } else if (m === 'dinheiro') {
+        payment_details.dinheiro       = { value: parseFloat(String(form.cash_value||'0').replace(',','.'))   || 0 }
+      }
+    })
+
     await createOrder.mutateAsync({
-      client_id:      form.client_id,
-      type:           form.type,
-      iphone_model:   form.iphone_model,
-      capacity:       form.capacity || undefined,
-      color:          form.color || undefined,
-      imei:           form.imei || undefined,
-      price:          parseVal(form.price) + (form.accessories||[]).reduce((s,a)=>s+(parseFloat(String(a.price||'0').replace(',','.'))||0),0),
+      client_id:       form.client_id,
+      type:            form.type,
+      iphone_model:    form.iphone_model,
+      capacity:        form.capacity  || undefined,
+      color:           form.color     || undefined,
+      imei:            form.imei      || undefined,
+      price:           parseVal(form.price) + accTotal,
       warranty_months: parseInt(form.warranty_months) || (isManut ? 3 : 12),
       payment_methods: form.payment_methods,
-      notes:          noteParts.join('\n') || undefined,
-      condition_sale: !isManut ? form.condition_sale || undefined : undefined,
+      notes:           noteParts.join('\n') || undefined,
+      condition_sale:  !isManut ? form.condition_sale || undefined : undefined,
+      accessories,
+      payment_details,
     })
   }
 

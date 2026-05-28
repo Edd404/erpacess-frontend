@@ -404,6 +404,68 @@ function OrderCard({ order, clientEmail, clientName, isFirst, isLast, onDocSaved
                 </>
               )
             })()}
+
+            {/* ── Breakdown financeiro ──────────────────────────── */}
+            {(() => {
+              const pd   = (() => { try { return typeof order.payment_details === 'object' && order.payment_details !== null ? order.payment_details : JSON.parse(order.payment_details||'{}') } catch { return {} } })()
+              const accs = (() => { try { return Array.isArray(order.accessories) ? order.accessories : JSON.parse(order.accessories||'[]') } catch { return [] } })()
+              const tradeVal = parseFloat(pd.iphone_entrada?.value) || 0
+              const hasBreakdown = accs.length > 0 || tradeVal > 0
+
+              if (!hasBreakdown) return null
+
+              const cashMethods = payments.filter(p => p !== 'iphone_entrada')
+              const PAY_LBL = { pix:'Pix', dinheiro:'Dinheiro', cartao_credito:'Cartão de Crédito', cartao_debito:'Cartão de Débito' }
+
+              return (
+                <div style={{ background:'#F9FAFB', borderRadius:10, border:'1px solid rgba(0,0,0,0.07)', padding:'10px 12px', marginBottom:10 }}>
+                  <div style={{ fontSize:10, fontWeight:700, color:'#9CA3AF', textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:8 }}>Resumo financeiro</div>
+
+                  {/* Acessórios */}
+                  {accs.map((acc, i) => (
+                    <div key={i} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'5px 0', borderBottom:'1px solid rgba(0,0,0,0.05)' }}>
+                      <span style={{ fontSize:12, color:'#374151' }}>🛒 {acc.name}</span>
+                      <span style={{ fontSize:12, fontWeight:600, color:'#374151', fontFamily:'JetBrains Mono,monospace' }}>{brl(acc.price)}</span>
+                    </div>
+                  ))}
+
+                  {/* iPhone de entrada */}
+                  {tradeVal > 0 && (
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'5px 0', borderBottom:'1px solid rgba(0,0,0,0.05)' }}>
+                      <div>
+                        <span style={{ fontSize:12, color:'#15803D', fontWeight:600 }}>📲 iPhone de Entrada</span>
+                        {pd.iphone_entrada?.model && (
+                          <span style={{ fontSize:11, color:'#6B7280', marginLeft:6 }}>
+                            {[pd.iphone_entrada.model, pd.iphone_entrada.capacity].filter(Boolean).join(' · ')}
+                          </span>
+                        )}
+                      </div>
+                      <span style={{ fontSize:12, fontWeight:700, color:'#15803D', fontFamily:'JetBrains Mono,monospace' }}>– {brl(tradeVal)}</span>
+                    </div>
+                  )}
+
+                  {/* Pagamentos em dinheiro */}
+                  {cashMethods.map(m => {
+                    const val = parseFloat(pd[m]?.value) || 0
+                    const parc = pd[m]?.parcelas && parseInt(pd[m].parcelas) > 1 ? ` · ${pd[m].parcelas}x` : ''
+                    if (!val) return null
+                    return (
+                      <div key={m} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'5px 0', borderBottom:'1px solid rgba(0,0,0,0.05)' }}>
+                        <span style={{ fontSize:12, color:'#374151' }}>💳 {PAY_LBL[m]||m}{parc}</span>
+                        <span style={{ fontSize:12, fontWeight:600, color:'#374151', fontFamily:'JetBrains Mono,monospace' }}>{brl(val)}</span>
+                      </div>
+                    )
+                  })}
+
+                  {/* Total */}
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingTop:6, marginTop:2 }}>
+                    <span style={{ fontSize:11, fontWeight:700, color:'#0C0C0E' }}>TOTAL</span>
+                    <span style={{ fontSize:14, fontWeight:700, color:'#0C0C0E', fontFamily:'JetBrains Mono,monospace' }}>{brl(order.price)}</span>
+                  </div>
+                </div>
+              )
+            })()}
+
             <OrderActions order={order} clientEmail={clientEmail} clientName={order.client_name || clientName} docUrl={docUrl} setDocUrl={handleDocSaved}/>
           </div>
         )}

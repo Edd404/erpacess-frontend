@@ -19,6 +19,8 @@ const STATUS_FLOW = [
 
 const PAY_LABELS = { pix:'Pix', dinheiro:'Dinheiro', cartao_credito:'Cartão de Crédito', cartao_debito:'Cartão de Débito', iphone_entrada:'iPhone de Entrada' }
 
+const parseJSON = (v, fallback) => { try { return typeof v === 'object' && v !== null ? v : JSON.parse(v || JSON.stringify(fallback)) } catch { return fallback } }
+
 export default function OrderDetail({ orderId, onClose }) {
   const { T } = useTheme()
   const { data: order, isLoading } = useOrder(orderId)
@@ -208,19 +210,108 @@ export default function OrderDetail({ orderId, onClose }) {
 
               {/* Pagamento */}
               <Section T={T} title="Pagamento">
-                <div style={{ padding:'14px', background:T.bg, borderRadius:10 }}>
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
-                    <span style={{ fontSize:12, color:T.ink3 }}>Valor total</span>
-                    <span style={{ fontSize:22, fontWeight:700, color:T.ink, letterSpacing:'-0.5px' }}>{brl(order?.price)}</span>
-                  </div>
-                  <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-                    {payments.map(p => (
-                      <span key={p} style={{ fontSize:11, fontWeight:500, color:T.ink2, background:T.surface, border:`1px solid ${T.ink5}`, padding:'3px 10px', borderRadius:999, display:'flex', alignItems:'center', gap:4 }}>
-                        <CreditCard size={10}/>{PAY_LABELS[p]||p}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+                {(() => {
+                  const pd   = parseJSON(order?.payment_details, {})
+                  const accs = parseJSON(order?.accessories, [])
+                  const total     = parseFloat(order?.price) || 0
+                  const accTotal  = accs.reduce((s, a) => s + (parseFloat(a.price) || 0), 0)
+                  const devPrice  = total - accTotal
+                  const tradeVal  = parseFloat(pd.iphone_entrada?.value) || 0
+                  const isVenda   = order?.type === 'venda'
+                  const cashMethods = payments.filter(p => p !== 'iphone_entrada')
+
+                  return (
+                    <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+
+                      {/* Aparelho */}
+                      {isVenda && (
+                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
+                          padding:'10px 14px', background:T.bg, borderRadius:10 }}>
+                          <div>
+                            <div style={{ fontSize:11, color:T.ink4, fontWeight:500, marginBottom:2 }}>APARELHO</div>
+                            <div style={{ fontSize:13, color:T.ink, fontWeight:600 }}>
+                              {order?.iphone_model}{order?.capacity ? ' · ' + order.capacity : ''}
+                            </div>
+                          </div>
+                          <span style={{ fontSize:14, fontWeight:700, color:T.ink, fontFamily:'JetBrains Mono,monospace' }}>
+                            {brl(devPrice)}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Acessórios */}
+                      {accs.length > 0 && accs.map((acc, i) => (
+                        <div key={i} style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
+                          padding:'10px 14px', background:T.bg, borderRadius:10 }}>
+                          <div>
+                            <div style={{ fontSize:11, color:T.ink4, fontWeight:500, marginBottom:2 }}>ACESSÓRIO</div>
+                            <div style={{ fontSize:13, color:T.ink, fontWeight:500 }}>{acc.name}</div>
+                          </div>
+                          <span style={{ fontSize:13, fontWeight:600, color:T.ink2, fontFamily:'JetBrains Mono,monospace' }}>
+                            {brl(acc.price)}
+                          </span>
+                        </div>
+                      ))}
+
+                      {/* iPhone de Entrada */}
+                      {tradeVal > 0 && (
+                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
+                          padding:'10px 14px', background:T.greenL, border:`1px solid ${T.green}30`, borderRadius:10 }}>
+                          <div>
+                            <div style={{ fontSize:11, color:T.green, fontWeight:600, marginBottom:2 }}>iPhone como Entrada</div>
+                            <div style={{ fontSize:12, color:T.ink2 }}>
+                              {[pd.iphone_entrada?.model, pd.iphone_entrada?.capacity, pd.iphone_entrada?.color].filter(Boolean).join(' · ') || '—'}
+                            </div>
+                            {pd.iphone_entrada?.imei && (
+                              <div style={{ fontSize:11, color:T.ink4, fontFamily:'JetBrains Mono,monospace', marginTop:2 }}>
+                                IMEI {pd.iphone_entrada.imei}
+                              </div>
+                            )}
+                          </div>
+                          <span style={{ fontSize:13, fontWeight:700, color:T.green, fontFamily:'JetBrains Mono,monospace' }}>
+                            – {brl(tradeVal)}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Formas de pagamento em dinheiro */}
+                      {cashMethods.map(m => {
+                        const val      = parseFloat(pd[m]?.value) || 0
+                        const parcelas = pd[m]?.parcelas ? parseInt(pd[m].parcelas) : null
+                        return (
+                          <div key={m} style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
+                            padding:'10px 14px', background:T.bg, borderRadius:10 }}>
+                            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                              <CreditCard size={14} color={T.ink3}/>
+                              <div>
+                                <div style={{ fontSize:11, color:T.ink4, fontWeight:500, marginBottom:2 }}>PAGAMENTO</div>
+                                <div style={{ fontSize:13, color:T.ink, fontWeight:500 }}>
+                                  {PAY_LABELS[m] || m}
+                                  {m === 'cartao_credito' && parcelas && parcelas > 1 ? ` · ${parcelas}x` : ''}
+                                </div>
+                              </div>
+                            </div>
+                            {val > 0 && (
+                              <span style={{ fontSize:13, fontWeight:600, color:T.ink, fontFamily:'JetBrains Mono,monospace' }}>
+                                {brl(val)}
+                              </span>
+                            )}
+                          </div>
+                        )
+                      })}
+
+                      {/* Total */}
+                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
+                        padding:'12px 14px', background:T.ink, borderRadius:10, marginTop:2 }}>
+                        <span style={{ fontSize:12, color:'rgba(255,255,255,0.6)', fontWeight:500 }}>TOTAL</span>
+                        <span style={{ fontSize:20, fontWeight:700, color:'#FFF', letterSpacing:'-0.5px', fontFamily:'JetBrains Mono,monospace' }}>
+                          {brl(total)}
+                        </span>
+                      </div>
+
+                    </div>
+                  )
+                })()}
                 {order?.warranty_months > 0 && (
                   <div style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 12px', background:T.greenL, border:`1px solid ${T.green}30`, borderRadius:8, marginTop:8 }}>
                     <Shield size={14} style={{ color:T.green }}/>

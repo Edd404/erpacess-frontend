@@ -409,7 +409,8 @@ function OrderCard({ order, clientEmail, clientName, isFirst, isLast, onDocSaved
             {(() => {
               const pd   = (() => { try { return typeof order.payment_details === 'object' && order.payment_details !== null ? order.payment_details : JSON.parse(order.payment_details||'{}') } catch { return {} } })()
               const accs = (() => { try { return Array.isArray(order.accessories) ? order.accessories : JSON.parse(order.accessories||'[]') } catch { return [] } })()
-              const tradeVal = parseFloat(pd.iphone_entrada?.value) || 0
+              const parseBRL = (v) => { if (!v) return 0; if (typeof v === 'number') return v; const n = parseFloat(String(v).replace(/\./g,'').replace(',','.')); return isNaN(n) ? 0 : n; }
+              const tradeVal = parseBRL(pd.iphone_entrada?.value)
               const hasBreakdown = accs.length > 0 || tradeVal > 0
 
               if (!hasBreakdown) return null
@@ -446,7 +447,7 @@ function OrderCard({ order, clientEmail, clientName, isFirst, isLast, onDocSaved
 
                   {/* Pagamentos em dinheiro */}
                   {cashMethods.map(m => {
-                    const val = parseFloat(pd[m]?.value) || 0
+                    const val = parseBRL(pd[m]?.value)
                     const parc = pd[m]?.parcelas && parseInt(pd[m].parcelas) > 1 ? ` · ${pd[m].parcelas}x` : ''
                     if (!val) return null
                     return (

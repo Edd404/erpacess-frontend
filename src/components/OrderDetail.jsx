@@ -216,7 +216,9 @@ export default function OrderDetail({ orderId, onClose }) {
                   const total     = parseFloat(order?.price) || 0
                   const accTotal  = accs.reduce((s, a) => s + (parseFloat(a.price) || 0), 0)
                   const devPrice  = total - accTotal
-                  const tradeVal  = parseFloat(pd.iphone_entrada?.value) || 0
+                  // parseBRL: converte '1.500,00' → 1500 | '500,00' → 500 | número → número
+                  const parseBRL  = (v) => { if (!v) return 0; if (typeof v === 'number') return v; const n = parseFloat(String(v).replace(/\./g,'').replace(',','.')); return isNaN(n) ? 0 : n; }
+                  const tradeVal  = parseBRL(pd.iphone_entrada?.value)
                   const isVenda   = order?.type === 'venda'
                   const cashMethods = payments.filter(p => p !== 'iphone_entrada')
 
@@ -276,7 +278,7 @@ export default function OrderDetail({ orderId, onClose }) {
 
                       {/* Formas de pagamento em dinheiro */}
                       {cashMethods.map(m => {
-                        const val      = parseFloat(pd[m]?.value) || 0
+                        const val      = parseBRL(pd[m]?.value)
                         const parcelas = pd[m]?.parcelas ? parseInt(pd[m].parcelas) : null
                         return (
                           <div key={m} style={{ display:'flex', justifyContent:'space-between', alignItems:'center',

@@ -870,6 +870,7 @@ function StepAcessorio({ form, set, errors, models, accessoryModels = [] }) {
         onClose={() => setPickerIdx(null)}
         catalogItems={catalogItems}
       />
+      {catalogItems.length > 0 && (
         <div>
           <Label>Adicionar do catálogo</Label>
           <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>

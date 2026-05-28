@@ -1034,13 +1034,27 @@ function StepPagamento({ form, set, errors, isManut, models, accessoryModels = [
     setTimeout(() => setPickerIdx(newIdx), 50)
   }
 
-  const [pd, setPdState] = useState({
-    pix:             { value:'' },
-    dinheiro:        { value:'' },
-    cartao_credito:  { value:'', parcelas:'1' },
-    cartao_debito:   { value:'' },
-    iphone_entrada:  { value:'', model:'', capacity:'', color:'', imei:'' },
-  })
+  const [pd, setPdState] = useState(() => {
+    // Restaura do form.payment_details se já preenchido (evita perda ao navegar entre steps)
+    const saved = form.payment_details;
+    const defaults = {
+      pix:             { value:'' },
+      dinheiro:        { value:'' },
+      cartao_credito:  { value:'', parcelas:'1' },
+      cartao_debito:   { value:'' },
+      iphone_entrada:  { value:'', model:'', capacity:'', color:'', imei:'' },
+    };
+    if (saved && typeof saved === 'object' && Object.keys(saved).length > 0) {
+      return {
+        pix:            { ...defaults.pix,            ...(saved.pix            || {}) },
+        dinheiro:       { ...defaults.dinheiro,       ...(saved.dinheiro       || {}) },
+        cartao_credito: { ...defaults.cartao_credito, ...(saved.cartao_credito || {}) },
+        cartao_debito:  { ...defaults.cartao_debito,  ...(saved.cartao_debito  || {}) },
+        iphone_entrada: { ...defaults.iphone_entrada, ...(saved.iphone_entrada || {}) },
+      };
+    }
+    return defaults;
+  });
   const [tradeModelSearch, setTradeModelSearch] = useState('')
   const [tradeModelOpen, setTradeModelOpen] = useState(false)
 
@@ -1573,8 +1587,49 @@ export default function NewOrderPage() {
 
     const accTotal = accessories.reduce((s, a) => s + a.price, 0)
 
-    // payment_details já sincronizado via useEffect no StepPagamento
-    const payment_details = form.payment_details || {}
+    // Constrói payment_details com valores efetivos (inclui o método calculado automaticamente)
+    const pdBase = form.payment_details && Object.keys(form.payment_details).length > 0
+      ? form.payment_details
+      : {
+          pix:            { value:'' },
+          dinheiro:       { value:'' },
+          cartao_credito: { value:'', parcelas:'1' },
+          cartao_debito:  { value:'' },
+          iphone_entrada: { value:'', model:'', capacity:'', color:'', imei:'' },
+        }
+
+    const parsePD = (v) => {
+      if (!v) return 0
+      const n = parseFloat(String(v).replace(/\./g,'').replace(',','.'))
+      return isNaN(n) ? 0 : n
+    }
+
+    const finalTotal    = parseVal(form.price) + accTotal
+    const tradeValFinal = form.payment_methods.includes('iphone_entrada') ? parsePD(pdBase.iphone_entrada?.value) : 0
+    const cashTotalFinal = Math.max(0, finalTotal - tradeValFinal)
+    const cashMethodsFinal = form.payment_methods.filter(m => m !== 'iphone_entrada')
+
+    const payment_details = { ...pdBase }
+
+    if (cashMethodsFinal.length === 1) {
+      // Método único: se o usuário não digitou valor, usa o cashTotal calculado
+      const m = cashMethodsFinal[0]
+      const typed = parsePD(pdBase[m]?.value)
+      if (!typed && cashTotalFinal > 0) {
+        payment_details[m] = { ...(pdBase[m] || {}), value: cashTotalFinal.toFixed(2).replace('.', ',') }
+      }
+    } else if (cashMethodsFinal.length > 1) {
+      // Múltiplos métodos: se apenas um está com valor zero, calcula pelo restante
+      const zeroMs = cashMethodsFinal.filter(m => parsePD(pdBase[m]?.value) === 0)
+      if (zeroMs.length === 1) {
+        const autoMethod = zeroMs[0]
+        const sumOthers  = cashMethodsFinal
+          .filter(m => m !== autoMethod)
+          .reduce((s, m) => s + parsePD(pdBase[m]?.value), 0)
+        const autoVal = Math.max(0, cashTotalFinal - sumOthers)
+        payment_details[autoMethod] = { ...(pdBase[autoMethod] || {}), value: autoVal.toFixed(2).replace('.', ',') }
+      }
+    }
 
     await createOrder.mutateAsync({
       client_id:       form.client_id,

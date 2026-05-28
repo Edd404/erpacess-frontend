@@ -1047,6 +1047,11 @@ function StepPagamento({ form, set, errors, isManut, models, accessoryModels = [
 
   const setPd = (m, f, v) => setPdState(p => ({ ...p, [m]: { ...p[m], [f]: v } }))
 
+  // Sincroniza pd com form.payment_details para o handleSubmit ler
+  useEffect(() => {
+    set('payment_details', pd)
+  }, [pd])
+
   const togglePay = (v) => set('payment_methods',
     form.payment_methods.includes(v) ? form.payment_methods.filter(x => x !== v) : [...form.payment_methods, v]
   )
@@ -1560,38 +1565,15 @@ export default function NewOrderPage() {
     if (!isManut && form.lead_source) noteParts.push(`Origem: ${form.lead_source}`)
     if (form.notes) noteParts.push(form.notes)
 
-    // Acessórios estruturados (nome + preço numérico)
+    // Acessórios estruturados
     const accessories = (form.accessories || [])
       .filter(a => a.name)
       .map(a => ({ name: a.name, price: parseFloat(String(a.price||'0').replace(',','.')) || 0 }))
 
     const accTotal = accessories.reduce((s, a) => s + a.price, 0)
 
-    // payment_details: valor por método + detalhes do iPhone de entrada
-    const payment_details = {}
-    const methods = form.payment_methods || []
-    methods.forEach(m => {
-      if (m === 'iphone_entrada') {
-        payment_details.iphone_entrada = {
-          value:    parseFloat(String(form.trade_value||'0').replace(',','.')) || 0,
-          model:    form.trade_model    || '',
-          capacity: form.trade_capacity || '',
-          color:    form.trade_color    || '',
-          imei:     form.trade_imei     || '',
-        }
-      } else if (m === 'cartao_credito') {
-        payment_details.cartao_credito = {
-          value:    parseFloat(String(form.credit_value||'0').replace(',','.')) || 0,
-          parcelas: parseInt(form.parcelas) || 1,
-        }
-      } else if (m === 'cartao_debito') {
-        payment_details.cartao_debito  = { value: parseFloat(String(form.debit_value||'0').replace(',','.'))  || 0 }
-      } else if (m === 'pix') {
-        payment_details.pix            = { value: parseFloat(String(form.pix_value||'0').replace(',','.'))    || 0 }
-      } else if (m === 'dinheiro') {
-        payment_details.dinheiro       = { value: parseFloat(String(form.cash_value||'0').replace(',','.'))   || 0 }
-      }
-    })
+    // payment_details já sincronizado via useEffect no StepPagamento
+    const payment_details = form.payment_details || {}
 
     await createOrder.mutateAsync({
       client_id:       form.client_id,

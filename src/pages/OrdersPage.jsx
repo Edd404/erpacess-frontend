@@ -857,9 +857,10 @@ function OrderDetail({ order, onClose }) {
           const accTotal   = accs.reduce((s, a) => s + parseBRL(a.price), 0)
           const devPrice   = total - accTotal
           const tradeVal   = parseBRL(pd.iphone_entrada?.value)
+          const hasTradeIn = payments.includes('iphone_entrada')
           const cashMethods = payments.filter(p => p !== 'iphone_entrada')
           const isVenda    = order.type === 'venda'
-          const hasDetail  = accs.length > 0 || tradeVal > 0 || cashMethods.some(m => parseBRL(pd[m]?.value) > 0)
+          const hasDetail  = accs.length > 0 || hasTradeIn || cashMethods.length > 0
 
           if (!hasDetail && cashMethods.length === 0) return null
 
@@ -902,15 +903,14 @@ function OrderDetail({ order, onClose }) {
                 ))}
 
                 {/* iPhone de entrada */}
-                {tradeVal > 0 && (
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
+                {hasTradeIn && (
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start',
                     padding:'11px 16px', background:'#F0FDF4',
-                    border:'1px solid rgba(134,239,172,0.3)', borderRadius:0,
-                    borderBottom:'1px solid rgba(0,0,0,0.05)' }}>
-                    <div>
+                    borderBottom:'1px solid rgba(134,239,172,0.3)' }}>
+                    <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontSize:10, color:'#15803D', fontWeight:700,
-                        textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:2 }}>iPhone como Entrada</div>
-                      <div style={{ fontSize:12, color:'#166534' }}>
+                        textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:4 }}>iPhone como Entrada</div>
+                      <div style={{ fontSize:13, color:'#166534', fontWeight:600, marginBottom:2 }}>
                         {[pd.iphone_entrada?.model, pd.iphone_entrada?.capacity, pd.iphone_entrada?.color]
                           .filter(Boolean).join(' · ') || '—'}
                       </div>
@@ -920,8 +920,12 @@ function OrderDetail({ order, onClose }) {
                         </div>
                       )}
                     </div>
-                    <span style={{ fontSize:13, fontWeight:700, color:'#15803D',
-                      fontFamily:'JetBrains Mono,monospace' }}>– {brl(tradeVal)}</span>
+                    <div style={{ textAlign:'right', flexShrink:0, marginLeft:12 }}>
+                      {tradeVal > 0 && (
+                        <span style={{ fontSize:14, fontWeight:700, color:'#15803D',
+                          fontFamily:'JetBrains Mono,monospace' }}>– {brl(tradeVal)}</span>
+                      )}
+                    </div>
                   </div>
                 )}
 

@@ -214,33 +214,17 @@ export default function OrderDetail({ orderId, onClose }) {
                   const pd   = parseJSON(order?.payment_details, {})
                   const accs = parseJSON(order?.accessories, [])
                   const total     = parseFloat(order?.price) || 0
-                  const accTotal  = accs.reduce((s, a) => s + (parseFloat(a.price) || 0), 0)
-                  const devPrice  = total - accTotal
                   // parseBRL: converte '1.500,00' → 1500 | '500,00' → 500 | número → número
                   const parseBRL  = (v) => { if (!v) return 0; if (typeof v === 'number') return v; const n = parseFloat(String(v).replace(/\./g,'').replace(',','.')); return isNaN(n) ? 0 : n; }
                   const tradeVal  = parseBRL(pd.iphone_entrada?.value)
                   const hasTradeIn = payments.includes('iphone_entrada')
-                  const isVenda   = order?.type === 'venda'
                   const cashMethods = payments.filter(p => p !== 'iphone_entrada')
+                  const hasContent = accs.length > 0 || hasTradeIn || cashMethods.length > 0
+
+                  if (!hasContent) return null
 
                   return (
                     <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-
-                      {/* Aparelho */}
-                      {isVenda && (
-                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
-                          padding:'10px 14px', background:T.bg, borderRadius:10 }}>
-                          <div>
-                            <div style={{ fontSize:11, color:T.ink4, fontWeight:500, marginBottom:2 }}>APARELHO</div>
-                            <div style={{ fontSize:13, color:T.ink, fontWeight:600 }}>
-                              {order?.iphone_model}{order?.capacity ? ' · ' + order.capacity : ''}
-                            </div>
-                          </div>
-                          <span style={{ fontSize:14, fontWeight:700, color:T.ink, fontFamily:'JetBrains Mono,monospace' }}>
-                            {brl(devPrice)}
-                          </span>
-                        </div>
-                      )}
 
                       {/* Acessórios */}
                       {accs.length > 0 && accs.map((acc, i) => (
@@ -258,24 +242,32 @@ export default function OrderDetail({ orderId, onClose }) {
 
                       {/* iPhone de Entrada */}
                       {hasTradeIn && (
-                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start',
-                          padding:'10px 14px', background:T.greenL, border:`1px solid ${T.green}30`, borderRadius:10 }}>
-                          <div style={{ flex:1, minWidth:0 }}>
-                            <div style={{ fontSize:11, color:T.green, fontWeight:600, marginBottom:3 }}>iPhone como Entrada</div>
-                            <div style={{ fontSize:13, color:T.ink2, fontWeight:600, marginBottom:2 }}>
-                              {[pd.iphone_entrada?.model, pd.iphone_entrada?.capacity, pd.iphone_entrada?.color].filter(Boolean).join(' · ') || '—'}
-                            </div>
-                            {pd.iphone_entrada?.imei && (
-                              <div style={{ fontSize:11, color:T.ink4, fontFamily:'JetBrains Mono,monospace', marginTop:2 }}>
-                                IMEI {pd.iphone_entrada.imei}
+                        <div style={{ padding:'10px 14px', background:T.greenL, border:`1px solid ${T.green}30`, borderRadius:10 }}>
+                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+                            <div style={{ flex:1, minWidth:0 }}>
+                              <div style={{ fontSize:11, color:T.green, fontWeight:700, marginBottom:4 }}>📲 iPhone como Entrada</div>
+                              <div style={{ fontSize:13, color:T.ink2, fontWeight:600, marginBottom:2 }}>
+                                {[pd.iphone_entrada?.model, pd.iphone_entrada?.capacity, pd.iphone_entrada?.color].filter(Boolean).join(' · ') || '—'}
                               </div>
-                            )}
+                              {pd.iphone_entrada?.imei && (
+                                <div style={{ fontSize:11, color:T.ink4, fontFamily:'JetBrains Mono,monospace', marginTop:2 }}>
+                                  IMEI {pd.iphone_entrada.imei}
+                                </div>
+                              )}
+                            </div>
+                            <div style={{ textAlign:'right', flexShrink:0, marginLeft:12 }}>
+                              {tradeVal > 0 ? (
+                                <>
+                                  <div style={{ fontSize:10, color:T.green, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.4px', marginBottom:2 }}>Desconto</div>
+                                  <span style={{ fontSize:14, fontWeight:700, color:T.green, fontFamily:'JetBrains Mono,monospace' }}>
+                                    – {brl(tradeVal)}
+                                  </span>
+                                </>
+                              ) : (
+                                <span style={{ fontSize:11, color:T.ink4, fontStyle:'italic' }}>valor n/a</span>
+                              )}
+                            </div>
                           </div>
-                          {tradeVal > 0 && (
-                            <span style={{ fontSize:13, fontWeight:700, color:T.green, fontFamily:'JetBrains Mono,monospace', marginLeft:12, flexShrink:0 }}>
-                              – {brl(tradeVal)}
-                            </span>
-                          )}
                         </div>
                       )}
 

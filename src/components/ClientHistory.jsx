@@ -411,7 +411,8 @@ function OrderCard({ order, clientEmail, clientName, isFirst, isLast, onDocSaved
               const accs = (() => { try { return Array.isArray(order.accessories) ? order.accessories : JSON.parse(order.accessories||'[]') } catch { return [] } })()
               const parseBRL = (v) => { if (!v) return 0; if (typeof v === 'number') return v; const n = parseFloat(String(v).replace(/\./g,'').replace(',','.')); return isNaN(n) ? 0 : n; }
               const tradeVal = parseBRL(pd.iphone_entrada?.value)
-              const hasBreakdown = accs.length > 0 || tradeVal > 0
+              const hasTradeIn = payments.includes('iphone_entrada')
+              const hasBreakdown = accs.length > 0 || hasTradeIn || payments.filter(p => p !== 'iphone_entrada').length > 0
 
               if (!hasBreakdown) return null
 
@@ -431,17 +432,26 @@ function OrderCard({ order, clientEmail, clientName, isFirst, isLast, onDocSaved
                   ))}
 
                   {/* iPhone de entrada */}
-                  {tradeVal > 0 && (
-                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'5px 0', borderBottom:'1px solid rgba(0,0,0,0.05)' }}>
-                      <div>
-                        <span style={{ fontSize:12, color:'#15803D', fontWeight:600 }}>📲 iPhone de Entrada</span>
-                        {pd.iphone_entrada?.model && (
-                          <span style={{ fontSize:11, color:'#6B7280', marginLeft:6 }}>
-                            {[pd.iphone_entrada.model, pd.iphone_entrada.capacity].filter(Boolean).join(' · ')}
-                          </span>
+                  {hasTradeIn && (
+                    <div style={{ padding:'5px 0', borderBottom:'1px solid rgba(0,0,0,0.05)' }}>
+                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+                        <div style={{ flex:1 }}>
+                          <span style={{ fontSize:12, color:'#15803D', fontWeight:700 }}>📲 iPhone de Entrada</span>
+                          {(pd.iphone_entrada?.model || pd.iphone_entrada?.capacity || pd.iphone_entrada?.color) && (
+                            <div style={{ fontSize:11, color:'#374151', marginTop:2 }}>
+                              {[pd.iphone_entrada.model, pd.iphone_entrada.capacity, pd.iphone_entrada.color].filter(Boolean).join(' · ')}
+                            </div>
+                          )}
+                          {pd.iphone_entrada?.imei && (
+                            <div style={{ fontSize:11, color:'#6B7280', fontFamily:'JetBrains Mono,monospace', marginTop:1 }}>
+                              IMEI {pd.iphone_entrada.imei}
+                            </div>
+                          )}
+                        </div>
+                        {tradeVal > 0 && (
+                          <span style={{ fontSize:12, fontWeight:700, color:'#15803D', fontFamily:'JetBrains Mono,monospace', marginLeft:8, flexShrink:0 }}>– {brl(tradeVal)}</span>
                         )}
                       </div>
-                      <span style={{ fontSize:12, fontWeight:700, color:'#15803D', fontFamily:'JetBrains Mono,monospace' }}>– {brl(tradeVal)}</span>
                     </div>
                   )}
 
@@ -449,11 +459,10 @@ function OrderCard({ order, clientEmail, clientName, isFirst, isLast, onDocSaved
                   {cashMethods.map(m => {
                     const val = parseBRL(pd[m]?.value)
                     const parc = pd[m]?.parcelas && parseInt(pd[m].parcelas) > 1 ? ` · ${pd[m].parcelas}x` : ''
-                    if (!val) return null
                     return (
                       <div key={m} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'5px 0', borderBottom:'1px solid rgba(0,0,0,0.05)' }}>
                         <span style={{ fontSize:12, color:'#374151' }}>💳 {PAY_LBL[m]||m}{parc}</span>
-                        <span style={{ fontSize:12, fontWeight:600, color:'#374151', fontFamily:'JetBrains Mono,monospace' }}>{brl(val)}</span>
+                        {val > 0 && <span style={{ fontSize:12, fontWeight:600, color:'#374151', fontFamily:'JetBrains Mono,monospace' }}>{brl(val)}</span>}
                       </div>
                     )
                   })}

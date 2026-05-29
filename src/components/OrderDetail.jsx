@@ -219,6 +219,7 @@ export default function OrderDetail({ orderId, onClose }) {
                   // parseBRL: converte '1.500,00' → 1500 | '500,00' → 500 | número → número
                   const parseBRL  = (v) => { if (!v) return 0; if (typeof v === 'number') return v; const n = parseFloat(String(v).replace(/\./g,'').replace(',','.')); return isNaN(n) ? 0 : n; }
                   const tradeVal  = parseBRL(pd.iphone_entrada?.value)
+                  const hasTradeIn = payments.includes('iphone_entrada')
                   const isVenda   = order?.type === 'venda'
                   const cashMethods = payments.filter(p => p !== 'iphone_entrada')
 
@@ -256,12 +257,12 @@ export default function OrderDetail({ orderId, onClose }) {
                       ))}
 
                       {/* iPhone de Entrada */}
-                      {tradeVal > 0 && (
-                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
+                      {hasTradeIn && (
+                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start',
                           padding:'10px 14px', background:T.greenL, border:`1px solid ${T.green}30`, borderRadius:10 }}>
-                          <div>
-                            <div style={{ fontSize:11, color:T.green, fontWeight:600, marginBottom:2 }}>iPhone como Entrada</div>
-                            <div style={{ fontSize:12, color:T.ink2 }}>
+                          <div style={{ flex:1, minWidth:0 }}>
+                            <div style={{ fontSize:11, color:T.green, fontWeight:600, marginBottom:3 }}>iPhone como Entrada</div>
+                            <div style={{ fontSize:13, color:T.ink2, fontWeight:600, marginBottom:2 }}>
                               {[pd.iphone_entrada?.model, pd.iphone_entrada?.capacity, pd.iphone_entrada?.color].filter(Boolean).join(' · ') || '—'}
                             </div>
                             {pd.iphone_entrada?.imei && (
@@ -270,9 +271,11 @@ export default function OrderDetail({ orderId, onClose }) {
                               </div>
                             )}
                           </div>
-                          <span style={{ fontSize:13, fontWeight:700, color:T.green, fontFamily:'JetBrains Mono,monospace' }}>
-                            – {brl(tradeVal)}
-                          </span>
+                          {tradeVal > 0 && (
+                            <span style={{ fontSize:13, fontWeight:700, color:T.green, fontFamily:'JetBrains Mono,monospace', marginLeft:12, flexShrink:0 }}>
+                              – {brl(tradeVal)}
+                            </span>
+                          )}
                         </div>
                       )}
 

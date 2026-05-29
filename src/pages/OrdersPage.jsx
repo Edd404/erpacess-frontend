@@ -849,44 +849,25 @@ function OrderDetail({ order, onClose }) {
           </div>
         </section>
 
-        {/* Breakdown de Pagamento */}
+        {/* Resumo Financeiro */}
         {(() => {
           const pd   = parseJSON(order.payment_details, {})
           const accs = parseJSON(order.accessories, [])
-          const total      = parseFloat(order.price) || 0
-          const accTotal   = accs.reduce((s, a) => s + parseBRL(a.price), 0)
-          const devPrice   = total - accTotal
-          const tradeVal   = parseBRL(pd.iphone_entrada?.value)
-          const hasTradeIn = payments.includes('iphone_entrada')
+          const total       = parseFloat(order.price) || 0
+          const accTotal    = accs.reduce((s, a) => s + parseBRL(a.price), 0)
+          const tradeVal    = parseBRL(pd.iphone_entrada?.value)
+          const hasTradeIn  = payments.includes('iphone_entrada')
           const cashMethods = payments.filter(p => p !== 'iphone_entrada')
-          const isVenda    = order.type === 'venda'
-          const hasDetail  = accs.length > 0 || hasTradeIn || cashMethods.length > 0
+          const hasContent  = accs.length > 0 || hasTradeIn || cashMethods.length > 0
 
-          if (!hasDetail && cashMethods.length === 0) return null
+          if (!hasContent) return null
 
           return (
             <section style={{ margin:'12px 20px 0' }}>
               <div style={{ fontSize:10, fontWeight:700, color:'#9CA3AF', textTransform:'uppercase',
-                letterSpacing:'0.7px', marginBottom:8 }}>Detalhes do pagamento</div>
+                letterSpacing:'0.7px', marginBottom:8 }}>Resumo financeiro</div>
               <div style={{ background:'#fff', borderRadius:12, border:'1px solid rgba(0,0,0,0.07)',
-                overflow:'hidden', boxShadow:'0 1px 4px rgba(0,0,0,0.04)',
-                display:'flex', flexDirection:'column', gap:1 }}>
-
-                {/* Aparelho */}
-                {isVenda && (
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
-                    padding:'11px 16px', borderBottom:'1px solid rgba(0,0,0,0.05)' }}>
-                    <div>
-                      <div style={{ fontSize:10, color:'#9CA3AF', fontWeight:600,
-                        textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:2 }}>Aparelho</div>
-                      <div style={{ fontSize:13, color:'#111827', fontWeight:600 }}>
-                        {order.iphone_model}{order.capacity ? ' · ' + order.capacity : ''}
-                      </div>
-                    </div>
-                    <span style={{ fontSize:14, fontWeight:700, color:'#111827',
-                      fontFamily:'JetBrains Mono,monospace' }}>{brl(devPrice)}</span>
-                  </div>
-                )}
+                overflow:'hidden', boxShadow:'0 1px 4px rgba(0,0,0,0.04)' }}>
 
                 {/* Acessórios */}
                 {accs.map((acc, i) => (
@@ -904,27 +885,36 @@ function OrderDetail({ order, onClose }) {
 
                 {/* iPhone de entrada */}
                 {hasTradeIn && (
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start',
-                    padding:'11px 16px', background:'#F0FDF4',
-                    borderBottom:'1px solid rgba(134,239,172,0.3)' }}>
-                    <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontSize:10, color:'#15803D', fontWeight:700,
-                        textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:4 }}>iPhone como Entrada</div>
-                      <div style={{ fontSize:13, color:'#166534', fontWeight:600, marginBottom:2 }}>
-                        {[pd.iphone_entrada?.model, pd.iphone_entrada?.capacity, pd.iphone_entrada?.color]
-                          .filter(Boolean).join(' · ') || '—'}
-                      </div>
-                      {pd.iphone_entrada?.imei && (
-                        <div style={{ fontSize:11, color:'#6B7280', fontFamily:'JetBrains Mono,monospace', marginTop:2 }}>
-                          IMEI {pd.iphone_entrada.imei}
+                  <div style={{ padding:'11px 16px', background:'#F0FDF4',
+                    borderBottom: cashMethods.length > 0 ? '1px solid rgba(134,239,172,0.4)' : 'none' }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:10, color:'#15803D', fontWeight:700,
+                          textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:4 }}>
+                          📲 iPhone como Entrada
                         </div>
-                      )}
-                    </div>
-                    <div style={{ textAlign:'right', flexShrink:0, marginLeft:12 }}>
-                      {tradeVal > 0 && (
-                        <span style={{ fontSize:14, fontWeight:700, color:'#15803D',
-                          fontFamily:'JetBrains Mono,monospace' }}>– {brl(tradeVal)}</span>
-                      )}
+                        <div style={{ fontSize:13, color:'#166534', fontWeight:600 }}>
+                          {[pd.iphone_entrada?.model, pd.iphone_entrada?.capacity, pd.iphone_entrada?.color]
+                            .filter(Boolean).join(' · ') || <span style={{ color:'#9CA3AF', fontWeight:400, fontStyle:'italic' }}>sem detalhes</span>}
+                        </div>
+                        {pd.iphone_entrada?.imei && (
+                          <div style={{ fontSize:11, color:'#6B7280', fontFamily:'JetBrains Mono,monospace', marginTop:3 }}>
+                            IMEI {pd.iphone_entrada.imei}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ textAlign:'right', flexShrink:0, marginLeft:16 }}>
+                        {tradeVal > 0 ? (
+                          <>
+                            <div style={{ fontSize:10, color:'#15803D', fontWeight:600,
+                              textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:2 }}>Desconto</div>
+                            <span style={{ fontSize:15, fontWeight:700, color:'#15803D',
+                              fontFamily:'JetBrains Mono,monospace' }}>– {brl(tradeVal)}</span>
+                          </>
+                        ) : (
+                          <span style={{ fontSize:11, color:'#9CA3AF', fontStyle:'italic' }}>valor n/a</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -955,7 +945,7 @@ function OrderDetail({ order, onClose }) {
 
                 {/* Total */}
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
-                  padding:'12px 16px', background:'#111827' }}>
+                  padding:'12px 16px', background:'#111827', marginTop:1 }}>
                   <span style={{ fontSize:11, color:'rgba(255,255,255,0.5)', fontWeight:600,
                     textTransform:'uppercase', letterSpacing:'0.6px' }}>Total</span>
                   <span style={{ fontSize:18, fontWeight:700, color:'#fff', letterSpacing:'-0.5px',

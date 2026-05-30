@@ -1034,28 +1034,29 @@ function StepPagamento({ form, set, errors, isManut, models, accessoryModels = [
     setTimeout(() => setPickerIdx(newIdx), 50)
   }
 
+  const DEFAULTS_PD = {
+    pix:             { value:'' },
+    dinheiro:        { value:'' },
+    cartao_credito:  { value:'', parcelas:'1' },
+    cartao_debito:   { value:'' },
+    iphone_entrada:  { value:'', model:'', capacity:'', color:'', imei:'' },
+  }
+  const saved = form.payment_details
   const [pd, setPdState] = useState(() => {
-    // Restaura do form.payment_details se já preenchido (evita perda ao navegar entre steps)
-    const saved = form.payment_details;
-    const defaults = {
-      pix:             { value:'' },
-      dinheiro:        { value:'' },
-      cartao_credito:  { value:'', parcelas:'1' },
-      cartao_debito:   { value:'' },
-      iphone_entrada:  { value:'', model:'', capacity:'', color:'', imei:'' },
-    };
     if (saved && typeof saved === 'object' && Object.keys(saved).length > 0) {
       return {
-        pix:            { ...defaults.pix,            ...(saved.pix            || {}) },
-        dinheiro:       { ...defaults.dinheiro,       ...(saved.dinheiro       || {}) },
-        cartao_credito: { ...defaults.cartao_credito, ...(saved.cartao_credito || {}) },
-        cartao_debito:  { ...defaults.cartao_debito,  ...(saved.cartao_debito  || {}) },
-        iphone_entrada: { ...defaults.iphone_entrada, ...(saved.iphone_entrada || {}) },
-      };
+        pix:            { ...DEFAULTS_PD.pix,            ...(saved.pix            || {}) },
+        dinheiro:       { ...DEFAULTS_PD.dinheiro,       ...(saved.dinheiro       || {}) },
+        cartao_credito: { ...DEFAULTS_PD.cartao_credito, ...(saved.cartao_credito || {}) },
+        cartao_debito:  { ...DEFAULTS_PD.cartao_debito,  ...(saved.cartao_debito  || {}) },
+        iphone_entrada: { ...DEFAULTS_PD.iphone_entrada, ...(saved.iphone_entrada || {}) },
+      }
     }
-    return defaults;
-  });
-  const [tradeModelSearch, setTradeModelSearch] = useState('')
+    return DEFAULTS_PD
+  })
+  const [tradeModelSearch, setTradeModelSearch] = useState(
+    () => (saved?.iphone_entrada?.model) || ''
+  )
   const [tradeModelOpen, setTradeModelOpen] = useState(false)
 
   const setPd = (m, f, v) => {
@@ -1184,7 +1185,13 @@ function StepPagamento({ form, set, errors, isManut, models, accessoryModels = [
                   value={pd.iphone_entrada.model || tradeModelSearch}
                   onChange={e => { setTradeModelSearch(e.target.value); setPd('iphone_entrada','model',''); setTradeModelOpen(true) }}
                   onFocus={() => setTradeModelOpen(true)}
-                  onBlur={() => setTimeout(() => setTradeModelOpen(false), 180)}
+                  onBlur={() => {
+                    setTimeout(() => setTradeModelOpen(false), 180)
+                    // Se digitou mas não selecionou do dropdown, salva o texto como modelo
+                    if (tradeModelSearch && !pd.iphone_entrada.model) {
+                      setPd('iphone_entrada', 'model', tradeModelSearch)
+                    }
+                  }}
                   placeholder="Buscar modelo..."
                   autoComplete="off"
                 />
@@ -1587,47 +1594,34 @@ export default function NewOrderPage() {
 
     const accTotal = accessories.reduce((s, a) => s + a.price, 0)
 
-    // Constrói payment_details com valores efetivos (inclui o método calculado automaticamente)
-    const pdBase = form.payment_details && Object.keys(form.payment_details).length > 0
+    // payment_details: garante valor do método auto-calculado
+    const pdBase = (form.payment_details && Object.keys(form.payment_details).length > 0)
       ? form.payment_details
-      : {
-          pix:            { value:'' },
-          dinheiro:       { value:'' },
-          cartao_credito: { value:'', parcelas:'1' },
-          cartao_debito:  { value:'' },
-          iphone_entrada: { value:'', model:'', capacity:'', color:'', imei:'' },
-        }
+      : {}
 
-    const parsePD = (v) => {
+    const _parsePD = (v) => {
       if (!v) return 0
+      if (typeof v === 'number') return isNaN(v) ? 0 : v
       const n = parseFloat(String(v).replace(/\./g,'').replace(',','.'))
       return isNaN(n) ? 0 : n
     }
 
-    const finalTotal    = parseVal(form.price) + accTotal
-    const tradeValFinal = form.payment_methods.includes('iphone_entrada') ? parsePD(pdBase.iphone_entrada?.value) : 0
-    const cashTotalFinal = Math.max(0, finalTotal - tradeValFinal)
-    const cashMethodsFinal = form.payment_methods.filter(m => m !== 'iphone_entrada')
-
+    const tradeValFinal  = (form.payment_methods.includes('iphone_entrada')) ? _parsePD(pdBase.iphone_entrada?.value) : 0
+    const cashTotalFinal = Math.max(0, parseVal(form.price) + accTotal - tradeValFinal)
+    const cashMs         = form.payment_methods.filter(m => m !== 'iphone_entrada')
     const payment_details = { ...pdBase }
 
-    if (cashMethodsFinal.length === 1) {
-      // Método único: se o usuário não digitou valor, usa o cashTotal calculado
-      const m = cashMethodsFinal[0]
-      const typed = parsePD(pdBase[m]?.value)
-      if (!typed && cashTotalFinal > 0) {
+    if (cashMs.length === 1) {
+      const m = cashMs[0]
+      if (!_parsePD(pdBase[m]?.value) && cashTotalFinal > 0) {
         payment_details[m] = { ...(pdBase[m] || {}), value: cashTotalFinal.toFixed(2).replace('.', ',') }
       }
-    } else if (cashMethodsFinal.length > 1) {
-      // Múltiplos métodos: se apenas um está com valor zero, calcula pelo restante
-      const zeroMs = cashMethodsFinal.filter(m => parsePD(pdBase[m]?.value) === 0)
+    } else if (cashMs.length > 1) {
+      const zeroMs = cashMs.filter(m => _parsePD(pdBase[m]?.value) === 0)
       if (zeroMs.length === 1) {
-        const autoMethod = zeroMs[0]
-        const sumOthers  = cashMethodsFinal
-          .filter(m => m !== autoMethod)
-          .reduce((s, m) => s + parsePD(pdBase[m]?.value), 0)
-        const autoVal = Math.max(0, cashTotalFinal - sumOthers)
-        payment_details[autoMethod] = { ...(pdBase[autoMethod] || {}), value: autoVal.toFixed(2).replace('.', ',') }
+        const sumOthers = cashMs.filter(m => m !== zeroMs[0]).reduce((s, m) => s + _parsePD(pdBase[m]?.value), 0)
+        const autoVal   = Math.max(0, cashTotalFinal - sumOthers)
+        payment_details[zeroMs[0]] = { ...(pdBase[zeroMs[0]] || {}), value: autoVal.toFixed(2).replace('.', ',') }
       }
     }
 

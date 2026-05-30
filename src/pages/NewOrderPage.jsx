@@ -1034,37 +1034,33 @@ function StepPagamento({ form, set, errors, isManut, models, accessoryModels = [
     setTimeout(() => setPickerIdx(newIdx), 50)
   }
 
-  const DEFAULTS_PD = {
+  const PD_DEFAULTS = {
     pix:             { value:'' },
     dinheiro:        { value:'' },
     cartao_credito:  { value:'', parcelas:'1' },
     cartao_debito:   { value:'' },
     iphone_entrada:  { value:'', model:'', capacity:'', color:'', imei:'' },
   }
-  const saved = form.payment_details
-  const [pd, setPdState] = useState(() => {
-    if (saved && typeof saved === 'object' && Object.keys(saved).length > 0) {
-      return {
-        pix:            { ...DEFAULTS_PD.pix,            ...(saved.pix            || {}) },
-        dinheiro:       { ...DEFAULTS_PD.dinheiro,       ...(saved.dinheiro       || {}) },
-        cartao_credito: { ...DEFAULTS_PD.cartao_credito, ...(saved.cartao_credito || {}) },
-        cartao_debito:  { ...DEFAULTS_PD.cartao_debito,  ...(saved.cartao_debito  || {}) },
-        iphone_entrada: { ...DEFAULTS_PD.iphone_entrada, ...(saved.iphone_entrada || {}) },
-      }
-    }
-    return DEFAULTS_PD
-  })
-  const [tradeModelSearch, setTradeModelSearch] = useState(
-    () => (saved?.iphone_entrada?.model) || ''
-  )
+
+  // pd é derivado diretamente do form — sem estado local duplicado
+  // Isso garante que nunca há dessincronismo entre o que é exibido e o que é enviado
+  const rawPd = (form.payment_details && typeof form.payment_details === 'object' && Object.keys(form.payment_details).length > 0)
+    ? form.payment_details
+    : PD_DEFAULTS
+  const pd = {
+    pix:            { ...PD_DEFAULTS.pix,            ...(rawPd.pix            || {}) },
+    dinheiro:       { ...PD_DEFAULTS.dinheiro,       ...(rawPd.dinheiro       || {}) },
+    cartao_credito: { ...PD_DEFAULTS.cartao_credito, ...(rawPd.cartao_credito || {}) },
+    cartao_debito:  { ...PD_DEFAULTS.cartao_debito,  ...(rawPd.cartao_debito  || {}) },
+    iphone_entrada: { ...PD_DEFAULTS.iphone_entrada, ...(rawPd.iphone_entrada || {}) },
+  }
+
+  const [tradeModelSearch, setTradeModelSearch] = useState(pd.iphone_entrada.model || '')
   const [tradeModelOpen, setTradeModelOpen] = useState(false)
 
   const setPd = (m, f, v) => {
-    setPdState(p => {
-      const next = { ...p, [m]: { ...p[m], [f]: v } }
-      set('payment_details', next)
-      return next
-    })
+    const next = { ...pd, [m]: { ...pd[m], [f]: v } }
+    set('payment_details', next)
   }
 
   const togglePay = (v) => set('payment_methods',
@@ -1202,7 +1198,9 @@ function StepPagamento({ form, set, errors, isManut, models, accessoryModels = [
                     <div key={g.s}>
                       <div style={{ padding:'6px 14px 3px', fontSize:10, fontWeight:700, color:T.ink4, textTransform:'uppercase', background:T.bg }}>{g.s}</div>
                       {g.m.map(m => (
-                        <div key={m} onMouseDown={() => { setPd('iphone_entrada','model',m); setTradeModelSearch(m); setTradeModelOpen(false) }}
+                        <div key={m}
+                          onTouchStart={() => { setPd('iphone_entrada','model',m); setTradeModelSearch(m); setTradeModelOpen(false) }}
+                          onMouseDown={() => { setPd('iphone_entrada','model',m); setTradeModelSearch(m); setTradeModelOpen(false) }}
                           style={{ padding:'9px 14px', fontSize:13, cursor:'pointer', color:T.ink2, borderBottom:`1px solid ${T.ink6}` }}
                           onMouseEnter={e => e.currentTarget.style.background = T.ink6}
                           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>

@@ -6,7 +6,8 @@ import { formatCurrencyInput } from '../utils/formatters'
 import { validateIMEI } from '../utils/validators'
 import {
   ArrowLeft, ChevronRight, Check, Smartphone, Wrench, Zap, CreditCard,
-  Banknote, Loader2, Send, Search, AlertCircle, CheckCircle2, X, ChevronDown, User, Phone
+  Banknote, Loader2, Send, Search, AlertCircle, CheckCircle2, X, ChevronDown, User, Phone,
+  ShoppingBag, Plus
 } from 'lucide-react'
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
@@ -81,6 +82,16 @@ const PAY_OPTS = [
 ]
 const PARCELAS = [1,2,3,4,5,6,7,8,9,10,11,12]
 
+const ACCESSORY_OPTIONS = [
+  { label:'Película 3D',         icon:'🛡️' },
+  { label:'Película Privativa',  icon:'🛡️' },
+  { label:'Cabo Tipo C/C',       icon:'🔗' },
+  { label:'Cabo Tipo C/Lightning', icon:'🔗' },
+  { label:'Capa Personalizada',  icon:'📱' },
+  { label:'Carregador',          icon:'🔌' },
+  { label:'Powerbank',           icon:'🔋' },
+]
+
 // ── Utils ─────────────────────────────────────────────────────────────────────
 const parseVal = (s) => parseFloat((s||'0').replace(/\./g,'').replace(',','.')) || 0
 const fmtNum   = (n) => n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})
@@ -109,6 +120,157 @@ const TextInput = ({ value, onChange, placeholder, err, style={}, ...rest }) => 
     style={{ width:'100%', padding:'11px 14px', border:'none', outline:'none', fontSize:14, color:T.ink, background:'transparent', fontFamily:'Instrument Sans,sans-serif', ...style }}
     {...rest}/>
 )
+
+// ── AccessoryPickerSheet — bottom sheet Apple light, nativo do sistema ────────
+const ICON_FALLBACK = { bg:'#F3F4F6', color:'#6B7280', glyph:'📦' }
+const ICON_MAP_ACC = {
+  'Película 3D':            { bg:'#EEF4FF', glyph:'🛡️' },
+  'Película Privativa':     { bg:'#EEF4FF', glyph:'🕶️' },
+  'Cabo Tipo C/C':          { bg:'#EDFAF3', glyph:'🔗' },
+  'Cabo Tipo C/Lightning':  { bg:'#EDFAF3', glyph:'⚡' },
+  'Capa Personalizada':     { bg:'#F5F0FF', glyph:'📱' },
+  'Carregador':             { bg:'#FFF8E7', glyph:'🔌' },
+  'Powerbank':              { bg:'#EDFAF3', glyph:'🔋' },
+}
+
+function AccessoryPickerSheet({ open, current, onSelect, onClose, catalogItems = [] }) {
+  useEffect(() => {
+    if (open) document.body.style.overflow = 'hidden'
+    else       document.body.style.overflow = ''
+    return () => { document.body.style.overflow = '' }
+  }, [open])
+
+  if (!open) return null
+
+  // Usa catálogo dinâmico se disponível, senão usa lista fixa
+  const items = catalogItems.length > 0
+    ? catalogItems.map(m => ({
+        label: m.name,
+        bg:    ICON_MAP_ACC[m.name]?.glyph ? ICON_MAP_ACC[m.name].bg : '#F3F4F6',
+        glyph: ICON_MAP_ACC[m.name]?.glyph || '📦',
+      }))
+    : ACCESSORY_OPTIONS.map(o => ({
+        label: o.label,
+        bg:    ICON_MAP_ACC[o.label]?.bg    || '#F3F4F6',
+        glyph: ICON_MAP_ACC[o.label]?.glyph || '📦',
+      }))
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position:'fixed', inset:0, zIndex:9999,
+        background:'rgba(0,0,0,0.32)',
+        backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
+        display:'flex', alignItems:'flex-end',
+      }}>
+      <style>{`
+        @keyframes _sheetUp { from { transform:translateY(100%); opacity:0 } to { transform:translateY(0); opacity:1 } }
+      `}</style>
+
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width:'100%',
+          background:'#F5F5F7',
+          borderRadius:'22px 22px 0 0',
+          paddingBottom:'env(safe-area-inset-bottom, 20px)',
+          boxShadow:'0 -8px 40px rgba(0,0,0,0.14)',
+          animation:'_sheetUp .26s cubic-bezier(.32,1.05,.72,.97)',
+          overflow:'hidden',
+        }}>
+
+        {/* Handle */}
+        <div style={{ display:'flex', justifyContent:'center', paddingTop:12, paddingBottom:4 }}>
+          <div style={{ width:36, height:4, borderRadius:99, background:'#D1D1D6' }}/>
+        </div>
+
+        {/* Header */}
+        <div style={{
+          display:'flex', alignItems:'center', justifyContent:'space-between',
+          padding:'10px 20px 12px',
+        }}>
+          <span style={{
+            fontSize:17, fontWeight:700, color:T.ink,
+            fontFamily:'Instrument Sans,sans-serif', letterSpacing:'-0.3px',
+          }}>
+            Acessório
+          </span>
+          <button onClick={onClose} style={{
+            width:30, height:30, borderRadius:99,
+            background:T.ink6, border:'none', cursor:'pointer',
+            display:'flex', alignItems:'center', justifyContent:'center',
+            color:T.ink3,
+          }}>
+            <X size={15}/>
+          </button>
+        </div>
+
+        {/* Options — card branco com separadores */}
+        <div style={{
+          margin:'0 16px 16px',
+          background:T.white,
+          borderRadius:14,
+          border:`1px solid ${T.ink6}`,
+          overflow:'hidden',
+          boxShadow:'0 1px 4px rgba(0,0,0,0.05)',
+          maxHeight:'55vh',
+          overflowY:'auto',
+        }}>
+          {items.map((opt, i) => {
+            const active = current === opt.label
+            return (
+              <button
+                key={opt.label}
+                onClick={() => { onSelect(opt.label); onClose() }}
+                style={{
+                  width:'100%', display:'flex', alignItems:'center', gap:13,
+                  padding:'13px 16px',
+                  background: active ? T.blueL : T.white,
+                  border:'none', cursor:'pointer',
+                  borderBottom: i < items.length - 1 ? `1px solid ${T.ink6}` : 'none',
+                  fontFamily:'Instrument Sans,sans-serif',
+                  transition:'background .1s',
+                }}>
+                <div style={{
+                  width:38, height:38, borderRadius:10, flexShrink:0,
+                  background: opt.bg,
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  fontSize:19,
+                }}>
+                  {opt.glyph}
+                </div>
+                <span style={{
+                  flex:1, textAlign:'left',
+                  fontSize:15, fontWeight: active ? 700 : 500,
+                  color: active ? T.blue : T.ink,
+                  letterSpacing:'-0.15px',
+                }}>
+                  {opt.label}
+                </span>
+                {active
+                  ? (
+                    <div style={{
+                      width:24, height:24, borderRadius:99, background:T.blue, flexShrink:0,
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                    }}>
+                      <Check size={13} color="#FFF" strokeWidth={3}/>
+                    </div>
+                  ) : (
+                    <div style={{
+                      width:24, height:24, borderRadius:99, flexShrink:0,
+                      border:`1.5px solid ${T.ink5}`,
+                    }}/>
+                  )
+                }
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // ── CapacityPicker — grid de chips com wrap (todos visíveis) ──
 function CapacityPicker({ value, onChange, options }) {
@@ -369,10 +531,14 @@ function ModelSearch({ value, onSelect, err, models }) {
 }
 
 // ── Step 2 — Manutenção ───────────────────────────────────────────────────────
-function StepServico({ form, set, errors, models }) {
+function StepServico({ form, set, errors, models, outroModels = [] }) {
   const [q, setQ] = useState('')
   const [openCat, setOpenCat] = useState(null)
   const selected = form.service_types || []
+
+  const allModels = outroModels.length > 0
+    ? [...(models || []), { series:'Outro produto Apple', year:'', m: outroModels.map(m => m.name) }]
+    : (models || [])
 
   const groups = q
     ? SERVICOS.map(g => ({ ...g, items: g.items.filter(i => i.toLowerCase().includes(q.toLowerCase())) })).filter(g => g.items.length > 0)
@@ -386,7 +552,7 @@ function StepServico({ form, set, errors, models }) {
     <div style={{ display:'flex', flexDirection:'column', gap:22 }}>
       <div>
         <Label required>Modelo do aparelho</Label>
-        <ModelSearch value={form.iphone_model} onSelect={v => set('iphone_model', v)} err={errors.iphone_model} models={models || []}/>
+        <ModelSearch value={form.iphone_model} onSelect={v => set('iphone_model', v)} err={errors.iphone_model} models={allModels}/>
         <ErrMsg msg={errors.iphone_model}/>
       </div>
 
@@ -548,12 +714,17 @@ function StepServico({ form, set, errors, models }) {
 }
 
 // ── Step 2 — Venda ────────────────────────────────────────────────────────────
-function StepProduto({ form, set, errors, models }) {
+function StepProduto({ form, set, errors, models, outroModels = [] }) {
+  // Adiciona "Outro produto Apple" como grupo extra no seletor se houver itens
+  const allModels = outroModels.length > 0
+    ? [...(models || []), { series:'Outro produto Apple', year:'', m: outroModels.map(m => m.name) }]
+    : (models || [])
+
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:22 }}>
       <div>
         <Label required>Modelo do iPhone</Label>
-        <ModelSearch value={form.iphone_model} onSelect={v => set('iphone_model', v)} err={errors.iphone_model} models={models || []}/>
+        <ModelSearch value={form.iphone_model} onSelect={v => set('iphone_model', v)} err={errors.iphone_model} models={allModels}/>
         <ErrMsg msg={errors.iphone_model}/>
       </div>
 
@@ -657,25 +828,247 @@ function StepProduto({ form, set, errors, models }) {
   )
 }
 
+
+// ── Step 2 — Acessório / Outro produto ───────────────────────────────────────
+function StepAcessorio({ form, set, errors, models, accessoryModels = [] }) {
+  const [pickerIdx, setPickerIdx] = useState(null)
+
+  // Usa modelos da API se disponível
+  const catalogItems = accessoryModels.length > 0
+    ? accessoryModels
+    : (models || []).filter(m => m.category === 'acessorio' || m.category === 'outro')
+
+  const items = form.accessories || []  // [{ name, price }]
+
+  const addItem = (item) => {
+    set('accessories', [...items, { name: item.name, price: item.suggested_price ? String(item.suggested_price) : '' }])
+  }
+
+  const removeItem = (idx) => {
+    set('accessories', items.filter((_, i) => i !== idx))
+  }
+
+  const updateItem = (idx, field, value) => {
+    const updated = items.map((item, i) => i === idx ? { ...item, [field]: value } : item)
+    set('accessories', updated)
+  }
+
+  const addCustom = () => {
+    const newIdx = items.length
+    set('accessories', [...items, { name: '', price: '' }])
+    setTimeout(() => setPickerIdx(newIdx), 50)
+  }
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:22 }}>
+
+      <AccessoryPickerSheet
+        open={pickerIdx !== null}
+        current={pickerIdx !== null ? (items[pickerIdx]?.name || '') : ''}
+        onSelect={name => pickerIdx !== null && updateItem(pickerIdx, 'name', name)}
+        onClose={() => setPickerIdx(null)}
+        catalogItems={catalogItems}
+      />
+      {catalogItems.length > 0 && (
+        <div>
+          <Label>Adicionar do catálogo</Label>
+          <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
+            {catalogItems.map(item => (
+              <button key={item.id} onClick={() => addItem(item)} style={{
+                padding:'8px 14px', borderRadius:999, border:`1.5px solid ${T.ink5}`,
+                background: T.white, cursor:'pointer', fontSize:12, fontWeight:600,
+                color: T.ink, fontFamily:'Instrument Sans,sans-serif',
+                display:'flex', alignItems:'center', gap:6, transition:'all .15s',
+              }}>
+                <span style={{ fontSize:14 }}>
+                  {item.name.includes('Película') ? '🛡️'
+                    : item.name.includes('Carregador') || item.name.includes('Fonte') ? '🔌'
+                    : item.name.includes('Cabo') ? '🔗'
+                    : item.name.includes('Capa') ? '📱'
+                    : item.name.includes('Fone') ? '🎧'
+                    : item.name.includes('Powerbank') ? '🔋'
+                    : '📦'}
+                </span>
+                {item.name}
+                {item.suggested_price && (
+                  <span style={{ color:T.ink4, fontWeight:400 }}>
+                    · R$ {Number(item.suggested_price).toLocaleString('pt-BR', { minimumFractionDigits:2 })}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Lista de itens adicionados */}
+      <div>
+        <Label required>Itens da venda</Label>
+        {items.length === 0 && (
+          <div style={{ padding:'20px 16px', textAlign:'center', background:T.bg, borderRadius:10,
+            border:`1.5px dashed ${errors.accessories ? T.red : T.ink5}`, color:T.ink4, fontSize:13 }}>
+            Nenhum item adicionado. Selecione do catálogo ou adicione manualmente.
+          </div>
+        )}
+        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+          {items.map((item, idx) => (
+            <div key={idx} style={{ display:'flex', alignItems:'center', gap:8,
+              background:'#fff', border:`1px solid ${T.ink6}`, borderRadius:10, padding:'10px 12px' }}>
+              <div style={{ flex:1 }}>
+                {/* Trigger do picker */}
+                <button
+                  onClick={() => setPickerIdx(idx)}
+                  style={{
+                    width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between',
+                    border:'none', background:'transparent', cursor:'pointer', padding:'0 0 4px',
+                    fontFamily:'Instrument Sans,sans-serif',
+                  }}>
+                  <span style={{ fontSize:13, color: item.name ? T.ink : T.ink4, fontWeight: item.name ? 600 : 400 }}>
+                    {item.name || 'Selecionar acessório'}
+                  </span>
+                  <ChevronDown size={13} color={T.ink4}/>
+                </button>
+                <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                  <span style={{ fontSize:12, color:T.ink4 }}>R$</span>
+                  <input
+                    value={item.price}
+                    onChange={e => updateItem(idx, 'price', e.target.value.replace(/[^0-9,\.]/g, ''))}
+                    placeholder="0,00"
+                    style={{ border:'none', outline:'none', fontSize:13, fontWeight:600,
+                      color:T.ink, background:'transparent', fontFamily:'JetBrains Mono,monospace',
+                      width:80 }}
+                  />
+                </div>
+              </div>
+              <button onClick={() => removeItem(idx)} style={{
+                background:'none', border:'none', cursor:'pointer', color:T.red,
+                padding:4, borderRadius:6, display:'flex', alignItems:'center',
+              }}>
+                <X size={15}/>
+              </button>
+            </div>
+          ))}
+        </div>
+        <ErrMsg msg={errors.accessories}/>
+      </div>
+
+      {/* Botão adicionar item manual */}
+      <button onClick={addCustom} style={{
+        display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+        width:'100%', padding:'11px', borderRadius:10, border:`1.5px dashed ${T.ink5}`,
+        background:'transparent', cursor:'pointer', fontSize:13, fontWeight:600,
+        color:T.ink3, fontFamily:'Instrument Sans,sans-serif', transition:'all .15s',
+      }}>
+        <Plus size={14}/> Adicionar item manualmente
+      </button>
+
+      {/* Origem */}
+      <div>
+        <Label required>Como o cliente chegou até nós?</Label>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+          {[
+            { v:'Instagram',    emoji:'📸', desc:'Veio pelo Instagram' },
+            { v:'Indicação',    emoji:'🗣️', desc:'Foi indicado por alguém' },
+            { v:'Já é cliente', emoji:'⭐', desc:'Cliente que já comprou antes', full: true },
+          ].map(opt => {
+            const on = form.lead_source === opt.v
+            return (
+              <button key={opt.v} onClick={() => set('lead_source', opt.v)} style={{
+                gridColumn: opt.full ? '1 / -1' : undefined,
+                padding:'14px', borderRadius:12, cursor:'pointer', textAlign:'left',
+                border:`1.5px solid ${errors.lead_source ? T.red : on ? T.blue : T.ink5}`,
+                background: on ? T.blueL : T.white,
+                transition:'all .15s', display:'flex', alignItems:'center', gap:10,
+                fontFamily:'Instrument Sans,sans-serif',
+              }}>
+                <div style={{ width:30, height:30, borderRadius:8, fontSize:15,
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  background: on ? 'rgba(10,102,255,0.12)' : T.ink6 }}>{opt.emoji}</div>
+                <div>
+                  <div style={{ fontSize:13, fontWeight:700, color: on ? T.blue : T.ink }}>{opt.v}</div>
+                  <div style={{ fontSize:11, color: on ? T.blue : T.ink4, opacity: on ? 0.7 : 1 }}>{opt.desc}</div>
+                </div>
+                {on && (
+                  <div style={{ marginLeft:'auto', width:18, height:18, borderRadius:'50%',
+                    background:T.blue, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                    <Check size={10} style={{ color:'#fff' }}/>
+                  </div>
+                )}
+              </button>
+            )
+          })}
+        </div>
+        <ErrMsg msg={errors.lead_source}/>
+      </div>
+    </div>
+  )
+}
+
 // ── Step 3 — Pagamento ────────────────────────────────────────────────────────
-function StepPagamento({ form, set, errors, isManut, models }) {
-  const [pd, setPdState] = useState({
+function StepPagamento({ form, set, errors, isManut, models, accessoryModels = [] }) {
+  const [pickerIdx, setPickerIdx] = useState(null)
+
+  // Acessórios adicionados na venda
+  const accessories    = form.accessories || []
+  const accessoriesTotal = accessories.reduce((sum, a) => {
+    return sum + (parseFloat(String(a.price || '0').replace(',', '.')) || 0)
+  }, 0)
+
+  const catalogItems = accessoryModels.length > 0
+    ? accessoryModels
+    : (models || []).filter(m => m.category === 'acessorio' || m.category === 'outro')
+
+  const addAccessory = (item) => {
+    const price = item.suggested_price
+      ? String(Number(item.suggested_price).toFixed(2)).replace('.', ',')
+      : ''
+    set('accessories', [...accessories, { name: item.name, price }])
+  }
+  const removeAccessory = (idx) => set('accessories', accessories.filter((_, i) => i !== idx))
+  const updateAccessory = (idx, field, value) => {
+    set('accessories', accessories.map((a, i) => i === idx ? { ...a, [field]: value } : a))
+  }
+  const addCustom = () => {
+    const newIdx = accessories.length
+    set('accessories', [...accessories, { name: '', price: '' }])
+    setTimeout(() => setPickerIdx(newIdx), 50)
+  }
+
+  const PD_DEFAULTS = {
     pix:             { value:'' },
     dinheiro:        { value:'' },
     cartao_credito:  { value:'', parcelas:'1' },
     cartao_debito:   { value:'' },
     iphone_entrada:  { value:'', model:'', capacity:'', color:'', imei:'' },
-  })
-  const [tradeModelSearch, setTradeModelSearch] = useState('')
+  }
+
+  // pd é derivado diretamente do form — sem estado local duplicado
+  // Isso garante que nunca há dessincronismo entre o que é exibido e o que é enviado
+  const rawPd = (form.payment_details && typeof form.payment_details === 'object' && Object.keys(form.payment_details).length > 0)
+    ? form.payment_details
+    : PD_DEFAULTS
+  const pd = {
+    pix:            { ...PD_DEFAULTS.pix,            ...(rawPd.pix            || {}) },
+    dinheiro:       { ...PD_DEFAULTS.dinheiro,       ...(rawPd.dinheiro       || {}) },
+    cartao_credito: { ...PD_DEFAULTS.cartao_credito, ...(rawPd.cartao_credito || {}) },
+    cartao_debito:  { ...PD_DEFAULTS.cartao_debito,  ...(rawPd.cartao_debito  || {}) },
+    iphone_entrada: { ...PD_DEFAULTS.iphone_entrada, ...(rawPd.iphone_entrada || {}) },
+  }
+
+  const [tradeModelSearch, setTradeModelSearch] = useState(pd.iphone_entrada.model || '')
   const [tradeModelOpen, setTradeModelOpen] = useState(false)
 
-  const setPd = (m, f, v) => setPdState(p => ({ ...p, [m]: { ...p[m], [f]: v } }))
+  const setPd = (m, f, v) => {
+    const next = { ...pd, [m]: { ...pd[m], [f]: v } }
+    set('payment_details', next)
+  }
 
   const togglePay = (v) => set('payment_methods',
     form.payment_methods.includes(v) ? form.payment_methods.filter(x => x !== v) : [...form.payment_methods, v]
   )
 
-  const total       = parseVal(form.price)
+  const basePrice   = parseVal(form.price)
+  const total       = basePrice + accessoriesTotal
   const tradeVal    = form.payment_methods.includes('iphone_entrada') ? parseVal(pd.iphone_entrada.value) : 0
   const cashTotal   = Math.max(0, total - tradeVal)
   const cashMethods = form.payment_methods.filter(m => m !== 'iphone_entrada')
@@ -703,6 +1096,14 @@ function StepPagamento({ form, set, errors, isManut, models }) {
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:22 }}>
+
+      <AccessoryPickerSheet
+        open={pickerIdx !== null}
+        current={pickerIdx !== null ? (accessories[pickerIdx]?.name || '') : ''}
+        onSelect={name => pickerIdx !== null && updateAccessory(pickerIdx, 'name', name)}
+        onClose={() => setPickerIdx(null)}
+        catalogItems={catalogItems}
+      />
 
       {/* Valor + Garantia */}
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
@@ -780,7 +1181,13 @@ function StepPagamento({ form, set, errors, isManut, models }) {
                   value={pd.iphone_entrada.model || tradeModelSearch}
                   onChange={e => { setTradeModelSearch(e.target.value); setPd('iphone_entrada','model',''); setTradeModelOpen(true) }}
                   onFocus={() => setTradeModelOpen(true)}
-                  onBlur={() => setTimeout(() => setTradeModelOpen(false), 180)}
+                  onBlur={() => {
+                    setTimeout(() => setTradeModelOpen(false), 180)
+                    // Se digitou mas não selecionou do dropdown, salva o texto como modelo
+                    if (tradeModelSearch && !pd.iphone_entrada.model) {
+                      setPd('iphone_entrada', 'model', tradeModelSearch)
+                    }
+                  }}
                   placeholder="Buscar modelo..."
                   autoComplete="off"
                 />
@@ -791,7 +1198,9 @@ function StepPagamento({ form, set, errors, isManut, models }) {
                     <div key={g.s}>
                       <div style={{ padding:'6px 14px 3px', fontSize:10, fontWeight:700, color:T.ink4, textTransform:'uppercase', background:T.bg }}>{g.s}</div>
                       {g.m.map(m => (
-                        <div key={m} onMouseDown={() => { setPd('iphone_entrada','model',m); setTradeModelSearch(m); setTradeModelOpen(false) }}
+                        <div key={m}
+                          onTouchStart={() => { setPd('iphone_entrada','model',m); setTradeModelSearch(m); setTradeModelOpen(false) }}
+                          onMouseDown={() => { setPd('iphone_entrada','model',m); setTradeModelSearch(m); setTradeModelOpen(false) }}
                           style={{ padding:'9px 14px', fontSize:13, cursor:'pointer', color:T.ink2, borderBottom:`1px solid ${T.ink6}` }}
                           onMouseEnter={e => e.currentTarget.style.background = T.ink6}
                           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
@@ -841,7 +1250,7 @@ function StepPagamento({ form, set, errors, isManut, models }) {
               </div>
             </div>
 
-            {tradeVal > 0 && total > 0 && (
+            {tradeVal > 0 && total > 0 && !balanced && (
               <div style={{ background:T.amberL, border:`1px solid #FDE68A`, borderRadius:8, padding:'9px 13px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                 <span style={{ fontSize:12, color:T.amber, fontWeight:500 }}>Restante a pagar</span>
                 <span style={{ fontSize:14, fontWeight:700, color:T.amber }}>R$ {fmtNum(cashTotal)}</span>
@@ -951,6 +1360,79 @@ function StepPagamento({ form, set, errors, isManut, models }) {
         </div>
       )}
 
+
+      {/* ── Acessórios ──────────────────────────────────────────── */}
+      <div>
+        <Label>Acessórios incluídos na venda</Label>
+
+        {/* Lista dos adicionados */}
+        {accessories.length > 0 && (
+          <div style={{ display:'flex', flexDirection:'column', gap:6, marginBottom:8 }}>
+            {accessories.map((item, idx) => (
+              <div key={idx} style={{ display:'flex', alignItems:'center', gap:8,
+                background:T.white, border:`1px solid ${T.ink6}`, borderRadius:10,
+                padding:'9px 12px' }}>
+                <div style={{ flex:1 }}>
+                  {/* Trigger do picker */}
+                  <button
+                    onClick={() => setPickerIdx(idx)}
+                    style={{
+                      width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between',
+                      border:'none', background:'transparent', cursor:'pointer', padding:'0 0 4px',
+                      fontFamily:'Instrument Sans,sans-serif',
+                    }}>
+                    <span style={{ fontSize:13, color: item.name ? T.ink : T.ink4, fontWeight: item.name ? 600 : 400 }}>
+                      {item.name || 'Selecionar acessório'}
+                    </span>
+                    <ChevronDown size={13} color={T.ink4}/>
+                  </button>
+                  <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                    <span style={{ fontSize:12, color:T.ink4 }}>R$</span>
+                    <input
+                      value={item.price}
+                      onChange={e => updateAccessory(idx, 'price', e.target.value.replace(/[^0-9,\.]/g,''))}
+                      placeholder="0,00"
+                      style={{ border:'none', outline:'none', fontSize:13, fontWeight:700,
+                        color:T.ink, background:'transparent',
+                        fontFamily:'JetBrains Mono,monospace', width:80 }}
+                    />
+                  </div>
+                </div>
+                <button onClick={() => removeAccessory(idx)} style={{
+                  background:'none', border:'none', cursor:'pointer',
+                  color:T.red, padding:4, borderRadius:6,
+                  display:'flex', alignItems:'center',
+                }}>
+                  <X size={14}/>
+                </button>
+              </div>
+            ))}
+
+            {/* Subtotal acessórios */}
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
+              padding:'8px 12px', background:T.blueL, borderRadius:8,
+              border:`1px solid rgba(10,102,255,0.15)` }}>
+              <span style={{ fontSize:12, color:T.blue, fontWeight:500 }}>
+                + {accessories.length} acessório{accessories.length > 1 ? 's' : ''}
+              </span>
+              <span style={{ fontSize:13, fontWeight:700, color:T.blue }}>
+                + R$ {accessoriesTotal.toLocaleString('pt-BR', { minimumFractionDigits:2 })}
+              </span>
+            </div>
+          </div>
+        )}
+
+        <button onClick={addCustom} style={{
+          display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+          width:'100%', padding:'10px', borderRadius:10,
+          border:`1.5px dashed ${T.ink5}`, background:'transparent',
+          cursor:'pointer', fontSize:12, fontWeight:600, color:T.ink3,
+          fontFamily:'Instrument Sans,sans-serif', transition:'all .15s',
+        }}>
+          <Plus size={13}/> Adicionar acessório
+        </button>
+      </div>
+
       {/* Observações */}
       <div>
         <Label>Observações</Label>
@@ -962,19 +1444,42 @@ function StepPagamento({ form, set, errors, isManut, models }) {
       </div>
 
       {/* Resumo */}
-      {form.price && (
+      {(form.price || accessoriesTotal > 0) && (
         <div style={{ background:T.ink, borderRadius:12, padding:'18px 20px' }}>
           <div style={{ fontSize:10, fontWeight:700, letterSpacing:'1px', color:'rgba(255,255,255,0.35)', textTransform:'uppercase', marginBottom:12 }}>Resumo</div>
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8 }}>
+
+          {/* Linha produto/serviço */}
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:6 }}>
             <span style={{ fontSize:13, color:'rgba(255,255,255,0.55)', maxWidth:'60%', lineHeight:1.4 }}>
               {isManut
                 ? (form.service_types?.slice(0,2).join(', ') || 'Manutenção') + (form.service_types?.length > 2 ? ` +${form.service_types.length - 2}` : '')
                 : `${form.iphone_model || '—'} ${form.capacity || ''}${form.condition_sale ? ' · ' + (form.condition_sale === 'lacrado' ? '📦 Lacrado' : '✨ Seminovo') : ''}`}
             </span>
-            <span style={{ fontSize:20, fontWeight:700, color:T.white, letterSpacing:'-0.5px' }}>R$ {form.price}</span>
+            <span style={{ fontSize:18, fontWeight:700, color:T.white, letterSpacing:'-0.5px' }}>R$ {form.price || '0,00'}</span>
           </div>
+
+          {/* Acessórios */}
+          {accessories.length > 0 && accessories.map((a, i) => (
+            <div key={i} style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
+              <span style={{ fontSize:12, color:'rgba(255,255,255,0.4)' }}>{a.name || 'Acessório'}</span>
+              <span style={{ fontSize:12, color:'rgba(255,255,255,0.6)', fontWeight:600 }}>
+                + R$ {a.price || '0,00'}
+              </span>
+            </div>
+          ))}
+
+          {/* Total com acessórios */}
+          {accessoriesTotal > 0 && (
+            <div style={{ display:'flex', justifyContent:'space-between', paddingTop:8,
+              borderTop:'1px solid rgba(255,255,255,0.08)', marginBottom:6, marginTop:4 }}>
+              <span style={{ fontSize:13, color:'rgba(255,255,255,0.65)', fontWeight:600 }}>Total</span>
+              <span style={{ fontSize:18, fontWeight:700, color:'#60A5FA' }}>R$ {fmtNum(total)}</span>
+            </div>
+          )}
+
+          {/* iPhone entrada */}
           {tradeVal > 0 && (
-            <div style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
               <span style={{ fontSize:12, color:'rgba(255,255,255,0.4)' }}>
                 iPhone entrada ({pd.iphone_entrada.model || '—'})
               </span>
@@ -982,11 +1487,12 @@ function StepPagamento({ form, set, errors, isManut, models }) {
             </div>
           )}
           {tradeVal > 0 && (
-            <div style={{ display:'flex', justifyContent:'space-between', paddingTop:8, borderTop:'1px solid rgba(255,255,255,0.08)', marginBottom:8 }}>
-              <span style={{ fontSize:13, color:'rgba(255,255,255,0.65)', fontWeight:600 }}>Total a pagar</span>
+            <div style={{ display:'flex', justifyContent:'space-between', paddingTop:8, borderTop:'1px solid rgba(255,255,255,0.08)', marginBottom:6 }}>
+              <span style={{ fontSize:13, color:'rgba(255,255,255,0.65)', fontWeight:600 }}>A pagar</span>
               <span style={{ fontSize:16, fontWeight:700, color:'#86EFAC' }}>R$ {fmtNum(cashTotal)}</span>
             </div>
           )}
+
           <div style={{ height:1, background:'rgba(255,255,255,0.08)', margin:'8px 0' }}/>
           <div style={{ display:'flex', justifyContent:'space-between' }}>
             <span style={{ fontSize:11, color:'rgba(255,255,255,0.35)' }}>
@@ -1008,15 +1514,22 @@ export default function NewOrderPage() {
   const [searchParams] = useSearchParams()
   const createOrder = useCreateOrder()
 
+  const [allModels,    setAllModels]    = useState([])
   const [iphoneModels, setIphoneModels] = useState(IPHONE_MODELS_STATIC)
   useEffect(() => {
     adminService.activeModels()
       .then(r => {
-        const grouped = groupModels(r.data?.data || [])
+        const data = r.data?.data || []
+        setAllModels(data)
+        const grouped = groupModels(data.filter(m => m.category === 'iphone' || !m.category))
         if (grouped.length > 0) setIphoneModels(grouped)
       })
       .catch(() => {})
   }, [])
+
+  // Modelos por categoria para os pickers
+  const accessoryModels = allModels.filter(m => m.category === 'acessorio')
+  const outroModels     = allModels.filter(m => m.category === 'outro')
 
   const [step, setStep] = useState(1)
   const [errors, setErrors] = useState({})
@@ -1024,10 +1537,12 @@ export default function NewOrderPage() {
     client_id: searchParams.get('client_id') || '', type:'venda', iphone_model:'', capacity:'', color:'',
     imei:'', price:'', warranty_months:'', notes:'', condition_sale:'', lead_source:'',
     payment_methods:[], service_types:[], problem_description:'', device_condition:'',
+    accessories:[],        // [{ name, price }] — para tipo 'acessorio'
+    payment_details: {},   // { pix:{value}, iphone_entrada:{value,model,...}, ... }
   })
 
   const set = (k, v) => { setForm(f => ({ ...f, [k]:v })); setErrors(e => ({ ...e, [k]:'' })) }
-  const isManut = form.type === 'manutencao'
+  const isManut    = form.type === 'manutencao'
 
   const stepLabels = [
     { n:1, l:'Cliente' },
@@ -1060,6 +1575,9 @@ export default function NewOrderPage() {
 
   const handleSubmit = async () => {
     if (!validate()) return
+
+    console.log('DEBUG:', JSON.stringify({ pd: form.payment_details, acc: form.accessories }, null, 2))
+
     const noteParts = []
     if (isManut && form.service_types?.length) noteParts.push(`Serviços: ${form.service_types.join(', ')}`)
     if (isManut && form.problem_description) noteParts.push(`Problema: ${form.problem_description}`)
@@ -1070,18 +1588,60 @@ export default function NewOrderPage() {
     if (!isManut && form.lead_source) noteParts.push(`Origem: ${form.lead_source}`)
     if (form.notes) noteParts.push(form.notes)
 
+    // Acessórios estruturados
+    const accessories = (form.accessories || [])
+      .filter(a => a.name)
+      .map(a => ({ name: a.name, price: parseFloat(String(a.price||'0').replace(',','.')) || 0 }))
+
+    const accTotal = accessories.reduce((s, a) => s + a.price, 0)
+
+    // payment_details: garante valor do método auto-calculado
+    const pdBase = (form.payment_details && Object.keys(form.payment_details).length > 0)
+      ? form.payment_details
+      : {}
+
+    const _parsePD = (v) => {
+      if (!v) return 0
+      if (typeof v === 'number') return isNaN(v) ? 0 : v
+      const n = parseFloat(String(v).replace(/\./g,'').replace(',','.'))
+      return isNaN(n) ? 0 : n
+    }
+
+    const tradeValFinal  = (form.payment_methods.includes('iphone_entrada')) ? _parsePD(pdBase.iphone_entrada?.value) : 0
+    const cashTotalFinal = Math.max(0, parseVal(form.price) + accTotal - tradeValFinal)
+    const cashMs         = form.payment_methods.filter(m => m !== 'iphone_entrada')
+    const payment_details = { ...pdBase }
+
+    if (cashMs.length === 1) {
+      const m = cashMs[0]
+      if (!_parsePD(pdBase[m]?.value) && cashTotalFinal > 0) {
+        payment_details[m] = { ...(pdBase[m] || {}), value: cashTotalFinal.toFixed(2).replace('.', ',') }
+      }
+    } else if (cashMs.length > 1) {
+      const zeroMs = cashMs.filter(m => _parsePD(pdBase[m]?.value) === 0)
+      if (zeroMs.length === 1) {
+        const sumOthers = cashMs.filter(m => m !== zeroMs[0]).reduce((s, m) => s + _parsePD(pdBase[m]?.value), 0)
+        const autoVal   = Math.max(0, cashTotalFinal - sumOthers)
+        payment_details[zeroMs[0]] = { ...(pdBase[zeroMs[0]] || {}), value: autoVal.toFixed(2).replace('.', ',') }
+      }
+    }
+    
+
+    console.log('SENDING:', JSON.stringify({ accessories, payment_details }, null, 2))
     await createOrder.mutateAsync({
-      client_id:      form.client_id,
-      type:           form.type,
-      iphone_model:   form.iphone_model,
-      capacity:       form.capacity || undefined,
-      color:          form.color || undefined,
-      imei:           form.imei || undefined,
-      price:          parseVal(form.price),
+      client_id:       form.client_id,
+      type:            form.type,
+      iphone_model:    form.iphone_model,
+      capacity:        form.capacity  || undefined,
+      color:           form.color     || undefined,
+      imei:            form.imei      || undefined,
+      price:           parseVal(form.price) + accTotal,
       warranty_months: parseInt(form.warranty_months) || (isManut ? 3 : 12),
       payment_methods: form.payment_methods,
-      notes:          noteParts.join('\n') || undefined,
-      condition_sale: !isManut ? form.condition_sale || undefined : undefined,
+      notes:           noteParts.join('\n') || undefined,
+      condition_sale:  !isManut ? form.condition_sale || undefined : undefined,
+      accessories,
+      payment_details,
     })
   }
 
@@ -1148,13 +1708,14 @@ export default function NewOrderPage() {
               <Label required>Tipo de atendimento</Label>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
                 {[
-                  { v:'venda',     l:'Venda',      desc:'iPhone novo ou usado', icon:Smartphone },
-                  { v:'manutencao',l:'Manutenção',  desc:'Reparo ou serviço técnico', icon:Wrench },
+                  { v:'venda',     l:'Venda',      desc:'iPhone novo ou usado',     icon:Smartphone },
+                  { v:'manutencao',l:'Manutenção', desc:'Reparo ou serviço técnico', icon:Wrench },
                 ].map(t => {
                   const on = form.type === t.v
                   return (
-                    <button key={t.v} onClick={() => set('type', t.v)}
+                    <button key={t.v} onClick={() => { set('type', t.v); set('accessories', []); set('iphone_model', '') }}
                       style={{
+                        gridColumn: t.full ? '1 / -1' : undefined,
                         padding:'18px 16px', borderRadius:10, cursor:'pointer', textAlign:'left',
                         border:`1.5px solid ${on ? T.ink : T.ink5}`,
                         background: on ? T.ink : T.white,
@@ -1181,11 +1742,11 @@ export default function NewOrderPage() {
         )}
 
         {step === 2 && (isManut
-          ? <StepServico form={form} set={set} errors={errors} models={iphoneModels}/>
-          : <StepProduto form={form} set={set} errors={errors} models={iphoneModels}/>
+          ? <StepServico  form={form} set={set} errors={errors} models={iphoneModels} outroModels={outroModels}/>
+          : <StepProduto  form={form} set={set} errors={errors} models={iphoneModels} outroModels={outroModels}/>
         )}
 
-        {step === 3 && <StepPagamento form={form} set={set} errors={errors} isManut={isManut} models={iphoneModels}/>}
+        {step === 3 && <StepPagamento form={form} set={set} errors={errors} isManut={isManut} models={iphoneModels} accessoryModels={accessoryModels}/>}
 
         {/* Navigation */}
         <div style={{ display:'flex', gap:10, marginTop:28, paddingTop:20, borderTop:`1px solid ${T.ink6}` }}>

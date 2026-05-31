@@ -41,6 +41,18 @@ const PAY = {
   iphone_entrada: 'iPhone entrada',
 }
 
+// Converte strings formatadas em BRL para número: '1.500,00' → 1500
+const parseBRL = (v) => {
+  if (!v) return 0
+  if (typeof v === 'number') return isNaN(v) ? 0 : v
+  const n = parseFloat(String(v).replace(/\./g, '').replace(',', '.'))
+  return isNaN(n) ? 0 : n
+}
+const parseJSON = (v, fallback) => {
+  try { return typeof v === 'object' && v !== null ? v : JSON.parse(v || JSON.stringify(fallback)) }
+  catch { return fallback }
+}
+
 // Lista preenchida via API — fallback estático mínimo
 const IPHONE_MODELS_FALLBACK = [
   'iPhone 13', 'iPhone 14', 'iPhone 15', 'iPhone 16',
@@ -836,6 +848,113 @@ function OrderDetail({ order, onClose }) {
             ))}
           </div>
         </section>
+
+        {/* Resumo Financeiro */}
+        {(() => {
+          const pd   = parseJSON(order.payment_details, {})
+          const accs = parseJSON(order.accessories, [])
+          const total       = parseFloat(order.price) || 0
+          const accTotal    = accs.reduce((s, a) => s + parseBRL(a.price), 0)
+          const tradeVal    = parseBRL(pd.iphone_entrada?.value)
+          const hasTradeIn  = payments.includes('iphone_entrada')
+          const cashMethods = payments.filter(p => p !== 'iphone_entrada')
+          const hasContent  = accs.length > 0 || hasTradeIn || cashMethods.length > 0
+
+          if (!hasContent) return null
+
+          return (
+            <section style={{ margin:'12px 20px 0' }}>
+              <div style={{ fontSize:10, fontWeight:700, color:'#9CA3AF', textTransform:'uppercase',
+                letterSpacing:'0.7px', marginBottom:8 }}>Resumo financeiro</div>
+              <div style={{ background:'#fff', borderRadius:12, border:'1px solid rgba(0,0,0,0.07)',
+                overflow:'hidden', boxShadow:'0 1px 4px rgba(0,0,0,0.04)' }}>
+
+                {/* Acessórios */}
+                {accs.map((acc, i) => (
+                  <div key={i} style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
+                    padding:'11px 16px', borderBottom:'1px solid rgba(0,0,0,0.05)' }}>
+                    <div>
+                      <div style={{ fontSize:10, color:'#9CA3AF', fontWeight:600,
+                        textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:2 }}>Acessório</div>
+                      <div style={{ fontSize:13, color:'#111827', fontWeight:500 }}>{acc.name}</div>
+                    </div>
+                    <span style={{ fontSize:13, fontWeight:600, color:'#374151',
+                      fontFamily:'JetBrains Mono,monospace' }}>{brl(acc.price)}</span>
+                  </div>
+                ))}
+
+                {/* iPhone de entrada */}
+                {hasTradeIn && (
+                  <div style={{ padding:'11px 16px', background:'#F0FDF4',
+                    borderBottom: cashMethods.length > 0 ? '1px solid rgba(134,239,172,0.4)' : 'none' }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:10, color:'#15803D', fontWeight:700,
+                          textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:4 }}>
+                          📲 iPhone como Entrada
+                        </div>
+                        <div style={{ fontSize:13, color:'#166534', fontWeight:600 }}>
+                          {[pd.iphone_entrada?.model, pd.iphone_entrada?.capacity, pd.iphone_entrada?.color]
+                            .filter(Boolean).join(' · ') || <span style={{ color:'#9CA3AF', fontWeight:400, fontStyle:'italic' }}>sem detalhes</span>}
+                        </div>
+                        {pd.iphone_entrada?.imei && (
+                          <div style={{ fontSize:11, color:'#6B7280', fontFamily:'JetBrains Mono,monospace', marginTop:3 }}>
+                            IMEI {pd.iphone_entrada.imei}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ textAlign:'right', flexShrink:0, marginLeft:16 }}>
+                        {tradeVal > 0 ? (
+                          <>
+                            <div style={{ fontSize:10, color:'#15803D', fontWeight:600,
+                              textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:2 }}>Desconto</div>
+                            <span style={{ fontSize:15, fontWeight:700, color:'#15803D',
+                              fontFamily:'JetBrains Mono,monospace' }}>– {brl(tradeVal)}</span>
+                          </>
+                        ) : (
+                          <span style={{ fontSize:11, color:'#9CA3AF', fontStyle:'italic' }}>valor n/a</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Formas de pagamento */}
+                {cashMethods.map((m, i) => {
+                  const val      = parseBRL(pd[m]?.value)
+                  const parcelas = pd[m]?.parcelas ? parseInt(pd[m].parcelas) : null
+                  return (
+                    <div key={m} style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
+                      padding:'11px 16px',
+                      borderBottom: i < cashMethods.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
+                      <div>
+                        <div style={{ fontSize:10, color:'#9CA3AF', fontWeight:600,
+                          textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:2 }}>Pagamento</div>
+                        <div style={{ fontSize:13, color:'#111827', fontWeight:500 }}>
+                          {PAY[m] || m}
+                          {m === 'cartao_credito' && parcelas && parcelas > 1 ? ` · ${parcelas}x` : ''}
+                        </div>
+                      </div>
+                      {val > 0 && (
+                        <span style={{ fontSize:13, fontWeight:600, color:'#111827',
+                          fontFamily:'JetBrains Mono,monospace' }}>{brl(val)}</span>
+                      )}
+                    </div>
+                  )
+                })}
+
+                {/* Total */}
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
+                  padding:'12px 16px', background:'#111827', marginTop:1 }}>
+                  <span style={{ fontSize:11, color:'rgba(255,255,255,0.5)', fontWeight:600,
+                    textTransform:'uppercase', letterSpacing:'0.6px' }}>Total</span>
+                  <span style={{ fontSize:18, fontWeight:700, color:'#fff', letterSpacing:'-0.5px',
+                    fontFamily:'JetBrains Mono,monospace' }}>{brl(total)}</span>
+                </div>
+              </div>
+            </section>
+          )
+        })()}
 
         {/* Ver perfil do cliente */}
         <section style={{ margin:'12px 20px 0' }}>

@@ -1,13 +1,14 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useOrders, useDownloadPDF, useOrderStats } from '../hooks/useData'
+import { useOrders, useDownloadPDF, useOrderStats, useDeleteOrder } from '../hooks/useData'
+import { useAuth } from '../context/AuthContext'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { displayCurrency, getInitials, getAvatarColor } from '../utils/formatters'
 import {
   Search, Download, X, Shield, Loader2, ChevronRight,
   Smartphone, Wrench, Mail, Copy, User, Pencil,
   TrendingUp, ClipboardList, Zap, CheckCheck, ChevronLeft,
-  ChevronDown, Phone,
+  ChevronDown, Phone, Trash2,
 } from 'lucide-react'
 import EditOrderModal from '../components/EditOrderModal'
 import { orderService, adminService } from '../services/api'
@@ -39,18 +40,6 @@ const PAY = {
   pix: 'Pix', dinheiro: 'Dinheiro',
   cartao_credito: 'Crédito', cartao_debito: 'Débito',
   iphone_entrada: 'iPhone entrada',
-}
-
-// Converte strings formatadas em BRL para número: '1.500,00' → 1500
-const parseBRL = (v) => {
-  if (!v) return 0
-  if (typeof v === 'number') return isNaN(v) ? 0 : v
-  const n = parseFloat(String(v).replace(/\./g, '').replace(',', '.'))
-  return isNaN(n) ? 0 : n
-}
-const parseJSON = (v, fallback) => {
-  try { return typeof v === 'object' && v !== null ? v : JSON.parse(v || JSON.stringify(fallback)) }
-  catch { return fallback }
 }
 
 // Lista preenchida via API — fallback estático mínimo
@@ -575,7 +564,7 @@ function CopyBtn({ value }) {
 }
 
 // ─── Order Detail Modal ───────────────────────────────────────
-function OrderDetail({ order, onClose }) {
+function OrderDetail({ order, onClose, isAdmin, onDelete }) {
   const navigate    = useNavigate()
   const downloadPDF = useDownloadPDF()
   const [editOpen,   setEditOpen]   = useState(false)
@@ -849,113 +838,6 @@ function OrderDetail({ order, onClose }) {
           </div>
         </section>
 
-        {/* Resumo Financeiro */}
-        {(() => {
-          const pd   = parseJSON(order.payment_details, {})
-          const accs = parseJSON(order.accessories, [])
-          const total       = parseFloat(order.price) || 0
-          const accTotal    = accs.reduce((s, a) => s + parseBRL(a.price), 0)
-          const tradeVal    = parseBRL(pd.iphone_entrada?.value)
-          const hasTradeIn  = payments.includes('iphone_entrada')
-          const cashMethods = payments.filter(p => p !== 'iphone_entrada')
-          const hasContent  = accs.length > 0 || hasTradeIn || cashMethods.length > 0
-
-          if (!hasContent) return null
-
-          return (
-            <section style={{ margin:'12px 20px 0' }}>
-              <div style={{ fontSize:10, fontWeight:700, color:'#9CA3AF', textTransform:'uppercase',
-                letterSpacing:'0.7px', marginBottom:8 }}>Resumo financeiro</div>
-              <div style={{ background:'#fff', borderRadius:12, border:'1px solid rgba(0,0,0,0.07)',
-                overflow:'hidden', boxShadow:'0 1px 4px rgba(0,0,0,0.04)' }}>
-
-                {/* Acessórios */}
-                {accs.map((acc, i) => (
-                  <div key={i} style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
-                    padding:'11px 16px', borderBottom:'1px solid rgba(0,0,0,0.05)' }}>
-                    <div>
-                      <div style={{ fontSize:10, color:'#9CA3AF', fontWeight:600,
-                        textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:2 }}>Acessório</div>
-                      <div style={{ fontSize:13, color:'#111827', fontWeight:500 }}>{acc.name}</div>
-                    </div>
-                    <span style={{ fontSize:13, fontWeight:600, color:'#374151',
-                      fontFamily:'JetBrains Mono,monospace' }}>{brl(acc.price)}</span>
-                  </div>
-                ))}
-
-                {/* iPhone de entrada */}
-                {hasTradeIn && (
-                  <div style={{ padding:'11px 16px', background:'#F0FDF4',
-                    borderBottom: cashMethods.length > 0 ? '1px solid rgba(134,239,172,0.4)' : 'none' }}>
-                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-                      <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontSize:10, color:'#15803D', fontWeight:700,
-                          textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:4 }}>
-                          📲 iPhone como Entrada
-                        </div>
-                        <div style={{ fontSize:13, color:'#166534', fontWeight:600 }}>
-                          {[pd.iphone_entrada?.model, pd.iphone_entrada?.capacity, pd.iphone_entrada?.color]
-                            .filter(Boolean).join(' · ') || <span style={{ color:'#9CA3AF', fontWeight:400, fontStyle:'italic' }}>sem detalhes</span>}
-                        </div>
-                        {pd.iphone_entrada?.imei && (
-                          <div style={{ fontSize:11, color:'#6B7280', fontFamily:'JetBrains Mono,monospace', marginTop:3 }}>
-                            IMEI {pd.iphone_entrada.imei}
-                          </div>
-                        )}
-                      </div>
-                      <div style={{ textAlign:'right', flexShrink:0, marginLeft:16 }}>
-                        {tradeVal > 0 ? (
-                          <>
-                            <div style={{ fontSize:10, color:'#15803D', fontWeight:600,
-                              textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:2 }}>Desconto</div>
-                            <span style={{ fontSize:15, fontWeight:700, color:'#15803D',
-                              fontFamily:'JetBrains Mono,monospace' }}>– {brl(tradeVal)}</span>
-                          </>
-                        ) : (
-                          <span style={{ fontSize:11, color:'#9CA3AF', fontStyle:'italic' }}>valor n/a</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Formas de pagamento */}
-                {cashMethods.map((m, i) => {
-                  const val      = parseBRL(pd[m]?.value)
-                  const parcelas = pd[m]?.parcelas ? parseInt(pd[m].parcelas) : null
-                  return (
-                    <div key={m} style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
-                      padding:'11px 16px',
-                      borderBottom: i < cashMethods.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
-                      <div>
-                        <div style={{ fontSize:10, color:'#9CA3AF', fontWeight:600,
-                          textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:2 }}>Pagamento</div>
-                        <div style={{ fontSize:13, color:'#111827', fontWeight:500 }}>
-                          {PAY[m] || m}
-                          {m === 'cartao_credito' && parcelas && parcelas > 1 ? ` · ${parcelas}x` : ''}
-                        </div>
-                      </div>
-                      {val > 0 && (
-                        <span style={{ fontSize:13, fontWeight:600, color:'#111827',
-                          fontFamily:'JetBrains Mono,monospace' }}>{brl(val)}</span>
-                      )}
-                    </div>
-                  )
-                })}
-
-                {/* Total */}
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
-                  padding:'12px 16px', background:'#111827', marginTop:1 }}>
-                  <span style={{ fontSize:11, color:'rgba(255,255,255,0.5)', fontWeight:600,
-                    textTransform:'uppercase', letterSpacing:'0.6px' }}>Total</span>
-                  <span style={{ fontSize:18, fontWeight:700, color:'#fff', letterSpacing:'-0.5px',
-                    fontFamily:'JetBrains Mono,monospace' }}>{brl(total)}</span>
-                </div>
-              </div>
-            </section>
-          )
-        })()}
-
         {/* Ver perfil do cliente */}
         <section style={{ margin:'12px 20px 0' }}>
           <button onClick={() => { onClose(); navigate(`/clients/${order.client_id}`) }} style={{
@@ -978,7 +860,7 @@ function OrderDetail({ order, onClose }) {
         </section>
 
         {/* Ações PDF / e-mail */}
-        <section style={{ margin:'12px 20px 20px', display:'flex', gap:10 }}>
+        <section style={{ margin:'12px 20px 0', display:'flex', gap:10 }}>
           <button onClick={() => downloadPDF.mutate(order.id)} disabled={downloadPDF.isPending} style={{
             flex:1, padding:'11px 0', background:'#111827', color:'#fff',
             border:'none', borderRadius:12, cursor:'pointer', fontSize:13, fontWeight:600,
@@ -1002,6 +884,23 @@ function OrderDetail({ order, onClose }) {
             </button>
           )}
         </section>
+
+        {/* Excluir ordem — somente admin */}
+        {isAdmin && (
+          <section style={{ margin:'10px 20px 20px' }}>
+            <button onClick={() => onDelete(order.id)} style={{
+              width:'100%', padding:'11px 0',
+              background:'transparent', color:'#EF4444',
+              border:'1.5px solid #FCA5A5', borderRadius:12, cursor:'pointer',
+              fontSize:13, fontWeight:600,
+              display:'flex', alignItems:'center', justifyContent:'center', gap:7,
+              fontFamily:'Instrument Sans,sans-serif',
+            }}>
+              <Trash2 size={14}/>
+              Excluir ordem
+            </button>
+          </section>
+        )}
       </div>
 
       {editOpen && (
@@ -1044,6 +943,16 @@ export default function OrdersPage() {
   const [period,    setPeriod]    = useState('30')
   const [page,      setPage]      = useState(1)
   const [selectedId,  setSelectedId]  = useState(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
+
+  const { isAdmin } = useAuth()
+  const deleteOrder = useDeleteOrder()
+
+  const handleDeleteOrder = async (id) => {
+    await deleteOrder.mutateAsync(id)
+    setConfirmDeleteId(null)
+    setSelectedId(null)
+  }
 
   const isMobile = useIsMobile()
 
@@ -1188,7 +1097,66 @@ export default function OrdersPage() {
             boxShadow: '0 32px 80px rgba(0,0,0,0.24)',
             animation: 'modalIn .2s ease',
           }}>
-            <OrderDetail order={selectedOrder} onClose={() => setSelectedId(null)} />
+            <OrderDetail
+              order={selectedOrder}
+              onClose={() => setSelectedId(null)}
+              isAdmin={isAdmin}
+              onDelete={(id) => setConfirmDeleteId(id)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Modal de confirmação de exclusão */}
+      {confirmDeleteId && (
+        <div style={{
+          position:'fixed', inset:0, background:'rgba(0,0,0,0.5)',
+          backdropFilter:'blur(6px)', zIndex:2000,
+          display:'flex', alignItems:'center', justifyContent:'center', padding:20,
+        }}>
+          <div style={{
+            background:C.surface, borderRadius:20, padding:28,
+            width:360, maxWidth:'92vw',
+            boxShadow:'0 32px 80px rgba(0,0,0,0.3)',
+            display:'flex', flexDirection:'column', gap:16,
+            animation:'modalIn .18s ease',
+          }}>
+            <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+              <div style={{ width:44, height:44, borderRadius:12, background:'#FEF2F2',
+                display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                <Trash2 size={20} color="#EF4444"/>
+              </div>
+              <div>
+                <div style={{ fontSize:16, fontWeight:700, color:'#111827', marginBottom:3 }}>
+                  Excluir ordem?
+                </div>
+                <div style={{ fontSize:13, color:'#6B7280' }}>
+                  Esta ação não pode ser desfeita.
+                </div>
+              </div>
+            </div>
+            <div style={{ display:'flex', gap:10 }}>
+              <button onClick={() => setConfirmDeleteId(null)} style={{
+                flex:1, padding:'11px 0', background:'#F3F4F6', color:'#374151',
+                border:'none', borderRadius:12, cursor:'pointer', fontSize:13, fontWeight:600,
+                fontFamily:'Instrument Sans,sans-serif',
+              }}>
+                Cancelar
+              </button>
+              <button
+                onClick={() => handleDeleteOrder(confirmDeleteId)}
+                disabled={deleteOrder.isPending}
+                style={{
+                  flex:1, padding:'11px 0', background:'#EF4444', color:'#fff',
+                  border:'none', borderRadius:12, cursor:'pointer', fontSize:13, fontWeight:600,
+                  fontFamily:'Instrument Sans,sans-serif', opacity: deleteOrder.isPending ? 0.7 : 1,
+                  display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+                }}>
+                {deleteOrder.isPending
+                  ? <><Loader2 size={14} style={{ animation:'spin 1s linear infinite' }}/> Excluindo...</>
+                  : <><Trash2 size={14}/> Confirmar exclusão</>}
+              </button>
+            </div>
           </div>
         </div>
       )}

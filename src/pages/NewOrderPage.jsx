@@ -1625,7 +1625,9 @@ export default function NewOrderPage() {
         payment_details[zeroMs[0]] = { ...(pdBase[zeroMs[0]] || {}), value: autoVal.toFixed(2).replace('.', ',') }
       }
     }
+    
 
+    console.log('SENDING:', JSON.stringify({ accessories, payment_details }, null, 2))
     await createOrder.mutateAsync({
       client_id:       form.client_id,
       type:            form.type,

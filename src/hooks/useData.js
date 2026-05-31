@@ -91,6 +91,20 @@ export const useUpdateOrderStatus = () => {
   });
 };
 
+export const useDeleteOrder = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => orderService.delete(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['orders'] });
+      qc.invalidateQueries({ queryKey: ['orders-stats'] });
+      qc.invalidateQueries({ queryKey: ['orders-advanced-stats'] });
+      toast.success('Ordem excluída com sucesso.');
+    },
+    onError: (err) => toast.error(err.response?.data?.error || 'Erro ao excluir ordem.'),
+  });
+};
+
 export const useUpdateOrder = () => {
   const qc = useQueryClient();
   return useMutation({

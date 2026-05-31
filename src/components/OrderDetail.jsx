@@ -164,6 +164,14 @@ export default function OrderDetail({ orderId, onClose }) {
                 {order?.capacity && <Row T={T} label="Capacidade" value={order.capacity}/>}
                 {order?.color && <Row T={T} label="Cor" value={order.color}/>}
                 {order?.imei && <Row T={T} label="IMEI" value={order.imei} mono/>}
+                {order?.condition_sale && (
+                  <Row T={T} label="Condição" value={order.condition_sale === 'lacrado' ? '📦 Lacrado' : '✨ Seminovo'}/>
+                )}
+                {(() => {
+                  if (!order?.notes) return null
+                  const m = order.notes.match(/Origem:\s*(.+)/i)
+                  return m ? <Row T={T} label="Origem" value={m[1].trim()}/> : null
+                })()}
               </Section>
 
               {/* Manutenção — serviços, problema e condição */}
@@ -213,15 +221,16 @@ export default function OrderDetail({ orderId, onClose }) {
                 {(() => {
                   const pd   = parseJSON(order?.payment_details, {})
                   const accs = parseJSON(order?.accessories, [])
-                  const total     = parseFloat(order?.price) || 0
-                  // parseBRL: converte '1.500,00' → 1500 | '500,00' → 500 | número → número
-                  const parseBRL  = (v) => { if (!v) return 0; if (typeof v === 'number') return v; const n = parseFloat(String(v).replace(/\./g,'').replace(',','.')); return isNaN(n) ? 0 : n; }
-                  const tradeVal  = parseBRL(pd.iphone_entrada?.value)
+                  const total = parseFloat(order?.price) || 0
+                  const parseBRL = (v) => {
+                    if (!v) return 0
+                    if (typeof v === 'number') return v
+                    const n = parseFloat(String(v).replace(/\./g,'').replace(',','.'))
+                    return isNaN(n) ? 0 : n
+                  }
+                  const tradeVal   = parseBRL(pd.iphone_entrada?.value)
                   const hasTradeIn = payments.includes('iphone_entrada')
                   const cashMethods = payments.filter(p => p !== 'iphone_entrada')
-                  const hasContent = accs.length > 0 || hasTradeIn || cashMethods.length > 0
-
-                  if (!hasContent) return null
 
                   return (
                     <div style={{ display:'flex', flexDirection:'column', gap:6 }}>

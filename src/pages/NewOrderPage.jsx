@@ -1560,8 +1560,6 @@ export default function NewOrderPage() {
   const handleSubmit = async () => {
     if (!validate()) return
 
-    console.log('DEBUG:', JSON.stringify({ pd: form.payment_details, acc: form.accessories }, null, 2))
-
     const noteParts = []
     if (isManut && form.service_types?.length) noteParts.push(`Serviços: ${form.service_types.join(', ')}`)
     if (isManut && form.problem_description) noteParts.push(`Problema: ${form.problem_description}`)

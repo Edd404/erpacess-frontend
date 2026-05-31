@@ -1005,7 +1005,7 @@ function StepAcessorio({ form, set, errors, models, accessoryModels = [] }) {
 }
 
 // ── Step 3 — Pagamento ────────────────────────────────────────────────────────
-function StepPagamento({ form, set, errors, isManut, models, accessoryModels = [] }) {
+function StepPagamento({ form, set, errors, isManut, models, accessoryModels = [], pd, setPd }) {
   const [pickerIdx, setPickerIdx] = useState(null)
 
   // Acessórios adicionados na venda
@@ -1034,34 +1034,8 @@ function StepPagamento({ form, set, errors, isManut, models, accessoryModels = [
     setTimeout(() => setPickerIdx(newIdx), 50)
   }
 
-  const PD_DEFAULTS = {
-    pix:             { value:'' },
-    dinheiro:        { value:'' },
-    cartao_credito:  { value:'', parcelas:'1' },
-    cartao_debito:   { value:'' },
-    iphone_entrada:  { value:'', model:'', capacity:'', color:'', imei:'' },
-  }
-
-  // pd é derivado diretamente do form — sem estado local duplicado
-  // Isso garante que nunca há dessincronismo entre o que é exibido e o que é enviado
-  const rawPd = (form.payment_details && typeof form.payment_details === 'object' && Object.keys(form.payment_details).length > 0)
-    ? form.payment_details
-    : PD_DEFAULTS
-  const pd = {
-    pix:            { ...PD_DEFAULTS.pix,            ...(rawPd.pix            || {}) },
-    dinheiro:       { ...PD_DEFAULTS.dinheiro,       ...(rawPd.dinheiro       || {}) },
-    cartao_credito: { ...PD_DEFAULTS.cartao_credito, ...(rawPd.cartao_credito || {}) },
-    cartao_debito:  { ...PD_DEFAULTS.cartao_debito,  ...(rawPd.cartao_debito  || {}) },
-    iphone_entrada: { ...PD_DEFAULTS.iphone_entrada, ...(rawPd.iphone_entrada || {}) },
-  }
-
   const [tradeModelSearch, setTradeModelSearch] = useState(pd.iphone_entrada.model || '')
   const [tradeModelOpen, setTradeModelOpen] = useState(false)
-
-  const setPd = (m, f, v) => {
-    const next = { ...pd, [m]: { ...pd[m], [f]: v } }
-    set('payment_details', next)
-  }
 
   const togglePay = (v) => set('payment_methods',
     form.payment_methods.includes(v) ? form.payment_methods.filter(x => x !== v) : [...form.payment_methods, v]
@@ -1533,6 +1507,16 @@ export default function NewOrderPage() {
 
   const [step, setStep] = useState(1)
   const [errors, setErrors] = useState({})
+
+  const PD_DEFAULTS = {
+    pix:             { value:'' },
+    dinheiro:        { value:'' },
+    cartao_credito:  { value:'', parcelas:'1' },
+    cartao_debito:   { value:'' },
+    iphone_entrada:  { value:'', model:'', capacity:'', color:'', imei:'' },
+  }
+  const [pd, setPdState] = useState(PD_DEFAULTS)
+  const setPd = (m, f, v) => setPdState(prev => ({ ...prev, [m]: { ...prev[m], [f]: v } }))
   const [form, setForm] = useState({
     client_id: searchParams.get('client_id') || '', type:'venda', iphone_model:'', capacity:'', color:'',
     imei:'', price:'', warranty_months:'', notes:'', condition_sale:'', lead_source:'',
@@ -1595,11 +1579,7 @@ export default function NewOrderPage() {
 
     const accTotal = accessories.reduce((s, a) => s + a.price, 0)
 
-    // payment_details: garante valor do método auto-calculado
-    const pdBase = (form.payment_details && Object.keys(form.payment_details).length > 0)
-      ? form.payment_details
-      : {}
-
+    // payment_details: usa pd do state pai (fonte de verdade), garante auto-calc do método único
     const _parsePD = (v) => {
       if (!v) return 0
       if (typeof v === 'number') return isNaN(v) ? 0 : v
@@ -1607,27 +1587,25 @@ export default function NewOrderPage() {
       return isNaN(n) ? 0 : n
     }
 
-    const tradeValFinal  = (form.payment_methods.includes('iphone_entrada')) ? _parsePD(pdBase.iphone_entrada?.value) : 0
+    const tradeValFinal  = (form.payment_methods.includes('iphone_entrada')) ? _parsePD(pd.iphone_entrada?.value) : 0
     const cashTotalFinal = Math.max(0, parseVal(form.price) + accTotal - tradeValFinal)
     const cashMs         = form.payment_methods.filter(m => m !== 'iphone_entrada')
-    const payment_details = { ...pdBase }
+    const payment_details = { ...pd }
 
     if (cashMs.length === 1) {
       const m = cashMs[0]
-      if (!_parsePD(pdBase[m]?.value) && cashTotalFinal > 0) {
-        payment_details[m] = { ...(pdBase[m] || {}), value: cashTotalFinal.toFixed(2).replace('.', ',') }
+      if (!_parsePD(pd[m]?.value) && cashTotalFinal > 0) {
+        payment_details[m] = { ...(pd[m] || {}), value: cashTotalFinal.toFixed(2).replace('.', ',') }
       }
     } else if (cashMs.length > 1) {
-      const zeroMs = cashMs.filter(m => _parsePD(pdBase[m]?.value) === 0)
+      const zeroMs = cashMs.filter(m => _parsePD(pd[m]?.value) === 0)
       if (zeroMs.length === 1) {
-        const sumOthers = cashMs.filter(m => m !== zeroMs[0]).reduce((s, m) => s + _parsePD(pdBase[m]?.value), 0)
+        const sumOthers = cashMs.filter(m => m !== zeroMs[0]).reduce((s, m) => s + _parsePD(pd[m]?.value), 0)
         const autoVal   = Math.max(0, cashTotalFinal - sumOthers)
-        payment_details[zeroMs[0]] = { ...(pdBase[zeroMs[0]] || {}), value: autoVal.toFixed(2).replace('.', ',') }
+        payment_details[zeroMs[0]] = { ...(pd[zeroMs[0]] || {}), value: autoVal.toFixed(2).replace('.', ',') }
       }
     }
-    
 
-    console.log('SENDING:', JSON.stringify({ accessories, payment_details }, null, 2))
     await createOrder.mutateAsync({
       client_id:       form.client_id,
       type:            form.type,
@@ -1746,7 +1724,7 @@ export default function NewOrderPage() {
           : <StepProduto  form={form} set={set} errors={errors} models={iphoneModels} outroModels={outroModels}/>
         )}
 
-        {step === 3 && <StepPagamento form={form} set={set} errors={errors} isManut={isManut} models={iphoneModels} accessoryModels={accessoryModels}/>}
+        {step === 3 && <StepPagamento form={form} set={set} errors={errors} isManut={isManut} models={iphoneModels} accessoryModels={accessoryModels} pd={pd} setPd={setPd}/>}
 
         {/* Navigation */}
         <div style={{ display:'flex', gap:10, marginTop:28, paddingTop:20, borderTop:`1px solid ${T.ink6}` }}>

@@ -838,27 +838,6 @@ function OrderDetail({ order, onClose, isAdmin, onDelete }) {
           </div>
         </section>
 
-        {/* Ver perfil do cliente */}
-        <section style={{ margin:'12px 20px 0' }}>
-          <button onClick={() => { onClose(); navigate(`/clients/${order.client_id}`) }} style={{
-            width:'100%', padding:'11px 16px', background:'#F3F4F6',
-            border:'1px solid #E5E7EB', borderRadius:12, cursor:'pointer',
-            display:'flex', alignItems:'center', justifyContent:'space-between',
-            fontFamily:'Instrument Sans,sans-serif',
-          }}>
-            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-              <div style={{ width:32, height:32, borderRadius:'50%', background:avatarBg,
-                display:'flex', alignItems:'center', justifyContent:'center',
-                color:'#fff', fontSize:11, fontWeight:700 }}>{initials}</div>
-              <div style={{ textAlign:'left' }}>
-                <div style={{ fontSize:13, fontWeight:600, color:'#111827' }}>{order.client_name}</div>
-                <div style={{ fontSize:11, color:'#6B7280', marginTop:1 }}>Ver histórico completo</div>
-              </div>
-            </div>
-            <ChevronRight size={14} style={{ color:'#9CA3AF' }}/>
-          </button>
-        </section>
-
         {/* ── Resumo Financeiro ─────────────────────────────────── */}
         {(() => {
           const parseJ = (v, fb) => { try { return typeof v === 'object' && v !== null ? v : JSON.parse(v || JSON.stringify(fb)) } catch { return fb } }
@@ -941,6 +920,27 @@ function OrderDetail({ order, onClose, isAdmin, onDelete }) {
             </section>
           )
         })()}
+
+        {/* Ver perfil do cliente */}
+        <section style={{ margin:'12px 20px 0' }}>
+          <button onClick={() => { onClose(); navigate(`/clients/${order.client_id}`) }} style={{
+            width:'100%', padding:'11px 16px', background:'#F3F4F6',
+            border:'1px solid #E5E7EB', borderRadius:12, cursor:'pointer',
+            display:'flex', alignItems:'center', justifyContent:'space-between',
+            fontFamily:'Instrument Sans,sans-serif',
+          }}>
+            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+              <div style={{ width:32, height:32, borderRadius:'50%', background:avatarBg,
+                display:'flex', alignItems:'center', justifyContent:'center',
+                color:'#fff', fontSize:11, fontWeight:700 }}>{initials}</div>
+              <div style={{ textAlign:'left' }}>
+                <div style={{ fontSize:13, fontWeight:600, color:'#111827' }}>{order.client_name}</div>
+                <div style={{ fontSize:11, color:'#6B7280', marginTop:1 }}>Ver histórico completo</div>
+              </div>
+            </div>
+            <ChevronRight size={14} style={{ color:'#9CA3AF' }}/>
+          </button>
+        </section>
 
         {/* Ações PDF / e-mail */}
         <section style={{ margin:'12px 20px 0', display:'flex', gap:10 }}>

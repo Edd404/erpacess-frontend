@@ -514,14 +514,20 @@ function ModelSearch({ value, onSelect, err, models }) {
             : filtered.map(g => (
               <div key={g.s}>
                 <div style={{ padding:'7px 14px 4px', fontSize:10, fontWeight:700, letterSpacing:'0.7px', color:T.ink4, textTransform:'uppercase', background:T.bg, borderBottom:`1px solid ${T.ink6}` }}>{g.s}</div>
-                {g.m.map(m => (
-                  <div key={m} onMouseDown={() => { onSelect(m); setQ(m); setOpen(false) }}
-                    style={{ padding:'10px 14px', fontSize:13, color:T.ink2, cursor:'pointer', borderBottom:`1px solid ${T.ink6}`, transition:'background .1s' }}
-                    onMouseEnter={e => e.currentTarget.style.background = T.ink6}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                    {m}
-                  </div>
-                ))}
+                {g.m.map(m => {
+                  let ty = 0
+                  return (
+                    <div key={m}
+                      onTouchStart={e => { ty = e.touches[0].clientY }}
+                      onTouchEnd={e => { if (Math.abs(e.changedTouches[0].clientY - ty) < 8) { onSelect(m); setQ(m); setOpen(false) } }}
+                      onMouseDown={() => { onSelect(m); setQ(m); setOpen(false) }}
+                      style={{ padding:'10px 14px', fontSize:13, color:T.ink2, cursor:'pointer', borderBottom:`1px solid ${T.ink6}`, transition:'background .1s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = T.ink6}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                      {m}
+                    </div>
+                  )
+                })}
               </div>
             ))}
         </div>
@@ -1171,16 +1177,23 @@ function StepPagamento({ form, set, errors, isManut, models, accessoryModels = [
                   {tradeFilteredModels.map(g => (
                     <div key={g.s}>
                       <div style={{ padding:'6px 14px 3px', fontSize:10, fontWeight:700, color:T.ink4, textTransform:'uppercase', background:T.bg }}>{g.s}</div>
-                      {g.m.map(m => (
-                        <div key={m}
-                          onTouchStart={() => { setPd('iphone_entrada','model',m); setTradeModelSearch(m); setTradeModelOpen(false) }}
-                          onMouseDown={() => { setPd('iphone_entrada','model',m); setTradeModelSearch(m); setTradeModelOpen(false) }}
-                          style={{ padding:'9px 14px', fontSize:13, cursor:'pointer', color:T.ink2, borderBottom:`1px solid ${T.ink6}` }}
-                          onMouseEnter={e => e.currentTarget.style.background = T.ink6}
-                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                          {m}
-                        </div>
-                      ))}
+                      {g.m.map(m => {
+                        let touchStartY = 0
+                        return (
+                          <div key={m}
+                            onTouchStart={e => { touchStartY = e.touches[0].clientY }}
+                            onTouchEnd={e => {
+                              const diff = Math.abs(e.changedTouches[0].clientY - touchStartY)
+                              if (diff < 8) { setPd('iphone_entrada','model',m); setTradeModelSearch(m); setTradeModelOpen(false) }
+                            }}
+                            onMouseDown={() => { setPd('iphone_entrada','model',m); setTradeModelSearch(m); setTradeModelOpen(false) }}
+                            style={{ padding:'9px 14px', fontSize:13, cursor:'pointer', color:T.ink2, borderBottom:`1px solid ${T.ink6}` }}
+                            onMouseEnter={e => e.currentTarget.style.background = T.ink6}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                            {m}
+                          </div>
+                        )
+                      })}
                     </div>
                   ))}
                 </div>

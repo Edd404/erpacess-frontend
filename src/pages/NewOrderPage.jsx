@@ -837,136 +837,179 @@ function StepProduto({ form, set, errors, models, outroModels = [] }) {
 
 // ── Step 2 — Acessório / Outro produto ───────────────────────────────────────
 function StepAcessorio({ form, set, errors, models, accessoryModels = [] }) {
-  const [pickerIdx, setPickerIdx] = useState(null)
-
-  // Usa modelos da API se disponível
   const catalogItems = accessoryModels.length > 0
     ? accessoryModels
     : (models || []).filter(m => m.category === 'acessorio' || m.category === 'outro')
 
-  const items = form.accessories || []  // [{ name, price }]
+  const items = form.accessories || []
 
-  const addItem = (item) => {
-    set('accessories', [...items, { name: item.name, price: item.suggested_price ? String(item.suggested_price) : '' }])
+  const getEmoji = (name = '') => {
+    if (name.includes('Película'))                              return '🛡️'
+    if (name.includes('Carregador') || name.includes('Fonte')) return '🔌'
+    if (name.includes('Cabo'))                                  return '🔗'
+    if (name.includes('Capa'))                                  return '📱'
+    if (name.includes('Fone'))                                  return '🎧'
+    if (name.includes('Powerbank'))                             return '🔋'
+    return '📦'
   }
 
-  const removeItem = (idx) => {
-    set('accessories', items.filter((_, i) => i !== idx))
+  const fmtPrice = (digits = '') => {
+    if (!digits) return ''
+    const n = parseInt(digits, 10) / 100
+    return n.toLocaleString('pt-BR', { minimumFractionDigits:2, maximumFractionDigits:2 })
   }
 
-  const updateItem = (idx, field, value) => {
-    const updated = items.map((item, i) => i === idx ? { ...item, [field]: value } : item)
-    set('accessories', updated)
+  const handlePriceChange = (idx, raw) => {
+    const digits = raw.replace(/\D/g,'')
+    updateItem(idx, 'price', fmtPrice(digits))
   }
 
-  const addCustom = () => {
-    const newIdx = items.length
-    set('accessories', [...items, { name: '', price: '' }])
-    setTimeout(() => setPickerIdx(newIdx), 50)
+  const isAdded = (name) => items.some(i => i.name === name)
+
+  const toggleCatalog = (item) => {
+    if (isAdded(item.name)) {
+      set('accessories', items.filter(i => i.name !== item.name))
+    } else {
+      const digits = item.suggested_price ? String(Math.round(item.suggested_price * 100)) : ''
+      set('accessories', [...items, { name: item.name, price: fmtPrice(digits) }])
+    }
   }
+
+  const addCustom = () => set('accessories', [...items, { name: '', price: '' }])
+
+  const removeItem = (idx) => set('accessories', items.filter((_, i) => i !== idx))
+
+  const updateItem = (idx, field, value) =>
+    set('accessories', items.map((item, i) => i === idx ? { ...item, [field]: value } : item))
+
+  const customItems = items.filter(i => !catalogItems.some(c => c.name === i.name))
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap:22 }}>
+    <div style={{ display:'flex', flexDirection:'column', gap:24 }}>
 
-      <AccessoryPickerSheet
-        open={pickerIdx !== null}
-        current={pickerIdx !== null ? (items[pickerIdx]?.name || '') : ''}
-        onSelect={name => pickerIdx !== null && updateItem(pickerIdx, 'name', name)}
-        onClose={() => setPickerIdx(null)}
-        catalogItems={catalogItems}
-      />
+      {/* Catálogo */}
       {catalogItems.length > 0 && (
         <div>
-          <Label>Adicionar do catálogo</Label>
-          <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
-            {catalogItems.map(item => (
-              <button key={item.id} onClick={() => addItem(item)} style={{
-                padding:'8px 14px', borderRadius:999, border:`1.5px solid ${T.ink5}`,
-                background: T.white, cursor:'pointer', fontSize:12, fontWeight:600,
-                color: T.ink, fontFamily:'Instrument Sans,sans-serif',
-                display:'flex', alignItems:'center', gap:6, transition:'all .15s',
-              }}>
-                <span style={{ fontSize:14 }}>
-                  {item.name.includes('Película') ? '🛡️'
-                    : item.name.includes('Carregador') || item.name.includes('Fonte') ? '🔌'
-                    : item.name.includes('Cabo') ? '🔗'
-                    : item.name.includes('Capa') ? '📱'
-                    : item.name.includes('Fone') ? '🎧'
-                    : item.name.includes('Powerbank') ? '🔋'
-                    : '📦'}
-                </span>
-                {item.name}
-                {item.suggested_price && (
-                  <span style={{ color:T.ink4, fontWeight:400 }}>
-                    · R$ {Number(item.suggested_price).toLocaleString('pt-BR', { minimumFractionDigits:2 })}
-                  </span>
-                )}
-              </button>
-            ))}
+          <Label>Acessórios do catálogo</Label>
+          <div style={{ display:'flex', flexDirection:'column', background:T.white, borderRadius:14, border:`1px solid ${T.ink6}`, overflow:'hidden' }}>
+            {catalogItems.map((item, i) => {
+              const active = isAdded(item.name)
+              const addedItem = items.find(it => it.name === item.name)
+              return (
+                <div key={item.id || item.name}
+                  onClick={() => toggleCatalog(item)}
+                  style={{
+                    display:'flex', alignItems:'center', gap:12, padding:'12px 16px',
+                    borderBottom: i < catalogItems.length - 1 ? `1px solid ${T.ink6}` : 'none',
+                    background: active ? T.blueL : T.white,
+                    transition:'background .15s', cursor:'pointer',
+                  }}>
+                  <div style={{ width:38, height:38, borderRadius:10, flexShrink:0,
+                    background: active ? 'rgba(10,102,255,0.12)' : T.bg,
+                    display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}>
+                    {getEmoji(item.name)}
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:13, fontWeight:600, color: active ? T.blue : T.ink }}>{item.name}</div>
+                    {item.suggested_price && (
+                      <div style={{ fontSize:11, color: active ? T.blue : T.ink4, marginTop:1 }}>
+                        R$ {Number(item.suggested_price).toLocaleString('pt-BR', { minimumFractionDigits:2 })}
+                      </div>
+                    )}
+                  </div>
+                  {active ? (
+                    <>
+                      <div
+                        onClick={e => e.stopPropagation()}
+                        style={{ display:'flex', alignItems:'center', gap:4,
+                          background:'rgba(10,102,255,0.12)', borderRadius:8, padding:'4px 10px' }}>
+                        <span style={{ fontSize:11, color:T.blue, fontWeight:600 }}>R$</span>
+                        <input
+                          type="tel" inputMode="numeric"
+                          value={addedItem?.price || ''}
+                          onChange={e => {
+                            const idx = items.findIndex(it => it.name === item.name)
+                            if (idx !== -1) handlePriceChange(idx, e.target.value)
+                          }}
+                          placeholder="0,00"
+                          style={{ border:'none', outline:'none', width:58, fontSize:13,
+                            fontWeight:700, color:T.blue, background:'transparent',
+                            fontFamily:'JetBrains Mono,monospace', textAlign:'right' }}
+                        />
+                      </div>
+                      <div style={{ width:22, height:22, borderRadius:'50%', background:T.blue, flexShrink:0,
+                        display:'flex', alignItems:'center', justifyContent:'center' }}>
+                        <Check size={11} color="#FFF" strokeWidth={3}/>
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ width:22, height:22, borderRadius:'50%', border:`1.5px solid ${T.ink5}`, flexShrink:0 }}/>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
 
-      {/* Lista de itens adicionados */}
-      <div>
-        <Label required>Itens da venda</Label>
-        {items.length === 0 && (
-          <div style={{ padding:'20px 16px', textAlign:'center', background:T.bg, borderRadius:10,
-            border:`1.5px dashed ${errors.accessories ? T.red : T.ink5}`, color:T.ink4, fontSize:13 }}>
-            Nenhum item adicionado. Selecione do catálogo ou adicione manualmente.
-          </div>
-        )}
-        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-          {items.map((item, idx) => (
-            <div key={idx} style={{ display:'flex', alignItems:'center', gap:8,
-              background:'#fff', border:`1px solid ${T.ink6}`, borderRadius:10, padding:'10px 12px' }}>
-              <div style={{ flex:1 }}>
-                {/* Trigger do picker */}
-                <button
-                  onClick={() => setPickerIdx(idx)}
-                  style={{
-                    width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between',
-                    border:'none', background:'transparent', cursor:'pointer', padding:'0 0 4px',
-                    fontFamily:'Instrument Sans,sans-serif',
-                  }}>
-                  <span style={{ fontSize:13, color: item.name ? T.ink : T.ink4, fontWeight: item.name ? 600 : 400 }}>
-                    {item.name || 'Selecionar acessório'}
-                  </span>
-                  <ChevronDown size={13} color={T.ink4}/>
-                </button>
-                <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-                  <span style={{ fontSize:12, color:T.ink4 }}>R$</span>
-                  <input
-                    value={item.price}
-                    onChange={e => updateItem(idx, 'price', e.target.value.replace(/[^0-9,\.]/g, ''))}
-                    placeholder="0,00"
-                    style={{ border:'none', outline:'none', fontSize:13, fontWeight:600,
-                      color:T.ink, background:'transparent', fontFamily:'JetBrains Mono,monospace',
-                      width:80 }}
-                  />
+      {/* Itens personalizados */}
+      {customItems.length > 0 && (
+        <div>
+          <Label>Itens personalizados</Label>
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            {customItems.map((item) => {
+              const idx = items.indexOf(item)
+              return (
+                <div key={idx} style={{ display:'flex', alignItems:'center', gap:10,
+                  background:T.white, border:`1px solid ${T.ink6}`, borderRadius:12, padding:'12px 14px' }}>
+                  <div style={{ width:36, height:36, borderRadius:9, background:T.bg, flexShrink:0,
+                    display:'flex', alignItems:'center', justifyContent:'center', fontSize:16 }}>
+                    {getEmoji(item.name)}
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <input
+                      value={item.name}
+                      onChange={e => updateItem(idx, 'name', e.target.value)}
+                      placeholder="Nome do item"
+                      style={{ border:'none', outline:'none', width:'100%', fontSize:13,
+                        fontWeight:600, color:T.ink, background:'transparent',
+                        fontFamily:'Instrument Sans,sans-serif', marginBottom:4 }}
+                    />
+                    <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                      <span style={{ fontSize:11, color:T.ink4, fontWeight:500 }}>R$</span>
+                      <input
+                        type="tel" inputMode="numeric"
+                        value={item.price}
+                        onChange={e => handlePriceChange(idx, e.target.value)}
+                        placeholder="0,00"
+                        style={{ border:'none', outline:'none', fontSize:13, fontWeight:700,
+                          color:T.ink, background:'transparent',
+                          fontFamily:'JetBrains Mono,monospace', width:80 }}
+                      />
+                    </div>
+                  </div>
+                  <button onClick={() => removeItem(idx)} style={{
+                    background:'none', border:'none', cursor:'pointer', color:T.red,
+                    padding:6, borderRadius:8, display:'flex', alignItems:'center' }}>
+                    <X size={15}/>
+                  </button>
                 </div>
-              </div>
-              <button onClick={() => removeItem(idx)} style={{
-                background:'none', border:'none', cursor:'pointer', color:T.red,
-                padding:4, borderRadius:6, display:'flex', alignItems:'center',
-              }}>
-                <X size={15}/>
-              </button>
-            </div>
-          ))}
+              )
+            })}
+          </div>
         </div>
-        <ErrMsg msg={errors.accessories}/>
-      </div>
+      )}
 
-      {/* Botão adicionar item manual */}
       <button onClick={addCustom} style={{
         display:'flex', alignItems:'center', justifyContent:'center', gap:6,
-        width:'100%', padding:'11px', borderRadius:10, border:`1.5px dashed ${T.ink5}`,
+        width:'100%', padding:'12px', borderRadius:12, border:`1.5px dashed ${T.ink5}`,
         background:'transparent', cursor:'pointer', fontSize:13, fontWeight:600,
-        color:T.ink3, fontFamily:'Instrument Sans,sans-serif', transition:'all .15s',
+        color:T.ink3, fontFamily:'Instrument Sans,sans-serif',
       }}>
-        <Plus size={14}/> Adicionar item manualmente
+        <Plus size={14}/> Adicionar item personalizado
       </button>
+
+      <ErrMsg msg={errors.accessories}/>
 
       {/* Origem */}
       <div>
@@ -989,7 +1032,7 @@ function StepAcessorio({ form, set, errors, models, accessoryModels = [] }) {
               }}>
                 <div style={{ width:30, height:30, borderRadius:8, fontSize:15,
                   display:'flex', alignItems:'center', justifyContent:'center',
-                  background: on ? 'rgba(10,102,255,0.12)' : T.ink6 }}>{opt.emoji}</div>
+                  background: on ? 'rgba(10,102,255,0.12)' : T.bg }}>{opt.emoji}</div>
                 <div>
                   <div style={{ fontSize:13, fontWeight:700, color: on ? T.blue : T.ink }}>{opt.v}</div>
                   <div style={{ fontSize:11, color: on ? T.blue : T.ink4, opacity: on ? 0.7 : 1 }}>{opt.desc}</div>
@@ -1009,6 +1052,8 @@ function StepAcessorio({ form, set, errors, models, accessoryModels = [] }) {
     </div>
   )
 }
+
+// ── Step 3 — Pagamento ────────────────────────────────────────────────────────
 
 // ── Step 3 — Pagamento ────────────────────────────────────────────────────────
 function StepPagamento({ form, set, errors, isManut, models, accessoryModels = [], pd, setPd }) {

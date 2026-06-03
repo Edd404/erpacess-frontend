@@ -133,7 +133,7 @@ function ClientForm({ onSuccess, onClose }) {
       </div>
       <div>
         {lbl('E-mail')}
-        <input type="email" value={form.email} onChange={e=>set('email',e.target.value)} placeholder="cliente@email.com" style={inp()}/>
+        <input type="text" inputMode="email" autoComplete="email" value={form.email} onChange={e=>set('email',e.target.value)} placeholder="cliente@email.com" style={inp()}/>
       </div>
       <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:10, alignItems:'end' }}>
         <div>

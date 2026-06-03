@@ -140,7 +140,7 @@ function EditForm({ client, onClose, onSaved }) {
           </div>
           <div>
             {lbl('E-mail')}
-            <input value={form.email} onChange={e=>set('email',e.target.value)} type="email" style={inp('email')} placeholder="cliente@email.com"/>
+            <input value={form.email} onChange={e=>set('email',e.target.value)} type="text" inputMode="email" autoComplete="email" style={inp('email')} placeholder="cliente@email.com"/>
           </div>
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:10, alignItems:'end' }}>

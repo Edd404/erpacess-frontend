@@ -843,15 +843,7 @@ function StepAcessorio({ form, set, errors, models, accessoryModels = [] }) {
 
   const items = form.accessories || []
 
-  const getEmoji = (name = '') => {
-    if (name.includes('Película'))                              return '🛡️'
-    if (name.includes('Carregador') || name.includes('Fonte')) return '🔌'
-    if (name.includes('Cabo'))                                  return '🔗'
-    if (name.includes('Capa'))                                  return '📱'
-    if (name.includes('Fone'))                                  return '🎧'
-    if (name.includes('Powerbank'))                             return '🔋'
-    return '📦'
-  }
+  const getInitial = (name = '') => name.trim().charAt(0).toUpperCase() || '·'
 
   const fmtPrice = (digits = '') => {
     if (!digits) return ''
@@ -906,8 +898,10 @@ function StepAcessorio({ form, set, errors, models, accessoryModels = [] }) {
                   }}>
                   <div style={{ width:38, height:38, borderRadius:10, flexShrink:0,
                     background: active ? 'rgba(10,102,255,0.12)' : T.bg,
-                    display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}>
-                    {getEmoji(item.name)}
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    fontSize:15, fontWeight:700, color: active ? T.blue : T.ink4,
+                    fontFamily:'Instrument Sans,sans-serif' }}>
+                    {getInitial(item.name)}
                   </div>
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ fontSize:13, fontWeight:600, color: active ? T.blue : T.ink }}>{item.name}</div>
@@ -963,8 +957,10 @@ function StepAcessorio({ form, set, errors, models, accessoryModels = [] }) {
                 <div key={idx} style={{ display:'flex', alignItems:'center', gap:10,
                   background:T.white, border:`1px solid ${T.ink6}`, borderRadius:12, padding:'12px 14px' }}>
                   <div style={{ width:36, height:36, borderRadius:9, background:T.bg, flexShrink:0,
-                    display:'flex', alignItems:'center', justifyContent:'center', fontSize:16 }}>
-                    {getEmoji(item.name)}
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    fontSize:14, fontWeight:700, color:T.ink4,
+                    fontFamily:'Instrument Sans,sans-serif' }}>
+                    {getInitial(item.name)}
                   </div>
                   <div style={{ flex:1, minWidth:0 }}>
                     <input

@@ -393,8 +393,9 @@ function ConditionPanel({ totalLacrado, totalSeminovo, revLacrado, revSeminovo, 
 // DASHBOARD PRINCIPAL
 // ═══════════════════════════════════════════════════════════════
 // ── LeadSourcePanel ──────────────────────────────────────────
-function LeadSourcePanel({ byLeadSource, isMobile }) {
+function LeadSourcePanel({ byLeadSource, leadSourceOrders, isMobile }) {
   const [open, setOpen] = useState(true)
+  const [expanded, setExpanded] = useState(null) // origem expandida
 
   const SOURCES = {
     'Instagram':           { emoji:'📸', color:'#7C3AED', soft:'rgba(139,92,246,0.08)', border:'rgba(139,92,246,0.18)' },
@@ -406,6 +407,14 @@ function LeadSourcePanel({ byLeadSource, isMobile }) {
 
   const total = byLeadSource.reduce((s, r) => s + (parseInt(r.total) || 0), 0)
   if (total === 0) return null
+
+  const firstName = (name = '') => name.trim().split(' ')[0]
+  const fmtDay = (iso) => {
+    const d = new Date(iso)
+    return d.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' })
+  }
+
+  const toggleExpand = (origem) => setExpanded(e => e === origem ? null : origem)
 
   return (
     <div style={{ background:C.surface, borderRadius:20, boxShadow:C.shadow,
@@ -440,33 +449,80 @@ function LeadSourcePanel({ byLeadSource, isMobile }) {
             const count   = parseInt(row.total) || 0
             const receita = parseFloat(row.receita) || 0
             const pctVal  = total > 0 ? Math.round((count / total) * 100) : 0
+            const isExp   = expanded === row.origem
+            const orders  = (leadSourceOrders || []).filter(o => o.origem === row.origem)
 
             return (
               <div key={row.origem} style={{ background:meta.soft, border:`1px solid ${meta.border}`,
-                borderRadius:12, padding:'14px 16px' }}>
-                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                    <span style={{ fontSize:18 }}>{meta.emoji}</span>
-                    <span style={{ fontSize:14, fontWeight:700, color:meta.color }}>{row.origem}</span>
+                borderRadius:12, overflow:'hidden' }}>
+
+                {/* Card principal */}
+                <div style={{ padding:'14px 16px' }}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                      <span style={{ fontSize:18 }}>{meta.emoji}</span>
+                      <span style={{ fontSize:14, fontWeight:700, color:meta.color }}>{row.origem}</span>
+                    </div>
+                    <div style={{ textAlign:'right' }}>
+                      <div style={{ fontSize:17, fontWeight:700, color:C.text, letterSpacing:'-0.4px' }}>{count}</div>
+                      <div style={{ fontSize:10, color:C.t3 }}>venda{count !== 1 ? 's' : ''}</div>
+                    </div>
                   </div>
-                  <div style={{ textAlign:'right' }}>
-                    <div style={{ fontSize:17, fontWeight:700, color:C.text, letterSpacing:'-0.4px' }}>{count}</div>
-                    <div style={{ fontSize:10, color:C.t3 }}>venda{count !== 1 ? 's' : ''}</div>
+
+                  {/* Barra */}
+                  <div style={{ height:6, background:'rgba(0,0,0,0.07)', borderRadius:999, overflow:'hidden', marginBottom:8 }}>
+                    <div style={{ height:'100%', width:`${pctVal}%`, background:meta.color,
+                      borderRadius:999, transition:'width .6s cubic-bezier(.4,0,.2,1)' }}/>
+                  </div>
+
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                    <span style={{ fontSize:11, color:meta.color, fontWeight:600 }}>{pctVal}% das vendas</span>
+                    <span style={{ fontSize:12, fontWeight:600, color:C.text }}>
+                      {new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(receita)}
+                    </span>
                   </div>
                 </div>
 
-                {/* Barra */}
-                <div style={{ height:6, background:'rgba(0,0,0,0.07)', borderRadius:999, overflow:'hidden', marginBottom:8 }}>
-                  <div style={{ height:'100%', width:`${pctVal}%`, background:meta.color,
-                    borderRadius:999, transition:'width .6s cubic-bezier(.4,0,.2,1)' }}/>
-                </div>
-
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                  <span style={{ fontSize:11, color:meta.color, fontWeight:600 }}>{pctVal}% das vendas</span>
-                  <span style={{ fontSize:12, fontWeight:600, color:C.text }}>
-                    {new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(receita)}
+                {/* Botão expandir */}
+                <button
+                  onClick={() => toggleExpand(row.origem)}
+                  style={{ width:'100%', padding:'8px 16px', background:'rgba(0,0,0,0.04)',
+                    border:'none', borderTop:`1px solid ${meta.border}`, cursor:'pointer',
+                    display:'flex', alignItems:'center', justifyContent:'center', gap:5,
+                    fontFamily:'Instrument Sans,sans-serif' }}>
+                  <span style={{ fontSize:11, fontWeight:600, color:meta.color }}>
+                    {isExp ? 'Ocultar' : `Ver ${orders.length} cliente${orders.length !== 1 ? 's' : ''}`}
                   </span>
-                </div>
+                  <span style={{ fontSize:10, color:meta.color }}>{isExp ? '▲' : '▼'}</span>
+                </button>
+
+                {/* Lista expandida */}
+                {isExp && (
+                  <div style={{ borderTop:`1px solid ${meta.border}` }}>
+                    {orders.map((o, i) => (
+                      <div key={i} style={{
+                        display:'flex', alignItems:'center', justifyContent:'space-between',
+                        padding:'8px 16px',
+                        borderBottom: i < orders.length - 1 ? `1px solid ${meta.border}` : 'none',
+                        background:'rgba(255,255,255,0.5)',
+                      }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                          <div style={{ width:24, height:24, borderRadius:'50%', background:meta.color,
+                            display:'flex', alignItems:'center', justifyContent:'center',
+                            fontSize:10, fontWeight:700, color:'#fff', flexShrink:0 }}>
+                            {firstName(o.client_name).charAt(0).toUpperCase()}
+                          </div>
+                          <span style={{ fontSize:13, fontWeight:600, color:C.text }}>
+                            {firstName(o.client_name)}
+                          </span>
+                        </div>
+                        <span style={{ fontSize:11, color:C.t3, fontFamily:'JetBrains Mono,monospace' }}>
+                          {fmtDay(o.created_at)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )
           })}
@@ -506,6 +562,7 @@ export default function DashboardPage() {
   const timeline = data?.revenue_timeline || []
   const byType   = data?.by_type          || []
   const byLeadSource = data?.by_lead_source || []
+  const leadSourceOrders = data?.lead_source_orders || []
 
   const total         = parseInt(s.total_orders)     || 0
   const totalSales    = parseInt(s.total_sales)       || 0
@@ -656,7 +713,7 @@ export default function DashboardPage() {
         totalSales={totalSales}       isMobile={isMobile}
       />
 
-      <LeadSourcePanel byLeadSource={byLeadSource} isMobile={isMobile} />
+      <LeadSourcePanel byLeadSource={byLeadSource} leadSourceOrders={leadSourceOrders} isMobile={isMobile} />
 
       <ErrorBoundary>
         <DeviceComparison />

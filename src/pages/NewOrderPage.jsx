@@ -122,17 +122,6 @@ const TextInput = ({ value, onChange, placeholder, err, style={}, ...rest }) => 
 )
 
 // ── AccessoryPickerSheet — bottom sheet Apple light, nativo do sistema ────────
-const ICON_FALLBACK = { bg:'#F3F4F6', color:'#6B7280', glyph:'📦' }
-const ICON_MAP_ACC = {
-  'Película 3D':            { bg:'#EEF4FF', glyph:'🛡️' },
-  'Película Privativa':     { bg:'#EEF4FF', glyph:'🕶️' },
-  'Cabo Tipo C/C':          { bg:'#EDFAF3', glyph:'🔗' },
-  'Cabo Tipo C/Lightning':  { bg:'#EDFAF3', glyph:'⚡' },
-  'Capa Personalizada':     { bg:'#F5F0FF', glyph:'📱' },
-  'Carregador':             { bg:'#FFF8E7', glyph:'🔌' },
-  'Powerbank':              { bg:'#EDFAF3', glyph:'🔋' },
-}
-
 function AccessoryPickerSheet({ open, current, onSelect, onClose, catalogItems = [] }) {
   useEffect(() => {
     if (open) document.body.style.overflow = 'hidden'
@@ -144,16 +133,8 @@ function AccessoryPickerSheet({ open, current, onSelect, onClose, catalogItems =
 
   // Usa catálogo dinâmico se disponível, senão usa lista fixa
   const items = catalogItems.length > 0
-    ? catalogItems.map(m => ({
-        label: m.name,
-        bg:    ICON_MAP_ACC[m.name]?.glyph ? ICON_MAP_ACC[m.name].bg : '#F3F4F6',
-        glyph: ICON_MAP_ACC[m.name]?.glyph || '📦',
-      }))
-    : ACCESSORY_OPTIONS.map(o => ({
-        label: o.label,
-        bg:    ICON_MAP_ACC[o.label]?.bg    || '#F3F4F6',
-        glyph: ICON_MAP_ACC[o.label]?.glyph || '📦',
-      }))
+    ? catalogItems.map(m => ({ label: m.name }))
+    : ACCESSORY_OPTIONS.map(o => ({ label: o.label }))
 
   return (
     <div
@@ -234,11 +215,13 @@ function AccessoryPickerSheet({ open, current, onSelect, onClose, catalogItems =
                 }}>
                 <div style={{
                   width:38, height:38, borderRadius:10, flexShrink:0,
-                  background: opt.bg,
+                  background: active ? 'rgba(10,102,255,0.12)' : T.bg,
                   display:'flex', alignItems:'center', justifyContent:'center',
-                  fontSize:19,
+                  fontSize:15, fontWeight:700,
+                  color: active ? T.blue : T.ink4,
+                  fontFamily:'Instrument Sans,sans-serif',
                 }}>
-                  {opt.glyph}
+                  {opt.label.trim().charAt(0).toUpperCase()}
                 </div>
                 <span style={{
                   flex:1, textAlign:'left',

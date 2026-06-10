@@ -40,6 +40,7 @@ const PAY = {
   pix: 'Pix', dinheiro: 'Dinheiro',
   cartao_credito: 'Crédito', cartao_debito: 'Débito',
   iphone_entrada: 'iPhone entrada',
+  troca: 'Troca',
 }
 
 // Lista preenchida via API — fallback estático mínimo
@@ -506,6 +507,12 @@ function OrderCard({ order, onClick, onPDF, pdfLoading }) {
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
           <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.5px' }}>{brl(order.price)}</div>
+          {payments.includes('troca') && (
+            <div style={{ display:'inline-flex', alignItems:'center', gap:3, fontSize:10, fontWeight:700,
+              color:'#1D4ED8', background:'#DBEAFE', borderRadius:6, padding:'2px 7px', marginTop:3, marginBottom:2 }}>
+              🔄 Troca
+            </div>
+          )}
           {payments.length > 0 && (
             <div style={{ fontSize: 10, color: C.t3, marginTop: 2 }}>
               {payments.map(p => PAY[p] || p).join(' + ')}
@@ -846,8 +853,10 @@ function OrderDetail({ order, onClose, isAdmin, onDelete }) {
           const accs = parseJ(order.accessories, [])
           const pd   = parseJ(order.payment_details, {})
           const hasTradeIn = payments.includes('iphone_entrada')
-          const cashMethods = payments.filter(p => p !== 'iphone_entrada')
+          const hasTroca   = payments.includes('troca')
+          const cashMethods = payments.filter(p => p !== 'iphone_entrada' && p !== 'troca')
           const tradeVal = parseBRL(pd.iphone_entrada?.value)
+          const trocaVal = parseBRL(pd.troca?.value)
           const PAY_LABELS = { pix:'Pix', dinheiro:'Dinheiro', cartao_credito:'Cartão de Crédito', cartao_debito:'Cartão de Débito' }
 
           return (
@@ -884,6 +893,41 @@ function OrderDetail({ order, onClose, isAdmin, onDelete }) {
                           <>
                             <div style={{ fontSize:10, fontWeight:700, color:'#15803D', textTransform:'uppercase', letterSpacing:'0.4px', marginBottom:2 }}>Desconto</div>
                             <div style={{ fontSize:14, fontWeight:700, color:'#16A34A', fontFamily:'JetBrains Mono,monospace' }}>– {brl2(tradeVal)}</div>
+                          </>
+                        ) : (
+                          <span style={{ fontSize:11, color:'#9CA3AF', fontStyle:'italic' }}>valor n/a</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Troca */}
+                {hasTroca && (
+                  <div style={{ padding:'11px 16px', background:'#EFF6FF', borderBottom:'1px solid #BFDBFE' }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:10, fontWeight:700, color:'#1D4ED8', textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:4 }}>🔄 Troca de Aparelho</div>
+                        <div style={{ fontSize:13, fontWeight:600, color:'#1E40AF', marginBottom:2 }}>
+                          {[pd.troca?.model, pd.troca?.capacity, pd.troca?.color].filter(Boolean).join(' · ') || '—'}
+                        </div>
+                        {pd.troca?.imei && (
+                          <div style={{ fontSize:11, color:'#6B7280', fontFamily:'JetBrains Mono,monospace' }}>IMEI {pd.troca.imei}</div>
+                        )}
+                      </div>
+                      <div style={{ textAlign:'right', flexShrink:0, marginLeft:12 }}>
+                        {trocaVal > 0 ? (
+                          <>
+                            <div style={{ fontSize:10, fontWeight:700, color:'#1D4ED8', textTransform:'uppercase', letterSpacing:'0.4px', marginBottom:2 }}>Valor</div>
+                            <div style={{ fontSize:14, fontWeight:700, color:'#1D4ED8', fontFamily:'JetBrains Mono,monospace' }}>{brl2(trocaVal)}</div>
+                            {order.price > 0 && trocaVal > 0 && (() => {
+                              const dif = order.price - trocaVal
+                              return (
+                                <div style={{ fontSize:11, fontWeight:600, color: dif > 0 ? '#D97706' : '#16A34A', marginTop:2 }}>
+                                  {dif > 0 ? `+${brl2(dif)} a pagar` : `${brl2(Math.abs(dif))} crédito`}
+                                </div>
+                              )
+                            })()}
                           </>
                         ) : (
                           <span style={{ fontSize:11, color:'#9CA3AF', fontStyle:'italic' }}>valor n/a</span>

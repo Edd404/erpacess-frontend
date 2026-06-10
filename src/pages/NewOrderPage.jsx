@@ -7,7 +7,7 @@ import { validateIMEI } from '../utils/validators'
 import {
   ArrowLeft, ChevronRight, Check, Smartphone, Wrench, Zap, CreditCard,
   Banknote, Loader2, Send, Search, AlertCircle, CheckCircle2, X, ChevronDown, User, Phone,
-  ShoppingBag, Plus
+  ShoppingBag, Plus, ArrowLeftRight
 } from 'lucide-react'
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
@@ -79,6 +79,7 @@ const PAY_OPTS = [
   { v:'cartao_credito',  l:'Crédito',        icon:CreditCard },
   { v:'cartao_debito',   l:'Débito',         icon:CreditCard },
   { v:'iphone_entrada',  l:'iPhone Entrada', icon:Smartphone, vendaOnly:true },
+  { v:'troca',           l:'Troca',          icon:ArrowLeftRight, vendaOnly:true },
 ]
 const PARCELAS = [1,2,3,4,5,6,7,8,9,10,11,12]
 
@@ -1066,22 +1067,30 @@ function StepPagamento({ form, set, errors, isManut, models, accessoryModels = [
 
   const [tradeModelSearch, setTradeModelSearch] = useState(pd.iphone_entrada.model || '')
   const [tradeModelOpen, setTradeModelOpen] = useState(false)
+  const [trocaModelSearch, setTrocaModelSearch] = useState(pd.troca.model || '')
+  const [trocaModelOpen, setTrocaModelOpen] = useState(false)
 
   const togglePay = (v) => set('payment_methods',
     form.payment_methods.includes(v) ? form.payment_methods.filter(x => x !== v) : [...form.payment_methods, v]
   )
 
-  const basePrice   = parseVal(form.price)
-  const total       = basePrice + accessoriesTotal
-  const tradeVal    = form.payment_methods.includes('iphone_entrada') ? parseVal(pd.iphone_entrada.value) : 0
-  const cashTotal   = Math.max(0, total - tradeVal)
-  const cashMethods = form.payment_methods.filter(m => m !== 'iphone_entrada')
+  const basePrice      = parseVal(form.price)
+  const total          = basePrice + accessoriesTotal
+  const tradeVal       = form.payment_methods.includes('iphone_entrada') ? parseVal(pd.iphone_entrada.value) : 0
+  const trocaVal       = form.payment_methods.includes('troca') ? parseVal(pd.troca.value) : 0
+  const cashTotal      = Math.max(0, total - tradeVal - trocaVal)
+  const cashMethods    = form.payment_methods.filter(m => m !== 'iphone_entrada' && m !== 'troca')
+  // diferença calculada: valor do iPhone novo - valor do aparelho que volta
+  const trocaDiferenca = form.payment_methods.includes('troca')
+    ? total - trocaVal
+    : 0
 
   const autoM = cashMethods.length > 1 && cashMethods.filter(m => parseVal(pd[m].value) === 0).length === 1
     ? cashMethods.find(m => parseVal(pd[m].value) === 0) : null
 
   const getEff = (m) => {
     if (m === 'iphone_entrada') return tradeVal
+    if (m === 'troca') return trocaVal
     if (m === autoM) {
       const sum = cashMethods.filter(x => x !== m).reduce((s, x) => s + parseVal(pd[x].value), 0)
       return Math.max(0, cashTotal - sum)
@@ -1270,6 +1279,146 @@ function StepPagamento({ form, set, errors, isManut, models, accessoryModels = [
           </div>
         </div>
       )}
+
+      {/* ── Troca ────────────────────────────────────────────────── */}
+      {form.payment_methods.includes('troca') && (() => {
+        const trocaFiltered = (models || [])
+          .map(g => ({ ...g, m: g.m.filter(m => m.toLowerCase().includes(trocaModelSearch.toLowerCase())) }))
+          .filter(g => g.m.length > 0)
+        const diferenca = total - trocaVal
+        const temDiferenca = trocaVal > 0 && total > 0
+
+        return (
+          <div style={{ border:`1.5px solid #2563EB`, borderRadius:12, overflow:'hidden' }}>
+            {/* Header */}
+            <div style={{ background:'#1E40AF', padding:'12px 16px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <ArrowLeftRight size={14} style={{ color:'rgba(255,255,255,0.7)' }}/>
+                <span style={{ fontSize:13, fontWeight:700, color:'#fff' }}>Troca de Aparelho</span>
+              </div>
+              {trocaVal > 0 && (
+                <span style={{ fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.9)' }}>
+                  Valor: R$ {pd.troca.value}
+                </span>
+              )}
+            </div>
+
+            <div style={{ padding:16, display:'flex', flexDirection:'column', gap:12, background:'#EFF6FF' }}>
+
+              {/* Modelo */}
+              <div style={{ position:'relative' }}>
+                <Label required>Modelo do aparelho que volta</Label>
+                <div style={{ border:`1px solid #BFDBFE`, borderRadius:10, background:'#fff' }}>
+                  <TextInput
+                    value={pd.troca.model || trocaModelSearch}
+                    onChange={e => { setTrocaModelSearch(e.target.value); setPd('troca','model',''); setTrocaModelOpen(true) }}
+                    onFocus={() => setTrocaModelOpen(true)}
+                    onBlur={() => {
+                      setTimeout(() => setTrocaModelOpen(false), 180)
+                      if (trocaModelSearch && !pd.troca.model) setPd('troca','model',trocaModelSearch)
+                    }}
+                    placeholder="Buscar modelo..."
+                    autoComplete="off"
+                  />
+                </div>
+                {trocaModelOpen && (
+                  <div style={{ position:'absolute', top:'100%', left:0, right:0, background:'#fff', border:`1px solid #BFDBFE`, borderRadius:12, boxShadow:T.shadowLg, zIndex:400, maxHeight:200, overflowY:'auto', marginTop:2 }}>
+                    {trocaFiltered.map(g => (
+                      <div key={g.s}>
+                        <div style={{ padding:'6px 14px 3px', fontSize:10, fontWeight:700, color:T.ink4, textTransform:'uppercase', background:T.bg }}>{g.s}</div>
+                        {g.m.map(m => {
+                          let ty = 0
+                          return (
+                            <div key={m}
+                              onTouchStart={e => { ty = e.touches[0].clientY }}
+                              onTouchEnd={e => { if (Math.abs(e.changedTouches[0].clientY - ty) < 8) { setPd('troca','model',m); setTrocaModelSearch(m); setTrocaModelOpen(false) } }}
+                              onMouseDown={() => { setPd('troca','model',m); setTrocaModelSearch(m); setTrocaModelOpen(false) }}
+                              style={{ padding:'9px 14px', fontSize:13, cursor:'pointer', color:T.ink2, borderBottom:`1px solid ${T.ink6}` }}
+                              onMouseEnter={e => e.currentTarget.style.background = T.ink6}
+                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                              {m}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Memória */}
+              <div>
+                <Label>Memória</Label>
+                <CapacityPicker
+                  value={pd.troca.capacity}
+                  onChange={v => setPd('troca','capacity',v)}
+                  options={['16GB','32GB','64GB','128GB','256GB','512GB','1TB']}
+                />
+              </div>
+
+              {/* Cor */}
+              <div>
+                <Label>Cor</Label>
+                <div style={{ border:`1px solid #BFDBFE`, borderRadius:10, background:'#fff' }}>
+                  <TextInput value={pd.troca.color} onChange={e => setPd('troca','color',e.target.value)} placeholder="Ex: Preto"/>
+                </div>
+              </div>
+
+              {/* IMEI + Valor */}
+              <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+                <div>
+                  <Label>IMEI</Label>
+                  <div style={{ border:`1px solid #BFDBFE`, borderRadius:10, background:'#fff' }}>
+                    <TextInput
+                      value={pd.troca.imei}
+                      onChange={e => setPd('troca','imei',e.target.value.replace(/\D/g,'').slice(0,15))}
+                      placeholder="15 dígitos"
+                      style={{ fontFamily:'JetBrains Mono,monospace', fontSize:13, letterSpacing:'0.5px' }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label required>Valor do aparelho que volta</Label>
+                  <div style={{ border:`1px solid #BFDBFE`, borderRadius:10, background:'#fff', display:'flex', alignItems:'center' }}>
+                    <span style={{ paddingLeft:12, fontSize:13, color:T.ink4, flexShrink:0 }}>R$</span>
+                    <TextInput
+                      value={pd.troca.value}
+                      onChange={e => setPd('troca','value',formatCurrencyInput(e.target.value))}
+                      placeholder="0,00"
+                      style={{ paddingLeft:6, fontWeight:700, fontSize:15 }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Diferença de valor */}
+              {temDiferenca && (
+                <div style={{
+                  borderRadius:10, padding:'11px 14px',
+                  background: diferenca > 0 ? T.amberL : diferenca < 0 ? T.greenL : T.bg,
+                  border: `1px solid ${diferenca > 0 ? '#FDE68A' : diferenca < 0 ? '#BBF7D0' : T.ink6}`,
+                  display:'flex', justifyContent:'space-between', alignItems:'center',
+                }}>
+                  <div>
+                    <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.4px',
+                      color: diferenca > 0 ? T.amber : diferenca < 0 ? T.green : T.ink3, marginBottom:2 }}>
+                      {diferenca > 0 ? 'Cliente paga a diferença' : diferenca < 0 ? 'Loja complementa o valor' : 'Troca sem diferença'}
+                    </div>
+                    <div style={{ fontSize:11, color:T.ink4 }}>
+                      R$ {fmtNum(total)} − R$ {fmtNum(trocaVal)}
+                    </div>
+                  </div>
+                  <div style={{ fontSize:18, fontWeight:800, letterSpacing:'-0.5px',
+                    color: diferenca > 0 ? T.amber : diferenca < 0 ? T.green : T.ink3,
+                    fontFamily:'JetBrains Mono,monospace' }}>
+                    {diferenca < 0 ? '−' : '+'} R$ {fmtNum(Math.abs(diferenca))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Detalhes por método */}
       {cashMethods.length > 0 && (
@@ -1551,6 +1700,7 @@ export default function NewOrderPage() {
     cartao_credito:  { value:'', parcelas:'1' },
     cartao_debito:   { value:'' },
     iphone_entrada:  { value:'', model:'', capacity:'', color:'', imei:'' },
+    troca:           { value:'', model:'', capacity:'', color:'', imei:'', diferenca:'' },
   }
   const [pd, setPdState] = useState(PD_DEFAULTS)
   const setPd = (m, f, v) => setPdState(prev => ({ ...prev, [m]: { ...prev[m], [f]: v } }))
@@ -1623,7 +1773,8 @@ export default function NewOrderPage() {
     }
 
     const tradeValFinal  = (form.payment_methods.includes('iphone_entrada')) ? _parsePD(pd.iphone_entrada?.value) : 0
-    const cashTotalFinal = Math.max(0, parseVal(form.price) + accTotal - tradeValFinal)
+    const trocaValFinal  = (form.payment_methods.includes('troca'))           ? _parsePD(pd.troca?.value)          : 0
+    const cashTotalFinal = Math.max(0, parseVal(form.price) + accTotal - tradeValFinal - trocaValFinal)
     const cashMs         = form.payment_methods.filter(m => m !== 'iphone_entrada')
     const payment_details = { ...pd }
 

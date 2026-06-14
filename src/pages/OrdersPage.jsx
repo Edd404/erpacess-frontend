@@ -1069,6 +1069,7 @@ export default function OrdersPage() {
   const [condition, setCondition] = useState('')
   const [model,     setModel]     = useState('')
   const [periodFilter, setPeriodFilter] = useState({ mode: 'quick', days: 30 })
+  const handlePeriodChange = (v) => { setPeriodFilter(v); setPage(1) }
   const [page,      setPage]      = useState(1)
   const [selectedId,  setSelectedId]  = useState(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
@@ -1099,13 +1100,23 @@ export default function OrdersPage() {
   }
 
   const limit = 12
-  const { data, isLoading } = useOrders({ search, type: typeTab, condition_sale: condition, model, page, limit })
+  const statsParams = periodToParams(periodFilter)
+  // Converte o filtro de período para start_date/end_date da listagem de ordens
+  const orderDateParams = statsParams.date_from
+    ? { start_date: statsParams.date_from, end_date: statsParams.date_to }
+    : statsParams.period && statsParams.period !== '0'
+      ? (() => {
+          const d = new Date()
+          d.setDate(d.getDate() - parseInt(statsParams.period))
+          return { start_date: d.toISOString().split('T')[0] }
+        })()
+      : {}
+  const { data, isLoading } = useOrders({ search, type: typeTab, condition_sale: condition, model, page, limit, ...orderDateParams })
   const orders     = data?.data || []
   const meta       = data?.meta || {}
   const totalPages = Math.ceil((meta.total || 0) / limit)
   const selectedOrder = selectedId ? (orders.find(o => o.id === selectedId) ?? null) : null
 
-  const statsParams = periodToParams(periodFilter)
   const { data: stats } = useOrderStats(statsParams)
   const s = stats?.summary || {}
   const downloadPDF = useDownloadPDF()
@@ -1179,7 +1190,7 @@ export default function OrdersPage() {
             ]}
           />
           <div style={{ width: 1, height: 28, background: C.border, flexShrink: 0 }} />
-          <PeriodFilter value={periodFilter} onChange={setPeriodFilter} align="right" />
+          <PeriodFilter value={periodFilter} onChange={handlePeriodChange} align="right" />
         </div>
 
         {/* Chips de filtros ativos */}

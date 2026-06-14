@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
+import PeriodFilter, { periodToParams } from '../components/PeriodFilter'
 import { useNavigate } from 'react-router-dom'
 import { useOrders, useDownloadPDF, useOrderStats, useDeleteOrder } from '../hooks/useData'
 import { useAuth } from '../context/AuthContext'
@@ -1067,7 +1068,7 @@ export default function OrdersPage() {
   const [typeTab,   setTypeTab]   = useState('')
   const [condition, setCondition] = useState('')
   const [model,     setModel]     = useState('')
-  const [period,    setPeriod]    = useState('30')
+  const [periodFilter, setPeriodFilter] = useState({ mode: 'quick', days: 30 })
   const [page,      setPage]      = useState(1)
   const [selectedId,  setSelectedId]  = useState(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
@@ -1104,7 +1105,8 @@ export default function OrdersPage() {
   const totalPages = Math.ceil((meta.total || 0) / limit)
   const selectedOrder = selectedId ? (orders.find(o => o.id === selectedId) ?? null) : null
 
-  const { data: stats } = useOrderStats(period)
+  const statsParams = periodToParams(periodFilter)
+  const { data: stats } = useOrderStats(statsParams)
   const s = stats?.summary || {}
   const downloadPDF = useDownloadPDF()
 
@@ -1114,7 +1116,7 @@ export default function OrdersPage() {
 
         {/* ── Métricas ── */}
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: isMobile ? 10 : 14 }}>
-          <MetricCard icon={ClipboardList} label="Total de ordens"  value={meta.total || 0}     sub={`últimos ${period} dias`}          color={C.accent}  colorSoft={C.accentSoft}  delay={0} />
+          <MetricCard icon={ClipboardList} label="Total de ordens"  value={meta.total || 0}     sub={periodFilter.mode === "quick" ? `últimos ${periodFilter.days} dias` : periodFilter.mode === "month" ? "no mês" : "no período"}          color={C.accent}  colorSoft={C.accentSoft}  delay={0} />
           <MetricCard icon={TrendingUp}    label="Receita"          value={brl(s.total_revenue)} sub="no período"                        color={C.green}   colorSoft={C.greenSoft}   delay={60} />
           <MetricCard icon={Zap}           label="Ticket médio"     value={brl(s.avg_sale_price)} sub="por atendimento"                  color={C.amber}   colorSoft={C.amberSoft}   delay={120} />
           <MetricCard icon={Smartphone}    label="Vendas"           value={s.total_sales || 0}  sub={`${s.total_maintenance || 0} manutenções`} color={C.violet} colorSoft={C.violetSoft} delay={180} />
@@ -1177,10 +1179,7 @@ export default function OrdersPage() {
             ]}
           />
           <div style={{ width: 1, height: 28, background: C.border, flexShrink: 0 }} />
-          <Segments
-            value={period} onChange={setPeriod}
-            options={[{ v: '7', l: '7d' }, { v: '30', l: '30d' }, { v: '90', l: '90d' }]}
-          />
+          <PeriodFilter value={periodFilter} onChange={setPeriodFilter} align="right" />
         </div>
 
         {/* Chips de filtros ativos */}

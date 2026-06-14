@@ -1,4 +1,5 @@
 import { useState, useMemo, Component } from 'react'
+import PeriodFilter, { periodToParams } from '../components/PeriodFilter'
 import { useOrderStats } from '../hooks/useData'
 import { useIsMobile } from '../hooks/useIsMobile'
 import GreetingBanner   from '../components/GreetingBanner'
@@ -133,25 +134,6 @@ function DashboardSkeleton({ isMobile }) {
 // UI COMPONENTS
 // ═══════════════════════════════════════════════════════════════
 
-function PeriodSelector({ value, onChange }) {
-  return (
-    <div style={{ display:'inline-flex', background:'rgba(0,0,0,0.06)', borderRadius:10, padding:3, gap:2 }}>
-      {[{ v:'7', l:'7d' },{ v:'30', l:'30d' },{ v:'90', l:'90d' }].map(o => {
-        const active = value === o.v
-        return (
-          <button key={o.v} onClick={() => onChange(o.v)} style={{
-            padding:'5px 14px', borderRadius:7, border:'none', cursor:'pointer',
-            fontSize:13, fontWeight: active ? 600 : 400,
-            background: active ? C.surface : 'transparent',
-            color: active ? C.text : C.t2,
-            boxShadow: active ? '0 1px 4px rgba(0,0,0,0.12)' : 'none',
-            transition:'all .15s', fontFamily:'Instrument Sans, sans-serif',
-          }}>{o.l}</button>
-        )
-      })}
-    </div>
-  )
-}
 
 // Hero card com badge de variação vs período anterior
 function HeroCard({ label, value, sub, icon: Icon, color, colorSoft, trend, delay = 0 }) {
@@ -546,9 +528,10 @@ function LeadSourcePanel({ byLeadSource, leadSourceOrders, isMobile }) {
 }
 
 export default function DashboardPage() {
-  const [period, setPeriod] = useState('30')
+  const [periodFilter, setPeriodFilter] = useState({ mode: 'quick', days: 30 })
+  const statsParams = periodToParams(periodFilter)
   const isMobile = useIsMobile()
-  const { data, isLoading } = useOrderStats(period)
+  const { data, isLoading } = useOrderStats(statsParams)
 
   const userName = useMemo(() => {
     try {
@@ -583,7 +566,24 @@ export default function DashboardPage() {
     ordens:  parseInt(d.orders)    || 0,
   })), [timeline])
 
-  const periodLabel = period === '7' ? 'últimos 7 dias' : period === '30' ? 'últimos 30 dias' : 'últimos 90 dias'
+  const periodLabel = (() => {
+    if (periodFilter.mode === 'quick') {
+      const d = periodFilter.days
+      return d === 7 ? 'últimos 7 dias' : d === 30 ? 'últimos 30 dias' : `últimos ${d} dias`
+    }
+    if (periodFilter.mode === 'month') {
+      const months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
+      return `${months[periodFilter.month]} ${periodFilter.year}`
+    }
+    if (periodFilter.mode === 'range') {
+      if (!periodFilter.from) return 'Intervalo'
+      const fmt = (iso) => new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})
+      return periodFilter.to && periodFilter.to !== periodFilter.from
+        ? `${fmt(periodFilter.from)} – ${fmt(periodFilter.to)}`
+        : fmt(periodFilter.from)
+    }
+    return 'últimos 30 dias'
+  })()
 
   if (isLoading && !data) return (
     <div style={{ fontFamily:'Instrument Sans, sans-serif', color:C.text }}>
@@ -605,7 +605,7 @@ export default function DashboardPage() {
           <h1 style={{ fontSize: isMobile ? 20 : 24, fontWeight:700, letterSpacing:'-0.5px', margin:0 }}>Dashboard</h1>
           <p style={{ fontSize:13, color:C.t2, margin:'2px 0 0', textTransform:'capitalize' }}>{periodLabel}</p>
         </div>
-        <PeriodSelector value={period} onChange={setPeriod} />
+        <PeriodFilter value={periodFilter} onChange={setPeriodFilter} align="right" />
       </div>
 
       {/* Hero cards */}
@@ -647,7 +647,7 @@ export default function DashboardPage() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.04)" vertical={false} />
-                <XAxis dataKey="day" tick={{ fontSize:10, fill:C.t3, fontFamily:'Instrument Sans' }} axisLine={false} tickLine={false} interval={period === '7' ? 0 : period === '30' ? 4 : 10} />
+                <XAxis dataKey="day" tick={{ fontSize:10, fill:C.t3, fontFamily:'Instrument Sans' }} axisLine={false} tickLine={false} interval={periodFilter.mode === 'quick' && periodFilter.days === 7 ? 0 : periodFilter.mode === 'quick' && periodFilter.days === 30 ? 4 : 'preserveStartEnd'} />
                 <YAxis tick={{ fontSize:10, fill:C.t3, fontFamily:'Instrument Sans' }} axisLine={false} tickLine={false} tickFormatter={v => brlK(v)} width={44} />
                 <Tooltip content={<ChartTooltip />} />
                 <Area type="monotone" dataKey="receita" name="Receita" stroke={C.accent} strokeWidth={2.5} fill="url(#gRevenue)" dot={false} activeDot={{ r:5, fill:C.accent, stroke:'#fff', strokeWidth:2 }} />

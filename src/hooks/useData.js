@@ -53,11 +53,11 @@ export const useOrders = (params) =>
 export const useOrder = (id) =>
   useQuery({ queryKey: ['orders', id], queryFn: () => orderService.get(id).then(r => r.data.data), enabled: !!id });
 
-export const useOrderStats = (period = '30') =>
-  useQuery({ queryKey: ['orders-stats', period], queryFn: () => orderService.stats(period).then(r => r.data.data) });
+export const useOrderStats = (params = { period: '30' }) =>
+  useQuery({ queryKey: ['orders-stats', params], queryFn: () => orderService.stats(params).then(r => r.data.data) });
 
-export const useAdvancedStats = (period = '30') =>
-  useQuery({ queryKey: ['orders-advanced-stats', period], queryFn: () => orderService.advancedStats(period).then(r => r.data.data) });
+export const useAdvancedStats = (params = { period: '30' }) =>
+  useQuery({ queryKey: ['orders-advanced-stats', params], queryFn: () => orderService.advancedStats(params).then(r => r.data.data) });
 
 export const useAuditLogs = (params) =>
   useQuery({ queryKey: ['audit', params], queryFn: () => orderService.auditLogs(params).then(r => r.data) });

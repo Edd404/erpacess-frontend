@@ -523,7 +523,8 @@ function OrderCard({ order, onClick, onPDF, pdfLoading }) {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, borderTop: `1px solid ${C.border}` }}>
-        <div style={{ fontSize: 11, color: C.t3 }}>
+        <div style={{ fontSize: 12, color: C.t2, fontWeight: 500, display:'flex', alignItems:'center', gap:5 }}>
+          <span style={{ fontSize:11, color: C.t3 }}>📅</span>
           {new Date(order.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>

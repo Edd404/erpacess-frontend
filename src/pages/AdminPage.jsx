@@ -5,11 +5,14 @@ import {
   Users, Smartphone, Plus, Pencil, Check, X, Eye, EyeOff,
   ShieldCheck, ShieldOff, Key, ChevronDown, Loader2,
   UserCircle, Crown, Briefcase, Database, Send, CheckCircle2, AlertCircle,
+  Package, Upload, Trash2, ChevronUp, RefreshCw,
 } from 'lucide-react'
 import {
   useAdminUsers, useAdminModels,
   useCreateUser, useUpdateUser, useResetPassword,
   useCreateModel, useUpdateModel,
+  useAdminInventory, useCreateInventory, useUpdateInventory,
+  useDeleteInventory, useImportInventory,
 } from '../hooks/useData'
 import api from '../services/api'
 
@@ -806,10 +809,637 @@ function BackupPanel({ T }) {
   )
 }
 
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+// PAINEL DE ESTOQUE
+// ─────────────────────────────────────────────────────────────
+
+// Mapa de cores para indicadores visuais das cores de iPhones
+const COLOR_MAP = {
+  preto:       '#1C1C1E', 'preto meia-noite': '#1C1C1E', 'meia-noite': '#1C1C1E',
+  branco:      '#F5F5F0', 'branco estelar': '#F5F5F0', estelar: '#F5F5F0',
+  azul:        '#2C6EAC', 'azul sierra': '#4A90D9', 'azul alpino': '#5B9BD5',
+  'azul titânio': '#4A7FA5', 'azul pacífico': '#2B5FA0',
+  verde:       '#3A7D44', 'verde floresta': '#2E6B38', 'verde alpine': '#4E8C56',
+  roxo:        '#7B5EA7', 'roxo intenso': '#6B4FA0',
+  rosa:        '#F4A0B0', 'rosa areia': '#E8B4B8',
+  vermelho:    '#C0392B', 'product red': '#C0392B',
+  amarelo:     '#F5D547',
+  laranja:     '#E8690B',
+  dourado:     '#C5A84F', gold: '#C5A84F', 'ouro': '#C5A84F',
+  prata:       '#A8A9AD', silver: '#A8A9AD',
+  cinza:       '#8E8E93', 'cinza espacial': '#3A3A3C', 'cinza sideral': '#3A3A3C',
+  natural:     '#C4B89A', 'titânio natural': '#C4B89A',
+  'titânio preto': '#2C2C2E', 'titânio branco': '#E8E8E0',
+  titânio:     '#8B8C8D', 'titânio azul': '#4A6FA5',
+  desert:      '#C4A882', 'desert titanium': '#C4A882',
+  'lilás':     '#BDA9D4', lilas: '#BDA9D4',
+  'marsala':   '#955251',
+  coral:       '#FF7F7F',
+  'midnight':  '#1C1C1E',
+}
+
+function colorDot(colorName) {
+  const key = (colorName || '').toLowerCase().trim()
+  // Busca exata primeiro, depois parcial
+  let hex = COLOR_MAP[key]
+  if (!hex) {
+    for (const [k, v] of Object.entries(COLOR_MAP)) {
+      if (key.includes(k) || k.includes(key)) { hex = v; break }
+    }
+  }
+  if (!hex) hex = '#9CA3AF' // cinza fallback
+  const isLight = hex === '#F5F5F0' || hex === '#E8E8E0' || hex === '#F5D547' || hex === '#C4B89A' || hex === '#C4A882'
+  return { hex, isLight }
+}
+
+function BatteryBar({ value }) {
+  if (!value) return <span style={{ fontSize:11, color:'#9CA3AF' }}>—</span>
+  const color = value >= 95 ? '#12A150' : value >= 85 ? '#D97706' : '#EF4444'
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+      <div style={{ width:36, height:5, background:'#E5E7EB', borderRadius:99, overflow:'hidden' }}>
+        <div style={{ width:`${value}%`, height:'100%', background:color, borderRadius:99, transition:'width .3s' }}/>
+      </div>
+      <span style={{ fontSize:11, fontWeight:700, color, fontFamily:'JetBrains Mono,monospace' }}>{value}%</span>
+    </div>
+  )
+}
+
+function QtyBadge({ qty }) {
+  const bg = qty === 0 ? '#FEE2E2' : qty <= 2 ? '#FEF3C7' : '#DCFCE7'
+  const color = qty === 0 ? '#B91C1C' : qty <= 2 ? '#D97706' : '#15803D'
+  return (
+    <span style={{
+      display:'inline-flex', alignItems:'center', justifyContent:'center',
+      minWidth:26, height:22, padding:'0 6px', borderRadius:6,
+      background:bg, color, fontSize:11, fontWeight:700,
+      fontFamily:'JetBrains Mono,monospace',
+    }}>{qty}</span>
+  )
+}
+
+// Modal de criação/edição de item de estoque
+function InventoryItemModal({ item, onClose, T }) {
+  const isEdit = !!item?.id
+  const create = useCreateInventory()
+  const update = useUpdateInventory()
+
+  const [form, setForm] = useState({
+    model_name:     item?.model_name     || '',
+    capacity:       item?.capacity       || '',
+    color:          item?.color          || '',
+    quantity:       item?.quantity       ?? 1,
+    battery_health: item?.battery_health || '',
+    condition:      item?.condition      || 'seminovo',
+    price_override: item?.price_override || '',
+    notes:          item?.notes          || '',
+  })
+  const [errors, setErrors] = useState({})
+
+  const set = (k, v) => { setForm(f => ({...f,[k]:v})); setErrors(e=>({...e,[k]:''})) }
+
+  const validate = () => {
+    const e = {}
+    if (!form.model_name.trim()) e.model_name = 'Modelo obrigatório'
+    if (form.quantity === '' || isNaN(form.quantity) || Number(form.quantity) < 0) e.quantity = 'Quantidade inválida'
+    if (form.battery_health !== '' && (isNaN(form.battery_health) || form.battery_health < 1 || form.battery_health > 100)) e.battery_health = '1–100'
+    setErrors(e); return !Object.keys(e).length
+  }
+
+  const handleSave = async () => {
+    if (!validate()) return
+    const payload = {
+      model_name:     form.model_name.trim(),
+      capacity:       form.capacity.trim(),
+      color:          form.color.trim(),
+      quantity:       Number(form.quantity),
+      battery_health: form.battery_health !== '' ? Number(form.battery_health) : undefined,
+      condition:      form.condition,
+      price_override: form.price_override !== '' ? parseFloat(String(form.price_override).replace(',','.')) : undefined,
+      notes:          form.notes.trim() || undefined,
+    }
+    if (isEdit) { await update.mutateAsync({ id: item.id, data: payload }) }
+    else        { await create.mutateAsync(payload) }
+    onClose()
+  }
+
+  const busy = create.isPending || update.isPending
+  const { hex: dotHex, isLight } = colorDot(form.color)
+
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.55)', backdropFilter:'blur(5px)',
+      zIndex:1700, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}
+      onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{
+        background:T.bg, borderRadius:18, width:'100%', maxWidth:460,
+        boxShadow:'0 24px 80px rgba(0,0,0,0.3)', fontFamily:'Instrument Sans,sans-serif',
+        overflow:'hidden', maxHeight:'92vh', display:'flex', flexDirection:'column',
+      }}>
+        <div style={{ background:'#0C0C0E', padding:'18px 20px', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+            <div style={{ width:34, height:34, borderRadius:9, background:'rgba(16,185,129,0.25)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <Package size={16} style={{ color:'#34D399' }}/>
+            </div>
+            <div style={{ fontSize:15, fontWeight:700, color:'#fff' }}>
+              {isEdit ? `Editar — ${item.model_name}` : 'Novo item no estoque'}
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background:'rgba(255,255,255,0.08)', border:'none', borderRadius:8, width:30, height:30, cursor:'pointer', color:'rgba(255,255,255,0.5)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <X size={14}/>
+          </button>
+        </div>
+
+        <div style={{ overflowY:'auto', padding:20, display:'flex', flexDirection:'column', gap:14 }}>
+          {/* Modelo + Capacidade */}
+          <div style={{ background:T.surface, borderRadius:12, padding:16, display:'flex', flexDirection:'column', gap:12 }}>
+            <SectionTitle>Identificação</SectionTitle>
+            <div>
+              <div style={{ fontSize:11, fontWeight:600, color:'#6B7280', marginBottom:5 }}>Modelo</div>
+              <input value={form.model_name} onChange={e=>set('model_name',e.target.value)}
+                placeholder="Ex: iPhone 15 Pro Max" style={inp(errors.model_name, T)}/>
+              {errors.model_name && <div style={{ fontSize:11, color:'#EF4444', marginTop:3 }}>{errors.model_name}</div>}
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+              <div>
+                <div style={{ fontSize:11, fontWeight:600, color:'#6B7280', marginBottom:5 }}>Capacidade</div>
+                <input value={form.capacity} onChange={e=>set('capacity',e.target.value)}
+                  placeholder="128GB" style={inp(false, T)}/>
+              </div>
+              <div>
+                <div style={{ fontSize:11, fontWeight:600, color:'#6B7280', marginBottom:5 }}>Quantidade</div>
+                <input value={form.quantity} onChange={e=>set('quantity',e.target.value)}
+                  type="number" min="0" style={inp(errors.quantity, T)}/>
+                {errors.quantity && <div style={{ fontSize:11, color:'#EF4444', marginTop:3 }}>{errors.quantity}</div>}
+              </div>
+            </div>
+          </div>
+
+          {/* Cor + Bateria */}
+          <div style={{ background:T.surface, borderRadius:12, padding:16, display:'flex', flexDirection:'column', gap:12 }}>
+            <SectionTitle>Cor e estado</SectionTitle>
+            <div>
+              <div style={{ fontSize:11, fontWeight:600, color:'#6B7280', marginBottom:5 }}>Cor</div>
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <div style={{ width:20, height:20, borderRadius:'50%', flexShrink:0,
+                  background:dotHex, border:`2px solid ${isLight ? '#D1D5DB' : 'transparent'}`,
+                  boxShadow:'0 1px 3px rgba(0,0,0,0.2)' }}/>
+                <input value={form.color} onChange={e=>set('color',e.target.value)}
+                  placeholder="Ex: Preto Meia-noite" style={{...inp(false,T), flex:1}}/>
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize:11, fontWeight:600, color:'#6B7280', marginBottom:5 }}>Saúde da bateria <span style={{ fontWeight:400, color:'#9CA3AF' }}>(%, opcional)</span></div>
+              <input value={form.battery_health} onChange={e=>set('battery_health',e.target.value)}
+                type="number" min="1" max="100" placeholder="Ex: 95" style={inp(errors.battery_health, T)}/>
+              {errors.battery_health && <div style={{ fontSize:11, color:'#EF4444', marginTop:3 }}>{errors.battery_health}</div>}
+            </div>
+            <div>
+              <div style={{ fontSize:11, fontWeight:600, color:'#6B7280', marginBottom:7 }}>Condição</div>
+              <div style={{ display:'flex', gap:8 }}>
+                {[{ v:'lacrado', l:'Lacrado', emoji:'📦' }, { v:'seminovo', l:'Seminovo', emoji:'✨' }].map(opt => {
+                  const on = form.condition === opt.v
+                  return (
+                    <button key={opt.v} onClick={()=>set('condition',opt.v)} style={{
+                      flex:1, padding:'10px 8px', borderRadius:9, cursor:'pointer',
+                      border:`1.5px solid ${on ? '#0C0C0E' : T.ink5}`,
+                      background: on ? '#0C0C0E' : T.surface,
+                      display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+                      fontFamily:'Instrument Sans,sans-serif', fontSize:12, fontWeight: on ? 700 : 400,
+                      color: on ? '#fff' : T.ink3,
+                    }}>
+                      <span>{opt.emoji}</span>{opt.l}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Preço e notas */}
+          <div style={{ background:T.surface, borderRadius:12, padding:16, display:'flex', flexDirection:'column', gap:12 }}>
+            <SectionTitle>Extras <span style={{ fontWeight:400, color:'#9CA3AF', textTransform:'none', fontSize:10 }}>(opcionais)</span></SectionTitle>
+            <div>
+              <div style={{ fontSize:11, fontWeight:600, color:'#6B7280', marginBottom:5 }}>Preço específico</div>
+              <div style={{ display:'flex', alignItems:'center', gap:6, ...inp(false,T), padding:'10px 12px' }}>
+                <span style={{ fontSize:13, color:'#6B7280' }}>R$</span>
+                <input value={form.price_override} onChange={e=>setForm(f=>({...f,price_override:e.target.value.replace(/[^0-9,.]/g,'')}))}
+                  placeholder="0,00" style={{ border:'none', outline:'none', fontSize:13, fontWeight:600, background:'transparent', fontFamily:'JetBrains Mono,monospace', color:T.ink, width:'100%' }}/>
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize:11, fontWeight:600, color:'#6B7280', marginBottom:5 }}>Observações</div>
+              <textarea value={form.notes} onChange={e=>set('notes',e.target.value)}
+                placeholder="Ex: marcas de uso, câmera com mensagem..."
+                rows={2} style={{ ...inp(false,T), resize:'vertical', lineHeight:1.5 }}/>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ padding:'12px 20px 20px', display:'flex', gap:8, flexShrink:0 }}>
+          <button onClick={onClose} style={{ padding:'11px 18px', border:`1px solid ${T.ink5}`, borderRadius:9, background:T.surface, cursor:'pointer', fontSize:13, fontWeight:500, color:T.ink3, fontFamily:'Instrument Sans,sans-serif' }}>Cancelar</button>
+          <button onClick={handleSave} disabled={busy} style={{ flex:1, padding:'11px 18px', background:'#0C0C0E', color:'#fff', border:'none', borderRadius:9, cursor:busy?'not-allowed':'pointer', fontSize:13, fontWeight:600, display:'flex', alignItems:'center', justifyContent:'center', gap:7, fontFamily:'Instrument Sans,sans-serif', opacity:busy?0.7:1 }}>
+            {busy ? <Loader2 size={14} style={{animation:'spin 1s linear infinite'}}/> : <Check size={14}/>}
+            {isEdit ? 'Salvar' : 'Adicionar'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Modal de importação WhatsApp
+function ImportModal({ onClose, T }) {
+  const importInv = useImportInventory()
+  const [text,    setText]    = useState('')
+  const [mode,    setMode]    = useState('replace')
+  const [preview, setPreview] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [errMsg,  setErrMsg]  = useState('')
+
+  const handlePreview = async () => {
+    if (text.trim().length < 10) { setErrMsg('Cole o texto do WhatsApp acima.'); return }
+    setLoading(true); setErrMsg(''); setPreview(null)
+    try {
+      const { data } = await api.post('/admin/inventory/import', { text, mode, preview: true })
+      setPreview(data)
+    } catch (e) {
+      setErrMsg(e.response?.data?.error || 'Erro ao processar texto.')
+    } finally { setLoading(false) }
+  }
+
+  const handleImport = async () => {
+    setLoading(true); setErrMsg('')
+    try {
+      await importInv.mutateAsync({ text, mode, preview: false })
+      onClose()
+    } catch (e) {
+      setErrMsg(e.response?.data?.error || 'Erro ao importar.')
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.6)', backdropFilter:'blur(6px)', zIndex:1800, display:'flex', alignItems:'flex-end', justifyContent:'center', padding:'0 0 0 0' }}
+      onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{
+        background:T.bg, borderRadius:'20px 20px 0 0', width:'100%', maxWidth:640,
+        boxShadow:'0 -8px 40px rgba(0,0,0,0.3)', fontFamily:'Instrument Sans,sans-serif',
+        maxHeight:'90vh', display:'flex', flexDirection:'column',
+      }}>
+        {/* Header */}
+        <div style={{ background:'#0C0C0E', padding:'18px 20px', display:'flex', alignItems:'center', justifyContent:'space-between', borderRadius:'20px 20px 0 0', flexShrink:0 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+            <div style={{ width:34, height:34, borderRadius:9, background:'rgba(16,185,129,0.25)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <Upload size={16} style={{ color:'#34D399' }}/>
+            </div>
+            <div>
+              <div style={{ fontSize:15, fontWeight:700, color:'#fff' }}>Importar estoque do WhatsApp</div>
+              <div style={{ fontSize:11, color:'rgba(255,255,255,0.4)', marginTop:1 }}>Cole a mensagem recebida do fornecedor</div>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background:'rgba(255,255,255,0.08)', border:'none', borderRadius:8, width:30, height:30, cursor:'pointer', color:'rgba(255,255,255,0.5)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <X size={14}/>
+          </button>
+        </div>
+
+        <div style={{ overflowY:'auto', padding:20, display:'flex', flexDirection:'column', gap:14, flex:1 }}>
+          {/* Modo */}
+          <div style={{ background:T.surface, borderRadius:12, padding:14 }}>
+            <SectionTitle>Modo de importação</SectionTitle>
+            <div style={{ display:'flex', gap:8, marginTop:8 }}>
+              {[
+                { v:'replace', l:'Substituir tudo', desc:'Zera o estoque e reimporta', emoji:'🔄' },
+                { v:'merge',   l:'Mesclar',         desc:'Adiciona sem remover anteriores', emoji:'➕' },
+              ].map(opt => {
+                const on = mode === opt.v
+                return (
+                  <button key={opt.v} onClick={()=>setMode(opt.v)} style={{
+                    flex:1, padding:'12px 10px', borderRadius:10, cursor:'pointer', textAlign:'left',
+                    border:`1.5px solid ${on ? '#0C0C0E' : T.ink5}`,
+                    background: on ? '#0C0C0E' : T.surface,
+                    fontFamily:'Instrument Sans,sans-serif', transition:'all .15s',
+                  }}>
+                    <div style={{ fontSize:16, marginBottom:5 }}>{opt.emoji}</div>
+                    <div style={{ fontSize:12, fontWeight:700, color: on ? '#fff' : T.ink }}>{opt.l}</div>
+                    <div style={{ fontSize:10, color: on ? 'rgba(255,255,255,0.5)' : '#9CA3AF', marginTop:2 }}>{opt.desc}</div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Textarea */}
+          <div>
+            <div style={{ fontSize:11, fontWeight:600, color:'#6B7280', marginBottom:6 }}>Texto do WhatsApp</div>
+            <textarea
+              value={text}
+              onChange={e=>{setText(e.target.value); setPreview(null); setErrMsg('')}}
+              placeholder={'ESTOQUE DA LOJA\n\n13 128gb - 6 azul 95% // 1 verde 95%\n14 Pro 256gb - 4 pretos 90%, 95%\n...'}
+              rows={8}
+              style={{ width:'100%', padding:'12px 14px', border:`1.5px solid ${T.ink5}`, borderRadius:10,
+                fontSize:12, color:T.ink, background:T.surface, fontFamily:'JetBrains Mono,monospace',
+                outline:'none', boxSizing:'border-box', resize:'vertical', lineHeight:1.6 }}
+            />
+          </div>
+
+          {errMsg && (
+            <div style={{ background:'#FEF2F2', border:'1px solid #FECACA', borderRadius:10, padding:'10px 14px', fontSize:12, color:'#B91C1C', display:'flex', alignItems:'center', gap:8 }}>
+              <AlertCircle size={14}/>{errMsg}
+            </div>
+          )}
+
+          {/* Pré-visualização */}
+          {preview && (
+            <div style={{ background:T.surface, borderRadius:12, overflow:'hidden', border:`1px solid ${T.ink5}` }}>
+              <div style={{ padding:'10px 14px', background:'#F0FDF4', borderBottom:'1px solid #BBF7D0', display:'flex', alignItems:'center', gap:8 }}>
+                <CheckCircle2 size={14} style={{ color:'#15803D' }}/>
+                <span style={{ fontSize:12, fontWeight:700, color:'#15803D' }}>{preview.count} itens reconhecidos</span>
+                <span style={{ fontSize:11, color:'#6B7280', marginLeft:'auto' }}>Revise antes de importar</span>
+              </div>
+              <div style={{ maxHeight:220, overflowY:'auto' }}>
+                {preview.data.map((item, i) => (
+                  <div key={i} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 14px', borderBottom:`1px solid ${T.ink6}` }}>
+                    {(() => { const { hex, isLight } = colorDot(item.color); return (
+                      <div style={{ width:10, height:10, borderRadius:'50%', background:hex, flexShrink:0, border:`1px solid ${isLight ? '#D1D5DB' : 'transparent'}` }}/>
+                    )})()}
+                    <span style={{ fontSize:12, fontWeight:600, color:T.ink, flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                      {item.model_name} {item.capacity}
+                    </span>
+                    <span style={{ fontSize:11, color:'#6B7280', whiteSpace:'nowrap' }}>{item.color}</span>
+                    {item.battery_health && <span style={{ fontSize:10, fontFamily:'JetBrains Mono,monospace', color: item.battery_health >= 95 ? '#15803D' : '#D97706' }}>{item.battery_health}%</span>}
+                    <QtyBadge qty={item.quantity}/>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Ações */}
+        <div style={{ padding:'12px 20px 24px', display:'flex', gap:8, flexShrink:0, borderTop:`1px solid ${T.ink6}` }}>
+          {!preview ? (
+            <button onClick={handlePreview} disabled={loading || text.trim().length < 10} style={{
+              flex:1, padding:'12px', background: text.trim().length >= 10 ? '#0C0C0E' : T.ink5,
+              color: text.trim().length >= 10 ? '#fff' : '#9CA3AF',
+              border:'none', borderRadius:10, cursor: text.trim().length >= 10 ? 'pointer' : 'default',
+              fontSize:13, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', gap:7,
+              fontFamily:'Instrument Sans,sans-serif',
+            }}>
+              {loading ? <Loader2 size={14} style={{animation:'spin 1s linear infinite'}}/> : <CheckCircle2 size={14}/>}
+              Pré-visualizar
+            </button>
+          ) : (
+            <>
+              <button onClick={()=>setPreview(null)} style={{ padding:'12px 18px', border:`1px solid ${T.ink5}`, borderRadius:10, background:T.surface, cursor:'pointer', fontSize:13, fontWeight:500, color:T.ink3, fontFamily:'Instrument Sans,sans-serif' }}>
+                Editar
+              </button>
+              <button onClick={handleImport} disabled={loading} style={{
+                flex:1, padding:'12px', background:'#12A150', color:'#fff',
+                border:'none', borderRadius:10, cursor: loading ? 'not-allowed' : 'pointer',
+                fontSize:13, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', gap:7,
+                fontFamily:'Instrument Sans,sans-serif', opacity: loading ? 0.7 : 1,
+              }}>
+                {loading ? <Loader2 size={14} style={{animation:'spin 1s linear infinite'}}/> : <Upload size={14}/>}
+                Importar {preview.count} itens
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Painel principal de estoque
+function InventoryPanel({ T }) {
+  const { data: items = [], isLoading } = useAdminInventory()
+  const deleteInv = useDeleteInventory()
+
+  const [search,      setSearch]      = useState('')
+  const [itemModal,   setItemModal]   = useState(null)   // null | {} | item
+  const [importModal, setImportModal] = useState(false)
+  const [expandedModel, setExpandedModel] = useState(null)
+  const [deleteConfirm, setDeleteConfirm] = useState(null)
+
+  // Agrupa por model_name + capacity
+  const grouped = {}
+  items.forEach(item => {
+    const key = `${item.model_name}|||${item.capacity}`
+    if (!grouped[key]) grouped[key] = { model_name: item.model_name, capacity: item.capacity, items: [] }
+    grouped[key].items.push(item)
+  })
+
+  const groups = Object.values(grouped).filter(g => {
+    if (!search.trim()) return true
+    const q = search.toLowerCase()
+    return g.model_name.toLowerCase().includes(q) || g.capacity.toLowerCase().includes(q) ||
+      g.items.some(i => i.color.toLowerCase().includes(q))
+  }).sort((a,b) => a.model_name.localeCompare(b.model_name, 'pt-BR') || a.capacity.localeCompare(b.capacity))
+
+  const totalUnits = items.reduce((s, i) => s + (i.quantity || 0), 0)
+  const totalModels = Object.keys(grouped).length
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+      {/* Métricas rápidas */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10 }}>
+        {[
+          { label:'Total em estoque', value:totalUnits, color:'#0A66FF' },
+          { label:'Modelos distintos', value:totalModels, color:'#7C3AED' },
+          { label:'Itens críticos', value:items.filter(i=>i.quantity<=2).length, color:'#D97706' },
+        ].map(m => (
+          <div key={m.label} style={{ background:'#fff', borderRadius:12, padding:'12px 14px', border:'1px solid rgba(0,0,0,0.07)', boxShadow:'0 1px 4px rgba(0,0,0,0.04)' }}>
+            <div style={{ fontSize:20, fontWeight:800, color:m.color, fontFamily:'JetBrains Mono,monospace', letterSpacing:'-1px' }}>{m.value}</div>
+            <div style={{ fontSize:10, color:'#6B7280', marginTop:3, fontWeight:500 }}>{m.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Barra de ações */}
+      <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
+        <input
+          value={search} onChange={e=>setSearch(e.target.value)}
+          placeholder="Buscar modelo, capacidade ou cor..."
+          style={{ flex:1, minWidth:150, padding:'9px 12px', border:`1.5px solid ${T.ink5}`, borderRadius:9, fontSize:13, color:T.ink, background:T.surface, outline:'none', fontFamily:'Instrument Sans,sans-serif' }}
+        />
+        <button onClick={()=>setItemModal({})} style={{
+          display:'flex', alignItems:'center', gap:6, padding:'9px 14px',
+          background:'rgba(0,0,0,0.07)', color:T.ink, border:'none', borderRadius:9,
+          cursor:'pointer', fontSize:12, fontWeight:600, fontFamily:'Instrument Sans,sans-serif',
+        }}>
+          <Plus size={13}/> Manual
+        </button>
+        <button onClick={()=>setImportModal(true)} style={{
+          display:'flex', alignItems:'center', gap:6, padding:'9px 16px',
+          background:'linear-gradient(135deg,#12A150,#059669)', color:'#fff',
+          border:'none', borderRadius:9, cursor:'pointer', fontSize:12, fontWeight:700,
+          fontFamily:'Instrument Sans,sans-serif', boxShadow:'0 3px 10px rgba(18,161,80,0.3)',
+        }}>
+          <Upload size={13}/> Importar WhatsApp
+        </button>
+      </div>
+
+      {/* Loading */}
+      {isLoading && (
+        <div style={{ padding:40, textAlign:'center', color:'#9CA3AF' }}>
+          <Loader2 size={20} style={{ animation:'spin 1s linear infinite', margin:'0 auto 8px', display:'block' }}/>
+          Carregando estoque...
+        </div>
+      )}
+
+      {/* Vazio */}
+      {!isLoading && items.length === 0 && (
+        <div style={{ padding:'48px 20px', textAlign:'center', display:'flex', flexDirection:'column', alignItems:'center', gap:12 }}>
+          <div style={{ width:56, height:56, borderRadius:16, background:'#F3F4F6', display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <Package size={24} style={{ color:'#9CA3AF' }}/>
+          </div>
+          <div style={{ fontSize:15, fontWeight:700, color:'#374151' }}>Estoque vazio</div>
+          <div style={{ fontSize:13, color:'#9CA3AF', maxWidth:260 }}>Importe a lista do WhatsApp ou adicione itens manualmente.</div>
+          <button onClick={()=>setImportModal(true)} style={{ marginTop:4, padding:'10px 22px', background:'#12A150', color:'#fff', border:'none', borderRadius:10, cursor:'pointer', fontSize:13, fontWeight:700, fontFamily:'Instrument Sans,sans-serif' }}>
+            Importar agora
+          </button>
+        </div>
+      )}
+
+      {/* Lista agrupada */}
+      {!isLoading && groups.length > 0 && (
+        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+          {groups.map(g => {
+            const key = `${g.model_name}|||${g.capacity}`
+            const isExpanded = expandedModel === key
+            const totalQty = g.items.reduce((s,i) => s+i.quantity, 0)
+
+            return (
+              <div key={key} style={{ background:'#fff', borderRadius:14, border:'1px solid rgba(0,0,0,0.08)', overflow:'hidden', boxShadow:'0 1px 4px rgba(0,0,0,0.04)', transition:'box-shadow .15s' }}>
+                {/* Header do grupo */}
+                <button
+                  onClick={()=>setExpandedModel(isExpanded ? null : key)}
+                  style={{ width:'100%', padding:'12px 14px', background:'none', border:'none', cursor:'pointer', display:'flex', alignItems:'center', gap:12, fontFamily:'Instrument Sans,sans-serif', textAlign:'left' }}
+                >
+                  <div style={{ width:36, height:36, borderRadius:10, background:'#EFF6FF', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                    <Smartphone size={16} style={{ color:'#2563EB' }}/>
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:13, fontWeight:700, color:'#111827', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                      {g.model_name}
+                      {g.capacity && <span style={{ marginLeft:7, fontSize:11, fontWeight:600, background:'#F3F4F6', color:'#374151', padding:'2px 7px', borderRadius:5, fontFamily:'JetBrains Mono,monospace' }}>{g.capacity}</span>}
+                    </div>
+                    {/* Dots de cores */}
+                    <div style={{ display:'flex', gap:4, marginTop:5, flexWrap:'wrap' }}>
+                      {g.items.map(item => {
+                        const { hex, isLight } = colorDot(item.color)
+                        return (
+                          <div key={item.id} title={`${item.color} — ${item.quantity} un.`} style={{ display:'flex', alignItems:'center', gap:4 }}>
+                            <div style={{ width:10, height:10, borderRadius:'50%', background:hex, border:`1.5px solid ${isLight ? '#D1D5DB' : 'transparent'}`, boxShadow:'0 1px 2px rgba(0,0,0,0.15)' }}/>
+                            <span style={{ fontSize:10, color:'#6B7280', fontFamily:'JetBrains Mono,monospace' }}>{item.quantity}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
+                    <QtyBadge qty={totalQty}/>
+                    {isExpanded ? <ChevronUp size={14} style={{ color:'#9CA3AF' }}/> : <ChevronDown size={14} style={{ color:'#9CA3AF' }}/>}
+                  </div>
+                </button>
+
+                {/* Detalhes expandidos */}
+                {isExpanded && (
+                  <div style={{ borderTop:'1px solid #F3F4F6' }}>
+                    {g.items.map(item => {
+                      const { hex, isLight } = colorDot(item.color)
+                      return (
+                        <div key={item.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', borderBottom:'1px solid #F9FAFB' }}>
+                          {/* Bolinha da cor */}
+                          <div style={{ width:14, height:14, borderRadius:'50%', background:hex, flexShrink:0, border:`2px solid ${isLight ? '#D1D5DB' : 'transparent'}`, boxShadow:'0 1px 3px rgba(0,0,0,0.2)' }}/>
+
+                          <div style={{ flex:1, minWidth:0 }}>
+                            <div style={{ fontSize:13, fontWeight:600, color:'#111827' }}>{item.color || '—'}</div>
+                            <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:3, flexWrap:'wrap' }}>
+                              <BatteryBar value={item.battery_health}/>
+                              <span style={{ fontSize:10, background: item.condition === 'lacrado' ? '#EFF6FF' : '#F0FDF4', color: item.condition === 'lacrado' ? '#1D4ED8' : '#15803D', padding:'2px 7px', borderRadius:5, fontWeight:600 }}>
+                                {item.condition === 'lacrado' ? '📦 Lacrado' : '✨ Seminovo'}
+                              </span>
+                              {item.price_override && (
+                                <span style={{ fontSize:10, background:'#FEF3C7', color:'#D97706', padding:'2px 7px', borderRadius:5, fontWeight:700, fontFamily:'JetBrains Mono,monospace' }}>
+                                  R$ {Number(item.price_override).toLocaleString('pt-BR',{minimumFractionDigits:2})}
+                                </span>
+                              )}
+                              {item.notes && <span style={{ fontSize:10, color:'#9CA3AF', fontStyle:'italic' }} title={item.notes}>📝 {item.notes.slice(0,30)}{item.notes.length>30?'…':''}</span>}
+                            </div>
+                          </div>
+
+                          <QtyBadge qty={item.quantity}/>
+
+                          <div style={{ display:'flex', gap:6, flexShrink:0 }}>
+                            <button onClick={()=>setItemModal(item)} style={{ background:'rgba(0,0,0,0.05)', border:'none', borderRadius:7, padding:'6px', cursor:'pointer', display:'flex', alignItems:'center', color:'#6B7280' }}>
+                              <Pencil size={12}/>
+                            </button>
+                            <button onClick={()=>setDeleteConfirm(item)} style={{ background:'#FEE2E2', border:'none', borderRadius:7, padding:'6px', cursor:'pointer', display:'flex', alignItems:'center', color:'#B91C1C' }}>
+                              <Trash2 size={12}/>
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                    {/* Botão de adicionar variante */}
+                    <button onClick={()=>setItemModal({ model_name: g.model_name, capacity: g.capacity })}
+                      style={{ width:'100%', padding:'9px 14px', background:'#F9FAFB', border:'none', cursor:'pointer', display:'flex', alignItems:'center', gap:7, color:'#6B7280', fontSize:12, fontWeight:500, fontFamily:'Instrument Sans,sans-serif' }}>
+                      <Plus size={12}/> Adicionar cor/variante
+                    </button>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Sem resultados na busca */}
+      {!isLoading && items.length > 0 && groups.length === 0 && (
+        <div style={{ padding:32, textAlign:'center', color:'#9CA3AF', fontSize:13 }}>Nenhum modelo encontrado para "{search}"</div>
+      )}
+
+      {/* Modais */}
+      {itemModal !== null && (
+        <InventoryItemModal
+          item={Object.keys(itemModal).length ? itemModal : null}
+          onClose={()=>setItemModal(null)}
+          T={T}
+        />
+      )}
+      {importModal && <ImportModal onClose={()=>setImportModal(false)} T={T}/>}
+
+      {/* Confirma exclusão */}
+      {deleteConfirm && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', backdropFilter:'blur(4px)', zIndex:1900, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}
+          onClick={()=>setDeleteConfirm(null)}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:T.bg, borderRadius:16, padding:24, maxWidth:360, width:'100%', boxShadow:'0 16px 48px rgba(0,0,0,0.25)', fontFamily:'Instrument Sans,sans-serif' }}>
+            <div style={{ fontSize:15, fontWeight:700, color:'#111827', marginBottom:8 }}>Remover item?</div>
+            <div style={{ fontSize:13, color:'#6B7280', marginBottom:20 }}>
+              <strong>{deleteConfirm.model_name} {deleteConfirm.capacity}</strong> · {deleteConfirm.color} · {deleteConfirm.quantity} un.<br/>Esta ação não pode ser desfeita.
+            </div>
+            <div style={{ display:'flex', gap:8 }}>
+              <button onClick={()=>setDeleteConfirm(null)} style={{ flex:1, padding:'10px', border:`1px solid ${T.ink5}`, borderRadius:9, background:T.surface, cursor:'pointer', fontSize:13, fontWeight:500, color:T.ink3, fontFamily:'Instrument Sans,sans-serif' }}>Cancelar</button>
+              <button onClick={async()=>{ await deleteInv.mutateAsync(deleteConfirm.id); setDeleteConfirm(null) }} style={{ flex:1, padding:'10px', background:'#EF4444', color:'#fff', border:'none', borderRadius:9, cursor:'pointer', fontSize:13, fontWeight:700, fontFamily:'Instrument Sans,sans-serif' }}>
+                {deleteInv.isPending ? <Loader2 size={13} style={{animation:'spin 1s linear infinite'}}/> : 'Remover'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function AdminPage() {
   const { T }    = useTheme()
   const { user } = useAuth()
-  const [tab,    setTab]    = useState('users')  // 'users' | 'models'
+  const [tab,    setTab]    = useState('users')  // 'users' | 'models' | 'inventory' | 'backup'
   const [userModal,  setUserModal]  = useState(null)  // null | {} | user obj
   const [modelModal, setModelModal] = useState(null)
 
@@ -852,9 +1482,10 @@ export default function AdminPage() {
       <div style={{ display:'flex', background:'rgba(0,0,0,0.05)', borderRadius:12,
         padding:4, marginBottom:20, gap:3 }}>
         {[
-          { k:'users',  l:'Usuários',  Icon:Users,       count:users.length },
-          { k:'models', l:'Catálogo',  Icon:Smartphone,  count:models.filter(m=>m.is_active).length },
-          { k:'backup', l:'Backup',    Icon:Database,    count:null },
+          { k:'users',     l:'Usuários',  Icon:Users,       count:users.length },
+          { k:'models',    l:'Catálogo',  Icon:Smartphone,  count:models.filter(m=>m.is_active).length },
+          { k:'inventory', l:'Estoque',   Icon:Package,     count:null },
+          { k:'backup',    l:'Backup',    Icon:Database,    count:null },
         ].map(({ k, l, Icon, count }) => {
           const active = tab === k
           return (
@@ -1082,6 +1713,9 @@ export default function AdminPage() {
         </div>
       )}
 
+
+      {/* ── ABA ESTOQUE ──────────────────────────────────────── */}
+      {tab === 'inventory' && <InventoryPanel T={T}/>}
 
       {/* ── ABA BACKUP ───────────────────────────────────────── */}
       {tab === 'backup' && (

@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { useCreateOrder } from '../hooks/useData'
+import { useCreateOrder, useInventoryByModel } from '../hooks/useData'
 import { clientService, adminService } from '../services/api'
 import { formatCurrencyInput } from '../utils/formatters'
 import { validateIMEI } from '../utils/validators'
 import {
   ArrowLeft, ChevronRight, Check, Smartphone, Wrench, Zap, CreditCard,
   Banknote, Loader2, Send, Search, AlertCircle, CheckCircle2, X, ChevronDown, User, Phone,
-  ShoppingBag, Plus, ArrowLeftRight
+  ShoppingBag, Plus, ArrowLeftRight, Package,
 } from 'lucide-react'
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
@@ -252,6 +252,101 @@ function AccessoryPickerSheet({ open, current, onSelect, onClose, catalogItems =
           })}
         </div>
       </div>
+    </div>
+  )
+}
+
+// ── StockIndicator — mostra disponibilidade do modelo selecionado ─
+const COLOR_DOT_MAP = {
+  preto:'#1C1C1E','meia-noite':'#1C1C1E',branco:'#F5F5F0',estelar:'#F5F5F0',
+  azul:'#2C6EAC',verde:'#3A7D44',roxo:'#7B5EA7',rosa:'#F4A0B0',
+  vermelho:'#C0392B',amarelo:'#F5D547',laranja:'#E8690B',
+  dourado:'#C5A84F',gold:'#C5A84F',prata:'#A8A9AD',silver:'#A8A9AD',
+  cinza:'#8E8E93','cinza espacial':'#3A3A3C',natural:'#C4B89A',
+  titânio:'#8B8C8D',desert:'#C4A882','lilás':'#BDA9D4',lilas:'#BDA9D4',
+  coral:'#FF7F7F',
+}
+function getColorHex(name) {
+  const k = (name||'').toLowerCase().trim()
+  if (COLOR_DOT_MAP[k]) return COLOR_DOT_MAP[k]
+  for (const [key, val] of Object.entries(COLOR_DOT_MAP)) {
+    if (k.includes(key) || key.includes(k)) return val
+  }
+  return '#9CA3AF'
+}
+function isLightColor(hex) {
+  return ['#F5F5F0','#F5D547','#C4B89A','#C4A882','#BDA9D4'].includes(hex)
+}
+
+function StockIndicator({ model, capacity }) {
+  const { data: items = [], isLoading, isFetching } = useInventoryByModel(model || null)
+
+  if (!model) return null
+
+  // Filtra por capacidade se selecionada
+  const filtered = capacity
+    ? items.filter(i => i.capacity.toUpperCase() === capacity.toUpperCase())
+    : items
+
+  const total = filtered.reduce((s, i) => s + (i.quantity || 0), 0)
+
+  const loading = isLoading || isFetching
+
+  if (loading) return (
+    <div style={{ marginTop:8, display:'flex', alignItems:'center', gap:6, padding:'8px 12px', borderRadius:8, background:'#F9FAFB', border:'1px solid #E5E7EB' }}>
+      <Loader2 size={11} style={{ color:'#9CA3AF', animation:'spin 1s linear infinite' }}/>
+      <span style={{ fontSize:11, color:'#9CA3AF', fontFamily:'Instrument Sans,sans-serif' }}>Verificando estoque…</span>
+    </div>
+  )
+
+  if (filtered.length === 0) return (
+    <div style={{ marginTop:8, display:'flex', alignItems:'center', gap:7, padding:'8px 12px', borderRadius:8, background:'#FEF2F2', border:'1px solid #FECACA' }}>
+      <Package size={12} style={{ color:'#EF4444', flexShrink:0 }}/>
+      <span style={{ fontSize:11, color:'#991B1B', fontWeight:600, fontFamily:'Instrument Sans,sans-serif' }}>
+        Sem estoque{capacity ? ` em ${capacity}` : ''} para este modelo
+      </span>
+    </div>
+  )
+
+  const bg    = total === 0 ? '#FEF2F2' : total <= 3 ? '#FFFBEB' : '#F0FDF4'
+  const bord  = total === 0 ? '#FECACA' : total <= 3 ? '#FDE68A' : '#BBF7D0'
+  const dot   = total === 0 ? '#EF4444' : total <= 3 ? '#D97706' : '#16A34A'
+  const label = total === 0 ? 'Sem estoque' : `${total} ${total === 1 ? 'unidade' : 'unidades'} disponíveis`
+
+  return (
+    <div style={{ marginTop:8, padding:'8px 12px', borderRadius:8, background:bg, border:`1px solid ${bord}` }}>
+      {/* Linha de total */}
+      <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom: filtered.length > 0 ? 8 : 0 }}>
+        <div style={{ width:7, height:7, borderRadius:'50%', background:dot, flexShrink:0 }}/>
+        <span style={{ fontSize:11, fontWeight:700, color: total === 0 ? '#991B1B' : total <= 3 ? '#92400E' : '#14532D', fontFamily:'Instrument Sans,sans-serif' }}>
+          {label}
+        </span>
+        <Package size={10} style={{ color:dot, marginLeft:'auto' }}/>
+      </div>
+
+      {/* Dots por cor */}
+      {filtered.length > 0 && (
+        <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+          {filtered.map(item => {
+            const hex = getColorHex(item.color)
+            const light = isLightColor(hex)
+            const qtyColor = item.quantity === 0 ? '#EF4444' : item.quantity <= 2 ? '#D97706' : '#16A34A'
+            return (
+              <div key={item.id} title={`${item.color} — ${item.quantity} un. | Bateria: ${item.battery_health || '?'}%`}
+                style={{ display:'flex', alignItems:'center', gap:4, background:'rgba(255,255,255,0.7)', borderRadius:6, padding:'3px 7px', border:'1px solid rgba(0,0,0,0.07)' }}>
+                <div style={{ width:9, height:9, borderRadius:'50%', background:hex, flexShrink:0, border:`1.5px solid ${light ? '#D1D5DB' : 'transparent'}`, boxShadow:'0 1px 2px rgba(0,0,0,0.15)' }}/>
+                <span style={{ fontSize:10, color:'#374151', fontFamily:'Instrument Sans,sans-serif', maxWidth:80, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                  {item.color}
+                </span>
+                <span style={{ fontSize:10, fontWeight:700, color:qtyColor, fontFamily:'JetBrains Mono,monospace' }}>×{item.quantity}</span>
+                {item.battery_health && (
+                  <span style={{ fontSize:9, color:'#9CA3AF', fontFamily:'JetBrains Mono,monospace' }}>{item.battery_health}%</span>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
@@ -725,6 +820,7 @@ function StepProduto({ form, set, errors, models, outroModels = [] }) {
           onChange={v => set('capacity', v)}
           options={['64GB','128GB','256GB','512GB','1TB']}
         />
+        <StockIndicator model={form.iphone_model} capacity={form.capacity}/>
       </div>
 
       <div>

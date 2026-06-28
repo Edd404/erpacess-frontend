@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { clientService, orderService, adminService } from '../services/api';
+import { clientService, orderService, adminService, inventoryService } from '../services/api';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
@@ -183,3 +183,79 @@ export const useDownloadPDF = () =>
     onSuccess: () => toast.success('PDF baixado!'),
     onError: () => toast.error('Erro ao gerar PDF.'),
   });
+
+// ── Inventory hooks ───────────────────────────────────────────
+export const useInventorySummary = () =>
+  useQuery({
+    queryKey: ['inventory-summary'],
+    queryFn: () => inventoryService.summary().then(r => r.data.data),
+    staleTime: 60_000,
+  });
+
+export const useInventoryByModel = (model) =>
+  useQuery({
+    queryKey: ['inventory-by-model', model],
+    queryFn: () => inventoryService.byModel(model).then(r => r.data.data),
+    enabled: !!model,
+    staleTime: 30_000,
+  });
+
+export const useAdminInventory = (params) =>
+  useQuery({
+    queryKey: ['admin-inventory', params],
+    queryFn: () => adminService.listInventory(params).then(r => r.data.data),
+  });
+
+export const useCreateInventory = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (d) => adminService.createInventory(d),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-inventory'] });
+      qc.invalidateQueries({ queryKey: ['inventory-summary'] });
+      toast.success('Item adicionado ao estoque!');
+    },
+    onError: (err) => toast.error(err.response?.data?.error || 'Erro ao adicionar item.'),
+  });
+};
+
+export const useUpdateInventory = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }) => adminService.updateInventory(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-inventory'] });
+      qc.invalidateQueries({ queryKey: ['inventory-summary'] });
+      qc.invalidateQueries({ queryKey: ['inventory-by-model'] });
+      toast.success('Estoque atualizado!');
+    },
+    onError: (err) => toast.error(err.response?.data?.error || 'Erro ao atualizar.'),
+  });
+};
+
+export const useDeleteInventory = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => adminService.deleteInventory(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-inventory'] });
+      qc.invalidateQueries({ queryKey: ['inventory-summary'] });
+      toast.success('Item removido do estoque.');
+    },
+    onError: (err) => toast.error(err.response?.data?.error || 'Erro ao remover.'),
+  });
+};
+
+export const useImportInventory = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (d) => adminService.importInventory(d),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['admin-inventory'] });
+      qc.invalidateQueries({ queryKey: ['inventory-summary'] });
+      qc.invalidateQueries({ queryKey: ['inventory-by-model'] });
+      toast.success(`${res.data.count} itens importados com sucesso!`);
+    },
+    onError: (err) => toast.error(err.response?.data?.error || 'Erro ao importar estoque.'),
+  });
+};

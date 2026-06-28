@@ -85,6 +85,17 @@ export const adminService = {
   activeModels:  ()       => api.get('/models/active'),
   createModel:   (d)      => api.post('/admin/models', d),
   updateModel:   (id, d)  => api.patch(`/admin/models/${id}`, d),
+  // Estoque
+  listInventory:      (p) => api.get('/admin/inventory', { params: p }),
+  createInventory:    (d) => api.post('/admin/inventory', d),
+  updateInventory: (id,d) => api.patch(`/admin/inventory/${id}`, d),
+  deleteInventory:   (id) => api.delete(`/admin/inventory/${id}`),
+  importInventory:    (d) => api.post('/admin/inventory/import', d),
+};
+
+export const inventoryService = {
+  summary:  ()    => api.get('/inventory/summary'),
+  byModel:  (model) => api.get('/inventory/by-model', { params: { model } }),
 };
 
 export default api;

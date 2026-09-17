@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { useClients, useCreateClient, useLookupCEP } from '../hooks/useData'
+import { useClients, useCreateClient, useLookupCEP, useExportClients } from '../hooks/useData'
 import { useIsMobile } from '../hooks/useIsMobile'
 import {
   Search, Plus, ChevronRight, Phone, Mail, MapPin, X, Loader2, Check,
@@ -207,30 +207,6 @@ const isInactive = (c) => {
   return days > 90
 }
 
-/* ── exportCSV ───────────────────────────────────────────── */
-function exportCSV(clients) {
-  const headers = ['Nome','CPF','Telefone','E-mail','Cidade','UF','Atendimentos','Último atendimento']
-  const rows = clients.map(c => [
-    c.name,
-    c.cpf_formatted || formatCPF(c.cpf),
-    c.phone,
-    c.email || '',
-    c.city  || '',
-    c.state || '',
-    c.total_orders || 0,
-    c.last_order_date ? new Date(c.last_order_date).toLocaleDateString('pt-BR') : '—',
-  ])
-  const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n')
-  const blob = new Blob(['\uFEFF' + csv], { type:'text/csv;charset=utf-8;' })
-  const url  = URL.createObjectURL(blob)
-  const a    = document.createElement('a')
-  a.href     = url
-  a.download = `clientes-${new Date().toISOString().slice(0,10)}.csv`
-  a.click()
-  URL.revokeObjectURL(url)
-  toast.success('Lista exportada!')
-}
-
 /* ══ PÁGINA PRINCIPAL ════════════════════════════════════════ */
 export default function ClientsPage() {
   const [search,   setSearch]   = useState('')
@@ -244,6 +220,7 @@ export default function ClientsPage() {
   const { data, isLoading } = useClients({ search, page, limit:100, sort, order })
   const clients = data?.data || []
   const meta    = data?.meta || {}
+  const exportClients = useExportClients()
 
   /* métricas derivadas */
   const metrics = useMemo(() => {
@@ -313,19 +290,22 @@ export default function ClientsPage() {
 
           {/* Ações — linha separada */}
           <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-            {/* Exportar CSV */}
+            {/* Exportar (xlsx completo, todos os clientes) */}
             <button
-              onClick={() => exportCSV(clients)}
-              disabled={clients.length === 0}
+              onClick={() => exportClients.mutate()}
+              disabled={exportClients.isPending || meta.total === 0}
               style={{
                 display:'flex', alignItems:'center', justifyContent:'center', gap:6, padding:'9px 16px',
                 background:T.surface, color:T.t2, border:`1px solid ${T.borderS}`,
-                borderRadius:9, fontSize:13, fontWeight:500, cursor: clients.length ? 'pointer' : 'default',
-                fontFamily:'Instrument Sans,sans-serif', opacity: clients.length ? 1 : 0.4,
+                borderRadius:9, fontSize:13, fontWeight:500,
+                cursor: (exportClients.isPending || meta.total === 0) ? 'default' : 'pointer',
+                fontFamily:'Instrument Sans,sans-serif', opacity: meta.total === 0 ? 0.4 : 1,
                 whiteSpace:'nowrap',
               }}
             >
-              <Download size={13}/> Exportar
+              {exportClients.isPending
+                ? <><Loader2 size={13} style={{ animation:'spin 1s linear infinite' }}/> Exportando...</>
+                : <><Download size={13}/> Exportar</>}
             </button>
 
             {/* Novo Cliente */}

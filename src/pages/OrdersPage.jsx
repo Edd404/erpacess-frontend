@@ -1069,7 +1069,10 @@ export default function OrdersPage() {
   const [typeTab,   setTypeTab]   = useState('')
   const [condition, setCondition] = useState('')
   const [model,     setModel]     = useState('')
-  const [periodFilter, setPeriodFilter] = useState({ mode: 'quick', days: 30 })
+  const [periodFilter, setPeriodFilter] = useState(() => {
+    const now = new Date()
+    return { mode: 'month', year: now.getFullYear(), month: now.getMonth() }
+  })
   const handlePeriodChange = (v) => { setPeriodFilter(v); setPage(1) }
   const [page,      setPage]      = useState(1)
   const [selectedId,  setSelectedId]  = useState(null)

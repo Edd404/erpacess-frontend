@@ -49,6 +49,7 @@ export const clientService = {
   update:     (id, d) => api.put(`/clients/${id}`, d),
   delete:     (id) => api.delete(`/clients/${id}`),
   lookupCEP:  (cep) => api.get(`/clients/cep/${cep}`),
+  export:     () => api.get('/clients/export', { responseType: 'blob' }),
 };
 export const authService = {
   login:          (d)  => api.post('/auth/login', d),

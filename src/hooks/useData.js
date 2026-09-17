@@ -31,6 +31,21 @@ export const useUpdateClient = () => {
   });
 };
 
+export const useExportClients = () =>
+  useMutation({
+    mutationFn: async () => {
+      const res = await clientService.export();
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `clientes-acessphones-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    },
+    onSuccess: () => toast.success('Base de clientes exportada!'),
+    onError: (err) => toast.error(err.response?.data?.error || 'Erro ao exportar clientes.'),
+  });
+
 export const useDeleteClient = () => {
   const qc = useQueryClient();
   return useMutation({

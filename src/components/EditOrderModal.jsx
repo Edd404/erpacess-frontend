@@ -41,7 +41,7 @@ const PAY_OPTS = [
   { v:'iphone_entrada', l:'iPhone Entrada', icon:Smartphone },
 ]
 
-const PARCELAS = [1,2,3,4,5,6,7,8,9,10,11,12]
+const PARCELAS = [1,2,3,4,5,6,7,8,9,10,11,12,15,18]
 
 // ── Helpers ───────────────────────────────────────────────────
 const brl = v => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v||0)

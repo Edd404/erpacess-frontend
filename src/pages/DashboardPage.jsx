@@ -528,7 +528,10 @@ function LeadSourcePanel({ byLeadSource, leadSourceOrders, isMobile }) {
 }
 
 export default function DashboardPage() {
-  const [periodFilter, setPeriodFilter] = useState({ mode: 'quick', days: 30 })
+  const [periodFilter, setPeriodFilter] = useState(() => {
+    const now = new Date()
+    return { mode: 'month', year: now.getFullYear(), month: now.getMonth() }
+  })
   const statsParams = periodToParams(periodFilter)
   const isMobile = useIsMobile()
   const { data, isLoading } = useOrderStats(statsParams)

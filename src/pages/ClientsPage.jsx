@@ -1,9 +1,11 @@
 import { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useClients, useCreateClient, useLookupCEP, useExportClients } from '../hooks/useData'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { useAuth } from '../context/AuthContext'
 import {
   Search, Plus, ChevronRight, Phone, Mail, MapPin, X, Loader2, Check,
-  Download, ChevronUp, ChevronDown, ChevronsUpDown, Users, UserPlus, AlertTriangle,
+  Download, Map, ChevronUp, ChevronDown, ChevronsUpDown, Users, UserPlus, AlertTriangle,
 } from 'lucide-react'
 import { formatCPF, formatPhone, formatCEP, getInitials, getAvatarColor } from '../utils/formatters'
 import { validateCPF } from '../utils/validators'
@@ -221,6 +223,9 @@ export default function ClientsPage() {
   const clients = data?.data || []
   const meta    = data?.meta || {}
   const exportClients = useExportClients()
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  const canSeeMap = user?.role === 'admin' || user?.role === 'gerente'
 
   /* métricas derivadas */
   const metrics = useMemo(() => {
@@ -307,6 +312,21 @@ export default function ClientsPage() {
                 ? <><Loader2 size={13} style={{ animation:'spin 1s linear infinite' }}/> Exportando...</>
                 : <><Download size={13}/> Exportar</>}
             </button>
+
+            {/* Mapa de origem dos clientes (admin/gerente) */}
+            {canSeeMap && (
+              <button
+                onClick={() => navigate('/clients/mapa')}
+                style={{
+                  display:'flex', alignItems:'center', justifyContent:'center', gap:6, padding:'9px 16px',
+                  background:T.surface, color:T.t2, border:`1px solid ${T.borderS}`,
+                  borderRadius:9, fontSize:13, fontWeight:500, cursor:'pointer',
+                  fontFamily:'Instrument Sans,sans-serif', whiteSpace:'nowrap',
+                }}
+              >
+                <Map size={13}/> Mapa
+              </button>
+            )}
 
             {/* Novo Cliente */}
             <button

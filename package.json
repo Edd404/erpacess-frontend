@@ -9,6 +9,8 @@
     "react-hook-form": "^7.54.2",
     "axios": "^1.7.9",
     "date-fns": "^4.1.0",
+    "leaflet": "^1.9.4",
+    "react-leaflet": "^4.2.1",
     "react-hot-toast": "^2.4.1",
     "lucide-react": "^0.468.0",
     "recharts": "^2.15.0",

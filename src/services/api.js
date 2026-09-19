@@ -50,6 +50,8 @@ export const clientService = {
   delete:     (id) => api.delete(`/clients/${id}`),
   lookupCEP:  (cep) => api.get(`/clients/cep/${cep}`),
   export:     () => api.get('/clients/export', { responseType: 'blob' }),
+  geoDistribution: (params) => api.get('/clients/geo-distribution', { params }),
+  geoBackfill: () => api.post('/clients/geo-backfill', {}, { timeout: 30000 }),
 };
 export const authService = {
   login:          (d)  => api.post('/auth/login', d),

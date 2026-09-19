@@ -20,8 +20,16 @@ const adminItem = { path:'/admin', icon:ShieldCheck, label:'Admin' }
 const pageTitles = {
   '/':           { title:'Dashboard',        sub:'Visão geral do negócio' },
   '/clients':    { title:'Clientes',         sub:'Gerenciamento de clientes' },
+  '/clients/mapa': { title:'Mapa de Clientes', sub:'Origem geográfica dos clientes' },
   '/orders':     { title:'Atendimentos',     sub:'Vendas e manutenções' },
   '/orders/new': { title:'Novo Atendimento', sub:'Registrar venda ou serviço' },
+}
+
+// Páginas "secundárias" (não são aba da navegação principal) mostram uma
+// setinha de voltar no topo, no mobile, em vez do logo — e sabem pra onde voltar.
+const backTargets = {
+  '/orders/new':   '/orders',
+  '/clients/mapa': '/clients',
 }
 
 function Avatar({ name, size=32 }) {
@@ -36,12 +44,12 @@ function Avatar({ name, size=32 }) {
 }
 
 function MobileLayout({ user, logout, location, navigate, info, T }) {
-  const isNewOrder = location.pathname === '/orders/new'
+  const backTarget = backTargets[location.pathname]
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100dvh', fontFamily:'Instrument Sans,sans-serif', background:T.bg }}>
       <header style={{ background:T.sidebar, padding:'0 16px', height:52, display:'flex', alignItems:'center', gap:12, flexShrink:0 }}>
-        {isNewOrder
-          ? <button onClick={()=>navigate('/orders')} style={{ background:'rgba(255,255,255,0.08)', border:'none', borderRadius:'50%', width:32, height:32, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', cursor:'pointer', flexShrink:0 }}>
+        {backTarget
+          ? <button onClick={()=>navigate(backTarget)} style={{ background:'rgba(255,255,255,0.08)', border:'none', borderRadius:'50%', width:32, height:32, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', cursor:'pointer', flexShrink:0 }}>
               <ArrowLeft size={16}/>
             </button>
           : <div style={{ display:'flex', alignItems:'center', gap:9, flexShrink:0 }}>

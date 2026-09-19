@@ -13,6 +13,21 @@ export const useClient = (id) =>
 export const useClientHistory = (id) =>
   useQuery({ queryKey: ['client-history', id], queryFn: () => clientService.getHistory(id).then(r => r.data.data), enabled: !!id });
 
+export const useClientsGeoDistribution = (params) =>
+  useQuery({
+    queryKey: ['clients-geo-distribution', params],
+    queryFn: () => clientService.geoDistribution(params).then(r => r.data.data),
+    enabled: !!(params?.date_from || params?.period),
+  });
+
+export const useGeoBackfill = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => clientService.geoBackfill().then(r => r.data.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['clients-geo-distribution'] }),
+  });
+};
+
 export const useCreateClient = () => {
   const qc = useQueryClient();
   return useMutation({

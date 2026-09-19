@@ -7,6 +7,7 @@ import Layout from './components/layout/Layout'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import ClientsPage from './pages/ClientsPage'
+import ClientsMapPage from './pages/ClientsMapPage'
 import OrdersPage from './pages/OrdersPage'
 import NewOrderPage from './pages/NewOrderPage'
 import ClientHistoryPage from './pages/ClientHistoryPage'
@@ -82,6 +83,11 @@ function AppInner() {
             </RoleRoute>
           }/>
           <Route path="clients"       element={<ClientsPage/>}/>
+          <Route path="clients/mapa"  element={
+            <RoleRoute roles={['admin','gerente']} redirectTo="/clients">
+              <ClientsMapPage/>
+            </RoleRoute>
+          }/>
           <Route path="orders"        element={<OrdersPage/>}/>
           <Route path="orders/new"    element={<NewOrderPage/>}/>
           <Route path="clients/:id"   element={<ClientHistoryPage/>}/>

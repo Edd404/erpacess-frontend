@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
-import { MapContainer, TileLayer, CircleMarker } from 'react-leaflet'
+import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
-import { Loader2, MapPin, RefreshCw, Users, Receipt, X } from 'lucide-react'
+import { Loader2, MapPin, RefreshCw, Users, Receipt } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useClientsGeoDistribution, useGeoBackfill } from '../hooks/useData'
 import PeriodFilter, { periodToParams } from '../components/PeriodFilter'
@@ -44,8 +44,6 @@ export default function ClientsMapPage() {
   const semLocalizacao = data?.sem_localizacao || 0
   const semCoordenadas = data?.sem_coordenadas || 0
   const temAviso = semLocalizacao > 0 || semCoordenadas > 0
-
-  const [selected, setSelected] = useState(null)
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:12, fontFamily:'Instrument Sans,sans-serif' }}>
@@ -111,8 +109,24 @@ export default function ClientsMapPage() {
         border:`1px solid ${T.border}`, position:'relative',
       }}>
         <style>{`
-          @keyframes _bairroCardIn { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:translateY(0) } }
           .leaflet-container { font-family:'Instrument Sans',sans-serif; }
+
+          /* Restilo do balão padrão do Leaflet pra combinar com o app */
+          .leaflet-popup-content-wrapper {
+            border-radius: 14px;
+            box-shadow: 0 10px 28px rgba(12,12,14,0.18);
+            padding: 0;
+          }
+          .leaflet-popup-content { margin: 0; width:auto !important; }
+          .leaflet-popup-tip-container { width:22px; height:11px; }
+          .leaflet-popup-tip { box-shadow: none; }
+          .leaflet-popup-close-button {
+            color: #9CA3AF !important;
+            font-size: 18px !important;
+            padding: 7px 8px 0 0 !important;
+            font-weight: 400 !important;
+          }
+          .leaflet-popup-close-button:hover { color: #6B7280 !important; }
         `}</style>
 
         <MapContainer center={SP_CENTER} zoom={SP_ZOOM} style={{ height:'100%', width:'100%' }} scrollWheelZoom>
@@ -120,81 +134,53 @@ export default function ClientsMapPage() {
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          {bairros.map((b) => {
-            const isSelected = selected && selected.neighborhood === b.neighborhood && selected.city === b.city && selected.state === b.state
-            return (
-              <CircleMarker
-                key={`${b.neighborhood}|${b.city}|${b.state}`}
-                center={[b.latitude, b.longitude]}
-                radius={radiusForCount(b.client_count, maxCount)}
-                pathOptions={{
-                  color: isSelected ? '#0C0C0E' : '#0047CC',
-                  weight: isSelected ? 2.5 : 1.5,
-                  fillColor: T.accent,
-                  fillOpacity: isSelected ? 0.75 : 0.5,
-                }}
-                eventHandlers={{ click: () => setSelected(b) }}
-              />
-            )
-          })}
+          {bairros.map((b) => (
+            <CircleMarker
+              key={`${b.neighborhood}|${b.city}|${b.state}`}
+              center={[b.latitude, b.longitude]}
+              radius={radiusForCount(b.client_count, maxCount)}
+              pathOptions={{ color:'#0047CC', weight:1.5, fillColor:T.accent, fillOpacity:0.5 }}
+            >
+              <Popup minWidth={200} maxWidth={240}>
+                <div style={{ fontFamily:'Instrument Sans,sans-serif', padding:'12px 14px' }}>
+                  <div style={{ fontSize:14.5, fontWeight:700, color:T.text, lineHeight:1.25 }}>
+                    {b.neighborhood}
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:4, marginTop:2, marginBottom:10 }}>
+                    <MapPin size={11} style={{ color:T.t3, flexShrink:0 }}/>
+                    <span style={{ fontSize:12, color:T.t2 }}>{b.city}/{b.state}</span>
+                  </div>
+
+                  <div style={{ display:'flex', alignItems:'center', gap:14, paddingTop:10, borderTop:`1px solid ${T.border}` }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                      <div style={{ width:24, height:24, borderRadius:7, background:T.accentL, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                        <Users size={12} style={{ color:T.accent }}/>
+                      </div>
+                      <div>
+                        <div style={{ fontSize:13, fontWeight:700, color:T.text, lineHeight:1.1 }}>{b.client_count}</div>
+                        <div style={{ fontSize:9.5, color:T.t3 }}>cliente{b.client_count !== 1 ? 's' : ''}</div>
+                      </div>
+                    </div>
+                    <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                      <div style={{ width:24, height:24, borderRadius:7, background:T.accentL, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                        <Receipt size={12} style={{ color:T.accent }}/>
+                      </div>
+                      <div>
+                        <div style={{ fontSize:13, fontWeight:700, color:T.text, lineHeight:1.1 }}>{b.order_count}</div>
+                        <div style={{ fontSize:9.5, color:T.t3 }}>{b.order_count !== 1 ? 'ordens' : 'ordem'}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop:10, paddingTop:10, borderTop:`1px solid ${T.border}` }}>
+                    <div style={{ fontSize:15, fontWeight:700, color:T.accent, lineHeight:1.1 }}>{formatBRL(b.revenue)}</div>
+                    <div style={{ fontSize:9.5, color:T.t3 }}>receita no período</div>
+                  </div>
+                </div>
+              </Popup>
+            </CircleMarker>
+          ))}
         </MapContainer>
-
-        {/* Cartão flutuante do bairro selecionado — substitui o popup padrão do Leaflet */}
-        {selected && (
-          <div style={{
-            position:'absolute', left:10, right:10, bottom:10, zIndex:1000,
-            background:T.surface, borderRadius:16, border:`1px solid ${T.border}`,
-            boxShadow:'0 10px 32px rgba(12,12,14,0.16)', padding:'14px 16px',
-            animation:'_bairroCardIn .18s ease-out',
-          }}>
-            <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:8 }}>
-              <div style={{ minWidth:0 }}>
-                <div style={{ fontSize:15, fontWeight:700, color:T.text, lineHeight:1.25, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                  {selected.neighborhood}
-                </div>
-                <div style={{ display:'flex', alignItems:'center', gap:4, marginTop:2 }}>
-                  <MapPin size={11} style={{ color:T.t3, flexShrink:0 }}/>
-                  <span style={{ fontSize:12, color:T.t2 }}>{selected.city}/{selected.state}</span>
-                </div>
-              </div>
-              <button
-                onClick={() => setSelected(null)}
-                style={{
-                  display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
-                  width:26, height:26, borderRadius:'50%', border:'none',
-                  background:T.bg, color:T.t2, cursor:'pointer',
-                }}
-              >
-                <X size={13}/>
-              </button>
-            </div>
-
-            <div style={{ display:'flex', alignItems:'center', gap:16, marginTop:12, paddingTop:12, borderTop:`1px solid ${T.border}` }}>
-              <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                <div style={{ width:26, height:26, borderRadius:8, background:T.accentL, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                  <Users size={13} style={{ color:T.accent }}/>
-                </div>
-                <div>
-                  <div style={{ fontSize:13.5, fontWeight:700, color:T.text, lineHeight:1.1 }}>{selected.client_count}</div>
-                  <div style={{ fontSize:10, color:T.t3 }}>cliente{selected.client_count !== 1 ? 's' : ''}</div>
-                </div>
-              </div>
-              <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                <div style={{ width:26, height:26, borderRadius:8, background:T.accentL, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                  <Receipt size={13} style={{ color:T.accent }}/>
-                </div>
-                <div>
-                  <div style={{ fontSize:13.5, fontWeight:700, color:T.text, lineHeight:1.1 }}>{selected.order_count}</div>
-                  <div style={{ fontSize:10, color:T.t3 }}>{selected.order_count !== 1 ? 'ordens' : 'ordem'}</div>
-                </div>
-              </div>
-              <div style={{ marginLeft:'auto', textAlign:'right' }}>
-                <div style={{ fontSize:15, fontWeight:700, color:T.accent, lineHeight:1.1 }}>{formatBRL(selected.revenue)}</div>
-                <div style={{ fontSize:10, color:T.t3 }}>no período</div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       <div style={{ fontSize:10.5, color:T.t3, textAlign:'center' }}>

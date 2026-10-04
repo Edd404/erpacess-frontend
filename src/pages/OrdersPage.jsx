@@ -9,9 +9,10 @@ import {
   Search, Download, X, Shield, Loader2, ChevronRight,
   Smartphone, Wrench, Mail, Copy, User, Pencil,
   TrendingUp, ClipboardList, Zap, CheckCheck, ChevronLeft,
-  ChevronDown, Phone, Trash2,
+  ChevronDown, Phone, Trash2, Receipt,
 } from 'lucide-react'
 import EditOrderModal from '../components/EditOrderModal'
+import NfDataModal from '../components/NfDataModal'
 import { orderService, adminService } from '../services/api'
 import toast from 'react-hot-toast'
 
@@ -579,6 +580,7 @@ function OrderDetail({ order, onClose, isAdmin, onDelete }) {
   const [editOpen,   setEditOpen]   = useState(false)
   const [copiedIMEI, setCopiedIMEI] = useState(false)
   const [resending,  setResending]  = useState(false)
+  const [nfOpen,     setNfOpen]     = useState(false)
 
   const handleResend = async () => {
     if (resending) return
@@ -1014,6 +1016,20 @@ function OrderDetail({ order, onClose, isAdmin, onDelete }) {
           )}
         </section>
 
+        {/* Dados para nota fiscal (copiar / WhatsApp) */}
+        <section style={{ margin: isAdmin ? '10px 20px 0' : '10px 20px 20px' }}>
+          <button onClick={() => setNfOpen(true)} style={{
+            width:'100%', padding:'11px 0', background:'#F0FDF4', color:'#15803D',
+            border:'1px solid #BBF7D0', borderRadius:12, cursor:'pointer',
+            fontSize:13, fontWeight:600,
+            display:'flex', alignItems:'center', justifyContent:'center', gap:7,
+            fontFamily:'Instrument Sans,sans-serif',
+          }}>
+            <Receipt size={14}/>
+            Dados para nota fiscal
+          </button>
+        </section>
+
         {/* Excluir ordem — somente admin */}
         {isAdmin && (
           <section style={{ margin:'10px 20px 20px' }}>
@@ -1034,6 +1050,10 @@ function OrderDetail({ order, onClose, isAdmin, onDelete }) {
 
       {editOpen && (
         <EditOrderModal order={order} onClose={() => setEditOpen(false)} />
+      )}
+
+      {nfOpen && (
+        <NfDataModal order={order} onClose={() => setNfOpen(false)} />
       )}
     </>
   )

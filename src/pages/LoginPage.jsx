@@ -2,6 +2,15 @@ import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react'
 
+// ── Tema do fundo do login ───────────────────────────────────────────────────
+// Para trocar de tema (Halloween, Natal, Black Friday...): suba 2 imagens em /public
+//   login-<tema>-desktop.webp   horizontal 16:9  (ex.: 1672×941)
+//   login-<tema>-mobile.webp    vertical   9:16  (ex.: 1080×1920)
+// e mude só o nome abaixo. Celular/tablet em pé usam a vertical; o resto, a horizontal.
+const LOGIN_THEME = 'halloween'
+const BG_DESKTOP  = `/login-${LOGIN_THEME}-desktop.webp`
+const BG_MOBILE   = `/login-${LOGIN_THEME}-mobile.webp`
+
 export default function LoginPage() {
   const { login } = useAuth()
   const [email, setEmail]       = useState('')
@@ -44,8 +53,7 @@ export default function LoginPage() {
   })
 
   return (
-    <div style={{
-      minHeight: '100vh',
+    <div className="login-root" style={{
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -56,18 +64,11 @@ export default function LoginPage() {
     }}>
 
       {/* ── Background image ── */}
-      <div style={{
-        position: 'absolute', inset: 0,
-        backgroundImage: 'url(/backgroundlogin.png)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-      }} />
+      <div className="login-bg" style={{ position: 'absolute', inset: 0 }} />
 
       {/* ── Dark overlay for legibility ── */}
-      <div style={{
+      <div className="login-overlay" style={{
         position: 'absolute', inset: 0,
-        background: 'linear-gradient(135deg, rgba(4,8,20,0.72) 0%, rgba(4,8,20,0.58) 50%, rgba(4,8,20,0.70) 100%)',
         backdropFilter: 'blur(1px)',
         WebkitBackdropFilter: 'blur(1px)',
       }} />
@@ -91,18 +92,6 @@ export default function LoginPage() {
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <div style={{ marginBottom: 16 }}>
-            <img
-              src="/backgroundlogin.png"
-              alt=""
-              style={{
-                width: 64, height: 64,
-                borderRadius: 18,
-                objectFit: 'cover',
-                objectPosition: 'center top',
-                border: '1px solid rgba(255,255,255,0.12)',
-                display: 'none', // hidden; usamos o ícone abaixo
-              }}
-            />
             {/* Logo mark */}
             <div style={{
               width: 60, height: 60,
@@ -257,7 +246,7 @@ export default function LoginPage() {
         {/* Footer */}
         <p style={{
           textAlign: 'center', marginTop: 20,
-          fontSize: 11, color: 'rgba(255,255,255,0.18)',
+          fontSize: 11, color: 'rgba(255,255,255,0.32)', textShadow: '0 1px 6px rgba(0,0,0,0.75)',
           letterSpacing: '0.04em',
         }}>
           © {new Date().getFullYear()} Acessphones · Todos os direitos reservados
@@ -269,6 +258,23 @@ export default function LoginPage() {
         @keyframes fadeUp  { from { opacity:0; transform:translateY(18px) } to { opacity:1; transform:translateY(0) } }
         @keyframes fadeIn  { from { opacity:0 } to { opacity:1 } }
         * { box-sizing: border-box; }
+        .login-root { min-height: 100vh; min-height: 100dvh; }
+        .login-bg {
+          background-color: #040814;
+          background-image: url(${BG_DESKTOP});
+          background-size: cover;
+          background-position: center;
+          background-repeat: no-repeat;
+        }
+        .login-overlay {
+          background: linear-gradient(135deg, rgba(4,8,20,0.72) 0%, rgba(4,8,20,0.58) 50%, rgba(4,8,20,0.70) 100%);
+        }
+        @media (orientation: portrait) {
+          .login-bg { background-image: url(${BG_MOBILE}); background-position: center bottom; }
+          .login-overlay {
+            background: linear-gradient(180deg, rgba(4,8,20,0.42) 0%, rgba(4,8,20,0.58) 22%, rgba(4,8,20,0.58) 50%, rgba(4,8,20,0.28) 100%);
+          }
+        }
         ::placeholder { color: rgba(255,255,255,0.22) !important; }
       `}</style>
     </div>

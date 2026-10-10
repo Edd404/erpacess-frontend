@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import EditOrderModal from '../components/EditOrderModal'
 import NfDataModal from '../components/NfDataModal'
+import ClientDocumentSection from '../components/ClientDocumentSection'
 import { orderService, adminService } from '../services/api'
 import toast from 'react-hot-toast'
 
@@ -968,6 +969,9 @@ function OrderDetail({ order, onClose, isAdmin, onDelete }) {
             </section>
           )
         })()}
+
+        {/* Documento do cliente (foto do RG/CNH — aparece quando a venda tem entrada/troca ou já tem foto) */}
+        {order.type !== 'manutencao' && <ClientDocumentSection order={order} />}
 
         {/* Ver perfil do cliente */}
         <section style={{ margin:'12px 20px 0' }}>

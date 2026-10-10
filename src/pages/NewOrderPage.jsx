@@ -4,6 +4,7 @@ import { useCreateOrder, useInventoryByModel } from '../hooks/useData'
 import { clientService, adminService } from '../services/api'
 import { formatCurrencyInput } from '../utils/formatters'
 import { validateIMEI } from '../utils/validators'
+import ClientDocumentUpload, { needsClientDocument } from '../components/ClientDocumentUpload'
 import {
   ArrowLeft, ChevronRight, Check, Smartphone, Wrench, Zap, CreditCard,
   Banknote, Loader2, Send, Search, AlertCircle, CheckCircle2, X, ChevronDown, User, Phone,
@@ -1132,7 +1133,7 @@ function StepAcessorio({ form, set, errors, models, accessoryModels = [] }) {
 // ── Step 3 — Pagamento ────────────────────────────────────────────────────────
 
 // ── Step 3 — Pagamento ────────────────────────────────────────────────────────
-function StepPagamento({ form, set, errors, isManut, models, accessoryModels = [], pd, setPd }) {
+function StepPagamento({ form, set, errors, isManut, models, accessoryModels = [], pd, setPd, needsDoc, clientDoc, setClientDoc, setDocBusy }) {
   const [pickerIdx, setPickerIdx] = useState(null)
 
   // Acessórios adicionados na venda
@@ -1516,6 +1517,16 @@ function StepPagamento({ form, set, errors, isManut, models, accessoryModels = [
         )
       })()}
 
+      {/* ── Documento do cliente (obrigatório com iPhone de entrada / troca) ── */}
+      {needsDoc && (
+        <ClientDocumentUpload
+          value={clientDoc}
+          onChange={setClientDoc}
+          onBusyChange={setDocBusy}
+          error={errors.client_document}
+        />
+      )}
+
       {/* Detalhes por método */}
       {cashMethods.length > 0 && (
         <div style={{ border:`1px solid ${T.ink5}`, borderRadius:12, overflow:'hidden' }}>
@@ -1811,6 +1822,12 @@ export default function NewOrderPage() {
   const set = (k, v) => { setForm(f => ({ ...f, [k]:v })); setErrors(e => ({ ...e, [k]:'' })) }
   const isManut    = form.type === 'manutencao'
 
+  // Foto do documento do cliente — obrigatória em venda com iPhone de entrada / troca
+  const [clientDoc, setClientDocState] = useState(null)   // { id, previewUrl } (id vai em document_ids)
+  const [docBusy, setDocBusy] = useState(false)
+  const setClientDoc = (v) => { setClientDocState(v); if (v) setErrors(e => ({ ...e, client_document: '' })) }
+  const needsDoc = needsClientDocument(form.type, form.payment_methods)
+
   const stepLabels = [
     { n:1, l:'Cliente' },
     { n:2, l: isManut ? 'Serviço' : 'Produto' },
@@ -1833,8 +1850,15 @@ export default function NewOrderPage() {
     if (step === 3) {
       if (!form.price) e.price = 'Informe o valor'
       if (!form.payment_methods.length) e.payment_methods = 'Selecione ao menos uma forma de pagamento'
+      if (needsDoc) {
+        if (docBusy) e.client_document = 'Aguarde o envio da foto terminar.'
+        else if (!clientDoc?.id) e.client_document = 'Anexe a foto do documento do cliente para registrar a venda.'
+      }
     }
     setErrors(e)
+    if (e.client_document) {
+      setTimeout(() => document.getElementById('client-document-field')?.scrollIntoView({ behavior:'smooth', block:'center' }), 50)
+    }
     return Object.keys(e).length === 0
   }
 
@@ -1902,6 +1926,7 @@ export default function NewOrderPage() {
       condition_sale:  !isManut ? form.condition_sale || undefined : undefined,
       accessories,
       payment_details,
+      document_ids:    needsDoc && clientDoc?.id ? [clientDoc.id] : undefined,
     })
   }
 
@@ -2006,7 +2031,7 @@ export default function NewOrderPage() {
           : <StepProduto  form={form} set={set} errors={errors} models={iphoneModels} outroModels={outroModels}/>
         )}
 
-        {step === 3 && <StepPagamento form={form} set={set} errors={errors} isManut={isManut} models={iphoneModels} accessoryModels={accessoryModels} pd={pd} setPd={setPd}/>}
+        {step === 3 && <StepPagamento form={form} set={set} errors={errors} isManut={isManut} models={iphoneModels} accessoryModels={accessoryModels} pd={pd} setPd={setPd} needsDoc={needsDoc} clientDoc={clientDoc} setClientDoc={setClientDoc} setDocBusy={setDocBusy}/>}
 
         {/* Navigation */}
         <div style={{ display:'flex', gap:10, marginTop:28, paddingTop:20, borderTop:`1px solid ${T.ink6}` }}>

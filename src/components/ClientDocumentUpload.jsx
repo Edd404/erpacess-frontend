@@ -16,7 +16,7 @@ import { compressImage, blobToDataUrl } from '../utils/imageCompress'
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Venda com aparelho recebido do cliente exige o documento (o backend também confere).
-export const DOC_REQUIRED_METHODS = ['iphone_entrada', 'troca']
+export const DOC_REQUIRED_METHODS = ['iphone_entrada']
 export const needsClientDocument = (type, paymentMethods = []) =>
   type === 'venda' && paymentMethods.some((m) => DOC_REQUIRED_METHODS.includes(m))
 

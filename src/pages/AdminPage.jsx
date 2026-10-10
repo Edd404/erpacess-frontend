@@ -5,7 +5,7 @@ import {
   Users, Smartphone, Plus, Pencil, Check, X, Eye, EyeOff,
   ShieldCheck, ShieldOff, Key, ChevronDown, Loader2,
   UserCircle, Crown, Briefcase, Database, Send, CheckCircle2, AlertCircle,
-  Package, Upload, Trash2, ChevronUp, RefreshCw,
+  Package, Upload, Trash2, ChevronUp, RefreshCw, ArrowLeftRight,
 } from 'lucide-react'
 import {
   useAdminUsers, useAdminModels,
@@ -15,6 +15,8 @@ import {
   useDeleteInventory, useImportInventory,
 } from '../hooks/useData'
 import api from '../services/api'
+import UpgradeSalesPanel, { useUpgradeSummary } from '../components/UpgradeSalesPanel'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 // ── Constantes ────────────────────────────────────────────────
 const ALL_CAPACITIES = ['16GB','32GB','64GB','128GB','256GB','512GB','1TB']
@@ -1433,10 +1435,105 @@ function InventoryPanel({ T }) {
   )
 }
 
+// ── Navegação por abas ────────────────────────────────────────
+// Dock com uma "pílula" preta que desliza até a aba ativa.
+//  • Espaço curto (celular): ícone em cima, nome embaixo, número no canto do ícone.
+//  • Com espaço (bloco ≥ 560px): ícone, nome e número lado a lado.
+// O layout responde à largura do PRÓPRIO bloco (container query), não da tela —
+// por isso não "encavala" nem no computador com a barra lateral aberta.
+const TAB_SUBTITLE = {
+  users:     'Usuários, perfis e acessos',
+  models:    'Catálogo de modelos e preços',
+  inventory: 'Aparelhos disponíveis em estoque',
+  upgrades:  'Vendas com aparelho na troca',
+  backup:    'Backup diário e restauração',
+}
+
+const ADMIN_TABS_CSS = `
+.adm-dock { container-type: inline-size; margin-bottom: 18px; }
+.adm-tabs {
+  position: relative; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+  padding: 4px; border-radius: 20px; background: #fff; border: 1px solid rgba(0,0,0,0.06);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 10px 24px -14px rgba(0,0,0,0.16);
+}
+.adm-pill {
+  position: absolute; top: 4px; bottom: 4px; left: 4px; pointer-events: none;
+  width: calc((100% - 8px) / var(--n)); border-radius: 16px; background: #0C0C0E;
+  box-shadow: 0 4px 10px -4px rgba(12,12,14,0.4);
+  transform: translateX(calc(var(--i) * 100%));
+  transition: transform .34s cubic-bezier(.32,.9,.3,1);
+}
+.adm-tab {
+  position: relative; z-index: 1; min-width: 0; min-height: 60px; padding: 8px 2px 7px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+  background: none; border: 0; border-radius: 16px; cursor: pointer;
+  font: 600 11px/1.1 'Instrument Sans', system-ui, sans-serif; letter-spacing: -0.01em;
+  color: #6B7280; transition: color .2s; -webkit-tap-highlight-color: transparent;
+}
+.adm-tab[aria-selected="true"] { color: #fff; }
+.adm-tab[aria-selected="false"]:hover { color: #111827; }
+.adm-tab:focus-visible { outline: 2px solid #0A66FF; outline-offset: -3px; }
+.adm-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-badge {
+  position: absolute; top: 5px; left: calc(50% + 6px);
+  min-width: 17px; height: 17px; padding: 0 5px; box-sizing: border-box; border-radius: 99px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums;
+  color: #374151; background: #EEF0F3; box-shadow: 0 0 0 2px #fff;
+  transition: background .2s, color .2s, box-shadow .34s;
+}
+.adm-tab[aria-selected="true"] .adm-badge { color: #0C0C0E; background: #fff; box-shadow: 0 0 0 2px #0C0C0E; }
+@container (max-width: 340px) { .adm-tab { font-size: 10px; } }
+@container (min-width: 560px) {
+  .adm-tab { flex-direction: row; gap: 8px; min-height: 48px; padding: 0 10px; font-size: 13px; }
+  .adm-badge { position: static; box-shadow: none !important; }
+}
+@media (prefers-reduced-motion: reduce) { .adm-pill, .adm-tab, .adm-badge { transition: none; } }
+`
+
+function AdminTabs({ tabs, active, onChange }) {
+  const activeIndex = Math.max(0, tabs.findIndex(t => t.k === active))
+
+  // Setas ← → (e Home/End) trocam de aba, como em qualquer barra de abas
+  const onKeyDown = (e) => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return
+    e.preventDefault()
+    let next = activeIndex
+    if (e.key === 'ArrowLeft')  next = (activeIndex - 1 + tabs.length) % tabs.length
+    if (e.key === 'ArrowRight') next = (activeIndex + 1) % tabs.length
+    if (e.key === 'Home')       next = 0
+    if (e.key === 'End')        next = tabs.length - 1
+    onChange(tabs[next].k)
+    requestAnimationFrame(() => document.getElementById(`adm-tab-${tabs[next].k}`)?.focus())
+  }
+
+  return (
+    <div className="adm-dock">
+      <div className="adm-tabs" role="tablist" aria-label="Seções da administração"
+        style={{ '--n': tabs.length, '--i': activeIndex }} onKeyDown={onKeyDown}>
+        <span className="adm-pill" aria-hidden="true"/>
+        {tabs.map(({ k, l, Icon, count }) => {
+          const on = k === active
+          return (
+            <button key={k} id={`adm-tab-${k}`} type="button" role="tab" className="adm-tab"
+              aria-selected={on} aria-controls={on ? `adm-panel-${k}` : undefined}
+              tabIndex={on ? 0 : -1} onClick={() => onChange(k)}>
+              <Icon size={19} strokeWidth={on ? 2.2 : 1.9} aria-hidden="true"/>
+              <span className="adm-label">{l}</span>
+              {count != null && <span className="adm-badge">{count}</span>}
+            </button>
+          )
+        })}
+      </div>
+      <style>{ADMIN_TABS_CSS}</style>
+    </div>
+  )
+}
+
 export default function AdminPage() {
   const { T }    = useTheme()
   const { user } = useAuth()
-  const [tab,    setTab]    = useState('users')  // 'users' | 'models' | 'inventory' | 'backup'
+  const [tab,    setTab]    = useState('users')  // 'users' | 'models' | 'inventory' | 'upgrades' | 'backup'
   const [userModal,  setUserModal]  = useState(null)  // null | {} | user obj
   const [modelModal, setModelModal] = useState(null)
 
@@ -1445,6 +1542,8 @@ export default function AdminPage() {
 
   const updateUser  = useUpdateUser()
   const updateModel = useUpdateModel()
+  const { data: upgradeSummary } = useUpgradeSummary()
+  const isMobile = useIsMobile()
 
   if (user?.role !== 'admin') {
     return (
@@ -1457,59 +1556,34 @@ export default function AdminPage() {
     )
   }
 
+  const tabs = [
+    { k:'users',     l:'Usuários', Icon:Users,          count: users.length || null },
+    { k:'models',    l:'Catálogo', Icon:Smartphone,     count: models.filter(m=>m.is_active).length || null },
+    { k:'inventory', l:'Estoque',  Icon:Package,        count: null },
+    { k:'upgrades',  l:'Upgrades', Icon:ArrowLeftRight, count: upgradeSummary?.total || null },
+    { k:'backup',    l:'Backup',   Icon:Database,       count: null },
+  ]
+
   return (
-    <div style={{ maxWidth:760, margin:'0 auto', padding:'24px 16px 40px',
+    <div style={{ maxWidth:760, margin:'0 auto', padding: isMobile ? '4px 0 32px' : '24px 16px 40px',
       fontFamily:'Instrument Sans,sans-serif' }}>
 
       {/* Header */}
-      <div style={{ marginBottom:24 }}>
-        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:4 }}>
-          <div style={{ width:40, height:40, borderRadius:12, background:'#0C0C0E',
-            display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <ShieldCheck size={20} style={{ color:'#fff' }}/>
-          </div>
-          <div>
-            <h1 style={{ margin:0, fontSize:22, fontWeight:700, letterSpacing:'-0.4px' }}>Administração</h1>
-            <p style={{ margin:0, fontSize:12, color:'#6B7280', marginTop:2 }}>Usuários e catálogo de modelos</p>
-          </div>
+      <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16 }}>
+        <div style={{ width:44, height:44, borderRadius:14, background:'#0C0C0E', flexShrink:0,
+          display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <ShieldCheck size={21} style={{ color:'#fff' }}/>
+        </div>
+        <div style={{ minWidth:0 }}>
+          <h1 style={{ margin:0, fontSize:22, fontWeight:700, letterSpacing:'-0.4px' }}>Administração</h1>
+          <p style={{ margin:'2px 0 0', fontSize:12.5, color:'#6B7280', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{TAB_SUBTITLE[tab]}</p>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display:'flex', background:'rgba(0,0,0,0.05)', borderRadius:12,
-        padding:4, marginBottom:20, gap:3 }}>
-        {[
-          { k:'users',     l:'Usuários',  Icon:Users,       count:users.length },
-          { k:'models',    l:'Catálogo',  Icon:Smartphone,  count:models.filter(m=>m.is_active).length },
-          { k:'inventory', l:'Estoque',   Icon:Package,     count:null },
-          { k:'backup',    l:'Backup',    Icon:Database,    count:null },
-        ].map(({ k, l, Icon, count }) => {
-          const active = tab === k
-          return (
-            <button key={k} onClick={()=>setTab(k)} style={{
-              flex:1, minWidth:0, padding:'9px 4px', borderRadius:9, border:'none',
-              background: active ? '#fff' : 'transparent',
-              boxShadow: active ? '0 1px 6px rgba(0,0,0,0.12)' : 'none',
-              cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:4,
-              fontFamily:'Instrument Sans,sans-serif', fontSize:12,
-              fontWeight: active ? 700 : 500, color: active ? '#0C0C0E' : '#6B7280',
-              transition:'all .15s', overflow:'hidden',
-            }}>
-              <Icon size={13} style={{ flexShrink:0 }}/>
-              <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{l}</span>
-              {count !== null && (
-                <span style={{
-                  background: active ? '#0C0C0E' : 'rgba(0,0,0,0.1)',
-                  color: active ? '#fff' : '#6B7280',
-                  borderRadius:999, padding:'1px 6px', fontSize:10, fontWeight:700, flexShrink:0,
-                }}>
-                  {count}
-                </span>
-              )}
-            </button>
-          )
-        })}
-      </div>
+      {/* Abas */}
+      <AdminTabs tabs={tabs} active={tab} onChange={setTab}/>
+
+      <div role="tabpanel" id={`adm-panel-${tab}`} aria-labelledby={`adm-tab-${tab}`}>
 
       {/* ── ABA USUÁRIOS ──────────────────────────────────────── */}
       {tab === 'users' && (
@@ -1714,6 +1788,9 @@ export default function AdminPage() {
       {/* ── ABA ESTOQUE ──────────────────────────────────────── */}
       {tab === 'inventory' && <InventoryPanel T={T}/>}
 
+      {/* ── ABA UPGRADES ─────────────────────────────────────── */}
+      {tab === 'upgrades' && <UpgradeSalesPanel/>}
+
       {/* ── ABA BACKUP ───────────────────────────────────────── */}
       {tab === 'backup' && (
         <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
@@ -1722,8 +1799,9 @@ export default function AdminPage() {
           <RestorePanel T={T}/>
         </div>
       )}
+      </div>
 
-            {/* Modals */}
+      {/* Modals */}
       {userModal  !== null && <UserModal  user={Object.keys(userModal).length  ? userModal  : null} onClose={()=>setUserModal(null)}  T={T}/>}
       {modelModal !== null && <ModelModal model={Object.keys(modelModal).length ? modelModal : null} onClose={()=>setModelModal(null)} T={T}/>}
 

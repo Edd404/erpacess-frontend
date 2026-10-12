@@ -14,6 +14,7 @@ import {
 import EditOrderModal from '../components/EditOrderModal'
 import NfDataModal from '../components/NfDataModal'
 import ClientDocumentSection from '../components/ClientDocumentSection'
+import OrderInvoiceSection from '../components/OrderInvoiceSection'
 import { orderService, adminService } from '../services/api'
 import toast from 'react-hot-toast'
 
@@ -582,6 +583,9 @@ function OrderDetail({ order, onClose, isAdmin, onDelete }) {
   const [copiedIMEI, setCopiedIMEI] = useState(false)
   const [resending,  setResending]  = useState(false)
   const [nfOpen,     setNfOpen]     = useState(false)
+  const { user } = useAuth()
+  // Nota fiscal anexada à ordem: admin e gerente (o backend também confere)
+  const canInvoice = user?.role === 'admin' || user?.role === 'gerente'
 
   const handleResend = async () => {
     if (resending) return
@@ -1021,7 +1025,7 @@ function OrderDetail({ order, onClose, isAdmin, onDelete }) {
         </section>
 
         {/* Dados para nota fiscal (copiar / WhatsApp) */}
-        <section style={{ margin: isAdmin ? '10px 20px 0' : '10px 20px 20px' }}>
+        <section style={{ margin: canInvoice ? '10px 20px 0' : '10px 20px 20px' }}>
           <button onClick={() => setNfOpen(true)} style={{
             width:'100%', padding:'11px 0', background:'#F0FDF4', color:'#15803D',
             border:'1px solid #BBF7D0', borderRadius:12, cursor:'pointer',
@@ -1033,6 +1037,9 @@ function OrderDetail({ order, onClose, isAdmin, onDelete }) {
             Dados para nota fiscal
           </button>
         </section>
+
+        {/* Nota fiscal (anexar o arquivo e enviar ao cliente) — admin e gerente */}
+        {canInvoice && <OrderInvoiceSection order={order} last={!isAdmin} />}
 
         {/* Excluir ordem — somente admin */}
         {isAdmin && (
